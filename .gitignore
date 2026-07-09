@@ -57,6 +57,7 @@ data/event_files/*.csv
 data/template_files/*.csv
 data/stashed_files/*.csv
 data/milk_files/*.csv
+data/milk/*.csv
 
 
 data/standardization_files/*.rds
@@ -66,6 +67,7 @@ data/event_files/*.rds
 data/template_files/*.rds
 data/stashed_files/*.rds
 data/milk_files/*.rds
+data/milk/*.rds
 
 data/standardization_files/*.parquet
 data/intermediate_files/*.parquet
@@ -74,6 +76,7 @@ data/event_files/*.parquet
 data/template_files/*.parquet
 data/stashed_files/*.parquet
 data/milk_files/*.parquet
+data/milk/*.parquet
 
 *.html
 
