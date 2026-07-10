@@ -72,3 +72,47 @@ The setup doc confirms, independent of this report's own empirical inference:
 - **Q3**: added a "By Alert Type" tab (does staff catch Strong Decline cows more often than Low Decline/Low ones?) alongside the existing by-treatment-group comparison.
 - **Q4**: lookback window is now **rolling**, capped at how many days NEDLAME had been live as of each lesion event, not a fixed 21 days reaching back before the system existed. Relabeled the "no group" bucket to "Never Alerted (Not in Pilot Cohort)" with an explanatory footnote, and added a lesion-type breakdown chart (by detection status: never alerted / alerted-but-missed / alerted-in-time).
 - **Q5**: the milk-trend and time-to-event plots now facet by **alert type** rather than lameness history (more informative per user feedback); the history-distribution table was converted to a labeled bar chart (count and % per bar); the separate "staff-ID/NEDAP-miss by history" table was dropped as redundant with the new Q3/Q4 alert-type breakdowns.
+
+## Round 3: validated against real DairyComp cowcards + Pulse milk data
+
+The user sent screenshots of 5 cowcards (the example IDs given after round 1) and Pulse lactation-curve graphs, and cross-checked them against the report's logic.
+
+### What the cowcards confirmed vs. corrected
+
+- **21980** (originally described as "trimmed next day with a real lesion found"): her card shows `06/04/26 FOOTRIM NONE - Trim Only`. That description was wrong — it was based on data from before the `fxn_code_lesions` bug (fix #1 above) was found. Re-checked against the fixed pipeline: it now correctly computes `trimonly=1, lesion=0` for that row, matching the cowcard exactly. Good retroactive confirmation the bug fix was right; the original example description was simply given too early, before the fix existed.
+- **10463** (originally described as "Chronic" history): re-checked against the fixed pipeline, her only lact-2 record before/at her alert is the alert-day diagnosis itself, classified `New`. The user pointed out this can't be fully adjudicated from a single screenshot since an earlier lactation's history (not shown) could still be feeding the underlying chronicity classifier — so this one is left as an open, unresolved question rather than a confirmed error. (This did prompt an explicit caveat added to Q5's intro: the history label is scoped to the *current lactation only*, by design, so it doesn't reflect issues from a prior lactation.)
+- **21479, 10059, 10247**: all three matched the report's logic and example descriptions exactly (staff `CHKLAME` the day after alert; no follow-up recorded at all after alert; never alerted despite real lesions on two separate dates, respectively).
+
+### A fourth bug found via the cowcards
+
+Cow 10247's card showed **4 separate `LAME` rows on the same date** (white line, digital dermatitis x2, a leg injury) — but `lame_data` only reflected 1 of those lesion types (`wld`). Root cause: the GitHub-fetched `fxn_collapse_lesions()` reassigns its own `data` variable to an already-one-row-per-date subset (via `slice_min(trimonly)`) *before* computing the `max()` union across that date's lesion columns — so the union ends up computed over a single row, silently dropping any lesion type that wasn't on the row `slice_min` happened to keep. **Fix:** wrote a corrected local `functions/fxn_collapse_lesions.R` (computes the union from the original, uncollapsed data) and sourced it after `fxn_load_os_fxns()`, same override pattern as the `fxn_code_lesions` fix. Verified against cow 10247: all 3 distinct lesion types now survive.
+
+### Further changes from this round
+
+- **Q3**: a `CHKLAME` on the exact same day as the NEDLAME alert now counts as staff-identified (previously fell through the gap between the strict "before" and strict "after" windows).
+- **Q4**: lesions diagnosed after a cow was already dried off are now excluded (NEDLAME's monitoring is production-linked, so a dry-cow case isn't a fair miss either way — confirmed via cow 10247's card, whose second lesion diagnosis came after her dry-off). Also switched from counting every qualifying lesion *event* to counting each cow's **first** qualifying lesion *case* only (consistent with the "first occurrence" rule used everywhere else in this report), and added explicit definitions for the three detection-status labels (Never Alerted / Alerted-Missed / Alerted-Caught-in-Time) since the user asked what they meant.
+- **Q5**: fixed the first x-axis label getting visually cut off (wrapped long category labels onto multiple lines instead of angling them, and widened the plot margin).
+- **Q1's Lactation-Stage Balance chart**: replaced with a violin + jittered dot plot (a boxplot hides the actual shape of the distribution). Tried a half-violin + half-dot ("raincloud") layout via `gghalves` first, but that package has a real incompatibility with the installed ggplot2 4.0 (a missing-argument error inside its internal `compute_layer` call) - reverted to a plain `geom_violin() + geom_jitter()`, which needs no extra dependency and still directly answers the ask ("dot plot with violin").
+- **New table**: added a "Trim Outcomes: How Many Found Nothing?" table after Q2, showing what % of each treatment group's first post-NEDLAME visit was trim-only (no lesion) vs. found something.
+- **Documentation**: added an explicit methodology note (in the Overview section) stating the "first occurrence only" rule used throughout, and clarified in Q4 that repeated codes for the *same* lesion type on one day count once, while genuinely *different* lesion types coded on the same day are each counted separately.
+
+## Round 4
+
+### Q3 table vs. chart "mismatch" - not a bug, but confusing presentation
+
+The user flagged that the "By Alert Type" table and the chart below it didn't seem to reconcile. Checked the exact underlying numbers directly: they do reconcile exactly (e.g. LOW: the table's pooled 43.3% is exactly the weighted combination of the chart's Control 43.8%/n=16 and TX 42.9%/n=14 bars — not a bug). The apparent mismatch was because a reader's quick unweighted average of the two displayed bar percentages (44% and 43% → ~43.5%) doesn't equal the true count-weighted pooled rate (43.3%), and the table only showed 1-decimal precision against the chart's 0-decimal rounding. Rather than just add an explanatory footnote, the user then pointed out the table was redundant with the chart entirely (it *is* — the chart already shows everything the table did, just split further by treatment group) — so the table was **removed outright**, and its one piece of unique value (the pooled Fisher's exact test p-value) was folded into the chart's caption instead. Root-caused this to keep in mind for future tables: don't show a pooled aggregate next to its own more-detailed breakdown side by side without labeling one as derived from the other.
+
+### Q5 history should use full lifetime data, not lactation-scoped
+
+The user was confused why "No Prior Lameness This Lactation" existed as a 4th bucket alongside the classifier's real 3 categories (New/Repeat/Chronic), and pointed out the events data has ~5 years of history available (`lame_data` goes back to 2021) — they don't care about scoping this to the current lactation.
+
+This reverses the "lactation-matching safeguard" principle applied everywhere else in this report (deliberately, per explicit instruction this time) — **for lameness history specifically**, chronicity is a lifetime concept and shouldn't reset at each freshening. Changed `history_lookup`/`valid_history` to join on `id_animal` alone (not `id_animal + lact_number`), searching a cow's entire event record for her most recent status_lesion at/before her NEDLAME alert.
+
+This didn't fully eliminate the 4th bucket on its own, though: even using the full 5-year history, ~37% of the cohort (162 of 434 cows) still have *zero* LAME/TRIM/FOOTRIM diagnosis anywhere in their life before their alert — a real fact about the herd, not an artifact of lactation-scoping. Rather than keep a 4th "never diagnosed" bucket, these cows are folded into `New` (the closest existing category — both represent "no established chronic pattern yet"), giving genuinely 3 categories as asked. This modeling choice is stated explicitly in Q5's intro text so it's not hidden.
+
+### Fourth+fifth bug: reported upstream
+
+Per the user's request, the two `os_functions` bugs (fix #1 `fxn_code_lesions`, fix #4 `fxn_collapse_lesions`) were prepared as an actual fix rather than just described:
+- Cloned `github.com/Dairy-Cow-Foot-Doc/os_functions`, created branch `fix/lesion-classification-bugs`, applied both fixes directly to the upstream files, and re-verified against real farm data using the *actual* upstream files (not the local override copies) — confirmed both issues resolved.
+- Committed and pushed the branch (push succeeded using credentials already configured in this environment — consistent with this being the user's own org).
+- `gh` CLI isn't installed in this environment, so the PR itself wasn't opened automatically (opening a PR is a visible external action better left to explicit confirmation anyway). GitHub's own push output provided a direct PR-creation link: `https://github.com/Dairy-Cow-Foot-Doc/os_functions/pull/new/fix/lesion-classification-bugs`. A ready-to-use PR description was written to `PR_DESCRIPTION.md` in the local clone for the user to paste in.

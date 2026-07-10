@@ -40,17 +40,25 @@ source(file.path('functions/fxn_read_milk_folder.R'))
 
 # GC's lame functions (fxn_collapse_lesions, fxn_trim_vars, fxn_dz_status) -
 # fetched live from GitHub, same mechanism report_explore_lame_new.qmd uses.
-# NOTE: the GitHub repo also defines its OWN fxn_code_lesions(), whose
-# `trimonly` logic only checks the *protocols* field for "NONE" - this
-# farm's routine/no-lesion trims are coded "NONE" in the *remark* field
-# instead, which the GitHub version doesn't check, so it silently
-# misclassifies every routine trim as having a lesion. The local
-# functions/fxn_code_lesions.R (already calibrated for this farm's
-# conventions) is sourced AFTER fxn_load_os_fxns() specifically so it
-# overwrites the GitHub version in the global environment.
+# Two local overrides are sourced AFTER fxn_load_os_fxns() specifically so
+# they win over the GitHub versions in the global environment:
+#  - functions/fxn_code_lesions.R: the GitHub version's `trimonly` logic
+#    only checks the *protocols* field for "NONE" - this farm's
+#    routine/no-lesion trims are coded "NONE" in the *remark* field
+#    instead, which the GitHub version doesn't check, so it silently
+#    misclassifies every routine trim as having a lesion.
+#  - functions/fxn_collapse_lesions.R: the GitHub version reassigns its
+#    own `data` variable to an already-one-row-per-date subset before
+#    computing the max() union across that date's lesion columns, so
+#    when a cow has multiple event rows on the same date coding
+#    DIFFERENT lesions, only whichever row survives the earlier
+#    reduction keeps its lesion flags - the rest are silently dropped
+#    (confirmed against a real cow with 4 same-day LAME rows: only 1 of
+#    her 3 distinct lesion types survived under the GitHub version).
 source(file.path('functions/fxn_load_os_fxns.R'))
 fxn_load_os_fxns()
 source(file.path('functions/fxn_code_lesions.R'))
+source(file.path('functions/fxn_collapse_lesions.R'))
 
 events_all <- read_parquet('data/intermediate_files/events_all_columns.parquet')
 events_formatted <- read_parquet('data/intermediate_files/events_formatted.parquet')
@@ -143,38 +151,47 @@ lame_data <- events_formatted |>
   fxn_dz_status(disease_cols = diseases, event_filter = trimonly == 0)
 
 # Each NEDLAME cow's lameness-history label as of (at/before) her first
-# NEDLAME date, restricted to the same lactation.
+# NEDLAME date, using her FULL lifetime record (all lactations - lame_data
+# goes back to 2021), not scoped to her current lactation. Unlike every
+# other join in this report, this one is intentionally NOT lactation-scoped
+# per explicit user direction: chronicity is a lifetime concept, and the
+# ~5 years of history available should be used rather than artificially
+# resetting it at each freshening.
 #
 # IMPORTANT: candidate history rows are filtered to "at/before enrollment"
 # BEFORE joining to cohort, not after (same reasoning as fxn_time_to_next()
 # above) - filtering after a left_join would silently DROP a cow from
-# `cohort` entirely (instead of correctly giving her "No Prior Lameness
-# This Lactation") whenever she has LAME/TRIM/FOOTRIM history somewhere in
-# that lactation but none of it falls at/before her first NEDLAME date. An
-# earlier version of this exact chunk had that bug and was quietly
-# dropping 49 of 434 cows (~11%) from the ENTIRE cohort - not just from
-# Q5, but from every section, since `cohort` is the shared base table.
+# `cohort` entirely instead of correctly labeling her. An earlier version
+# of this exact chunk had that bug and was quietly dropping 49 of 434 cows
+# (~11%) from the ENTIRE cohort - not just from Q5, but from every section,
+# since `cohort` is the shared base table.
 history_lookup <- lame_data |>
-  select(id_animal, lact_number, date_event, status_lesion) |>
+  select(id_animal, date_event, status_lesion) |>
   filter(!is.na(status_lesion))
 
 valid_history <- history_lookup |>
   inner_join(
     cohort |> select(id_animal, lact_number, first_nedlame_date),
-    by = c("id_animal", "lact_number")
+    by = "id_animal"
   ) |>
   filter(date_event <= first_nedlame_date) |>
   select(id_animal, lact_number, date_event, status_lesion)
 
+# A cow with literally no LAME/TRIM/FOOTRIM diagnosis anywhere in her life
+# before her NEDLAME alert (still ~37% of the cohort even using the full
+# 5-year history) has no status_lesion to inherit. Rather than invent a
+# 4th bucket for this, she's folded into "New" - the same label her
+# eventual first-ever diagnosis would get, and the closest existing
+# category to "no established chronic pattern."
 cohort <- cohort |>
   left_join(valid_history, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
   group_by(id_animal, lact_number) |>
   slice_max(date_event, n = 1, with_ties = FALSE, na_rm = FALSE) |>
   ungroup() |>
-  mutate(history_group = if_else(is.na(status_lesion), "No Prior Lameness This Lactation", status_lesion)) |>
+  mutate(history_group = if_else(is.na(status_lesion), "New", status_lesion)) |>
   select(-date_event, -status_lesion)
 
-history_levels <- c("No Prior Lameness This Lactation", "New", "Repeat", "Chronic")
+history_levels <- c("New", "Repeat", "Chronic")
 cohort <- cohort |>
   mutate(history_group = factor(history_group, levels = history_levels))
 ```
@@ -193,6 +210,8 @@ milk_resolved <- fxn_resolve_milk_to_lactation(milk_long, animal_lactations)
 # Overview
 
 `r n_tx` cows were enrolled in the **TX (Trim)** arm (`MNFRS = 1`, automatically trimmed after alert) and `r n_control` in the **Control** arm (`MNFRS = 2`, staff decide whether/when to act), based on `r nrow(first_nedlame)` cows that ever received a `NEDLAME` alert between `r format(min(first_nedlame$first_nedlame_date))` and `r format(max(first_nedlame$first_nedlame_date))`. This is a short (~5 week) history since NEDLAME is a newly-added event stream, which caps every time-window analysis below.
+
+**A methodology note that applies throughout**: wherever this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it always uses her **first** qualifying occurrence in the relevant window, not every occurrence — a cow flagged or diagnosed more than once doesn't get counted multiple times. When a single visit/date has more than one distinct lesion type coded (e.g. white line disease *and* digital dermatitis found at the same exam), each distinct type is kept; the same lesion type coded more than once on one day only counts once (see the note in Q4 for the specific chart this matters most for).
 
 ```{r}
 #| label: overview-table
@@ -313,7 +332,8 @@ milk_norm |>
 cohort |>
   filter(id_animal %in% milk_norm$id_animal) |>
   ggplot(aes(x = tx_group, y = dim_at_nedlame, fill = tx_group)) +
-  geom_boxplot() +
+  geom_violin(alpha = 0.5, color = NA, trim = FALSE) +
+  geom_jitter(width = 0.1, height = 0, alpha = 0.4, size = 1) +
   scale_fill_viridis_d() +
   theme_minimal() +
   guides(fill = "none") +
@@ -434,9 +454,33 @@ km_lesion |>
 ```
 :::
 
+## Trim Outcomes: How Many Found Nothing?
+
+Of the cows who had a first post-NEDLAME LAME/FOOTRIM/TRIM event (the "any" curve above), what fraction of those visits were trim-only (`trimonly` - no lesion coded) vs. an actual lesion found - by treatment group.
+
+```{r}
+#| label: q2-trimonly-summary
+
+q2_first_event_detail <- q2_any |>
+  filter(event_occurred == 1) |>
+  left_join(lame_data |> select(id_animal, lact_number, date_event, event, trimonly),
+            by = c("id_animal", "lact_number", "date_event"))
+
+q2_first_event_detail |>
+  group_by(tx_group) |>
+  summarize(n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100, .groups = "drop") |>
+  bind_rows(
+    q2_first_event_detail |> summarize(tx_group = "Overall", n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100)
+  ) |>
+  gt(rowname_col = "tx_group") |>
+  fmt_number(columns = pct_trimonly, decimals = 1) |>
+  cols_label(n = "N Cows With a First Event", n_trimonly = "Trim-Only (No Lesion)", pct_trimonly = "% Trim-Only") |>
+  tab_header(title = "First Post-NEDLAME Visit Outcome")
+```
+
 # Q3: % of Cows Independently Identified by Farm Staff
 
-`CHKLAME` is the event that represents farm staff independently flagging a lame cow (distinct from the automated `NEDLAME` alert). A cow counts as **staff-identified** here if she has a `CHKLAME` event, in the same lactation, either (a) in the `r 7` days before her first NEDLAME alert, or (b) any time after it — excluding cows whose post-alert `CHKLAME` came at/after she'd already been trimmed, since a trim-triggered exam isn't independent detection.
+`CHKLAME` is the event that represents farm staff independently flagging a lame cow (distinct from the automated `NEDLAME` alert). A cow counts as **staff-identified** here if she has a `CHKLAME` event, in the same lactation, either (a) in the 7 days before her first NEDLAME alert **or on the same day as it**, or (b) any time after it — excluding cows whose post-alert `CHKLAME` came at/after she'd already been trimmed, since a trim-triggered exam isn't independent detection.
 
 ```{r}
 #| label: q3-build
@@ -451,9 +495,12 @@ trims <- events_formatted |>
   select(id_animal, lact_number, date_event) |>
   distinct()
 
+# A CHKLAME on the SAME day as the NEDLAME alert counts as staff-identified
+# too (folded into the "pre-week" bucket via <= rather than <), rather than
+# falling through the gap between "before" (strict <) and "after" (strict >).
 pre_week <- cohort |>
   inner_join(chklame, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-  filter(date_event >= first_nedlame_date - 7, date_event < first_nedlame_date) |>
+  filter(date_event >= first_nedlame_date - 7, date_event <= first_nedlame_date) |>
   distinct(id_animal, lact_number)
 
 first_post_chklame <- cohort |>
@@ -511,26 +558,10 @@ q3_summary |>
 Does staff catch a cow on their own more often when the Nedap alert itself was more severe (`Strong Decline`) vs milder (`Low Decline`/`Low`)?
 
 ```{r}
-#| label: q3-alert-type-table
-
-q3_alert_summary <- staff_id |>
-  group_by(alert_type) |>
-  summarize(n = n(), n_staff_id = sum(staff_identified), pct_staff_id = mean(staff_identified) * 100, .groups = "drop") |>
-  arrange(match(alert_type, c("LOW", "LOW DECLINE", "STRONG DECLINE")))
-
-q3_alert_test <- fisher.test(table(staff_id$alert_type, staff_id$staff_identified))
-
-q3_alert_summary |>
-  gt(rowname_col = "alert_type") |>
-  fmt_number(columns = pct_staff_id, decimals = 1) |>
-  cols_label(n = "N Cows", n_staff_id = "Staff-Identified", pct_staff_id = "% Staff-Identified") |>
-  tab_header(title = "Independent Staff Identification by Alert Type") |>
-  tab_source_note(source_note = paste0("Fisher's exact test p = ", signif(q3_alert_test$p.value, 3)))
-```
-
-```{r}
 #| label: q3-alert-type-by-group-plot
 #| fig-height: 4
+
+q3_alert_test <- fisher.test(table(staff_id$alert_type, staff_id$staff_identified))
 
 staff_id |>
   mutate(alert_type = factor(alert_type, levels = c("LOW", "LOW DECLINE", "STRONG DECLINE"))) |>
@@ -538,27 +569,42 @@ staff_id |>
   summarize(pct_staff_id = mean(staff_identified) * 100, n = n(), .groups = "drop") |>
   ggplot(aes(x = alert_type, y = pct_staff_id, fill = tx_group)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6) +
-  geom_text(aes(label = paste0(round(pct_staff_id, 0), "%\n(n=", n, ")")),
+  geom_text(aes(label = paste0(round(pct_staff_id, 1), "%\n(n=", n, ")")),
             position = position_dodge(width = 0.7), vjust = -0.2, size = 3) +
   scale_fill_viridis_d() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
-  labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group") +
+  labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group",
+       caption = paste0("Fisher's exact test (alert type vs. staff-identified, pooled across treatment groups): p = ", signif(q3_alert_test$p.value, 3))) +
   theme(legend.position = "bottom")
 ```
 :::
 
-# Q4: % of Post-June-1 Lesion Events NEDAP Didn't Catch First
+# Q4: % of Post-June-1 Lesion Cases NEDAP Didn't Catch First
 
-Among `LAME` events with an identified lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged.
+Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report) — a cow diagnosed lame twice after June 1 doesn't get double-counted.
+
+Lesions diagnosed **after a cow was already dried off** are excluded entirely: NEDLAME's mobility/activity monitoring is production-linked, so a dry-cow lameness case isn't a fair "miss" to hold against it either way.
 
 NEDLAME alerting only went live on `r format(nedlame_start_date)` (per the DairyComp setup), so a fixed `r params$q4_lookback_days`-day lookback isn't fair to lesion events found in the first few weeks after go-live — there simply wasn't `r params$q4_lookback_days` days of NEDLAME history yet for NEDAP to have caught anything in. The lookback window here is **rolling**: for each lesion event it's capped at however many days NEDLAME had actually been running by that date (never more than `r params$q4_lookback_days`, but shorter for events soon after go-live), so early cases are judged against the detection window that could actually have existed, not a fixed window reaching back before the system was on.
 
 ```{r}
 #| label: q4-build
 
-lame_lesion_recent <- lame_data |>
-  filter(event == "LAME", lesion == 1, date_event >= ymd(params$history_after_date))
+lame_lesion_recent_all <- lame_data |>
+  filter(event == "LAME", lesion == 1, date_event >= ymd(params$history_after_date)) |>
+  left_join(animal_lactations |> select(id_animal, lact_number, date_dry), by = c("id_animal", "lact_number"))
+
+# exclude lesions diagnosed after the cow was already dried off
+n_excluded_dry <- sum(!is.na(lame_lesion_recent_all$date_dry) & lame_lesion_recent_all$date_event > lame_lesion_recent_all$date_dry)
+
+lame_lesion_recent <- lame_lesion_recent_all |>
+  filter(is.na(date_dry) | date_event <= date_dry) |>
+  select(-date_dry) |>
+  # first qualifying lesion case per cow-lactation only
+  group_by(id_animal, lact_number) |>
+  slice_min(date_event, n = 1, with_ties = FALSE) |>
+  ungroup()
 
 nedlame_all <- events_all |>
   filter(Event == "NEDLAME") |>
@@ -580,7 +626,7 @@ q4 <- lame_lesion_recent |>
 n_truncated_lookback <- sum(q4$lookback_days_used < params$q4_lookback_days)
 ```
 
-`r nrow(q4)` qualifying lesion events on/after `r params$history_after_date`, of which `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
+`r nrow(q4)` qualifying lesion cases on/after `r params$history_after_date` (one per cow, first diagnosis only; `r n_excluded_dry` additional cases were excluded as diagnosed after dry-off), of which `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
 
 ```{r}
 #| label: q4-table
@@ -593,14 +639,20 @@ q4 |>
   ) |>
   gt(rowname_col = "tx_group") |>
   fmt_number(columns = pct_missed, decimals = 1) |>
-  cols_label(n_lesion_events = "N Lesion Events", pct_missed = "% Not Caught by NEDAP First") |>
-  tab_header(title = paste("Lesion Events On/After", params$history_after_date)) |>
-  tab_source_note(source_note = "\"Never Alerted (Not in Pilot Cohort)\" = cows with a lesion event here that never received a NEDLAME alert at all (not just a late one) - the most complete misses, distinct from TX/Control cows who were alerted but not in time.")
+  cols_label(n_lesion_events = "N Lesion Cases", pct_missed = "% Not Caught by NEDAP First") |>
+  tab_header(title = paste("Lesion Cases On/After", params$history_after_date)) |>
+  tab_source_note(source_note = "\"Never Alerted (Not in Pilot Cohort)\" = cows with a lesion case here that never received a NEDLAME alert at all (not just a late one) - the most complete misses, distinct from TX/Control cows who were alerted but not in time.")
 ```
 
 ## What Lesions Is NEDAP Missing?
 
-Lesion types found at these events, broken out by whether NEDAP had already flagged that cow (any arm) or never alerted on her at all.
+Lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
+
+- **Never Alerted (Not in Pilot Cohort)** — this cow never received a NEDLAME alert at all, in the whole dataset. The most complete kind of miss.
+- **Alerted, Missed** — this cow did get a NEDLAME alert at some point (she's in the TX or Control cohort), but not within the lookback window before *this* lesion was found. NEDAP was watching her, just not in time for this case.
+- **Alerted, Caught in Time** — a NEDLAME alert fired within the lookback window before this lesion was diagnosed; NEDAP flagged it first.
+
+If a cow had more than one distinct lesion type diagnosed on the same day (e.g. white line disease *and* digital dermatitis at the same exam), each distinct type is counted separately here; the same lesion type coded more than once on one day only counts once.
 
 ```{r}
 #| label: q4-lesion-types
@@ -626,13 +678,13 @@ ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, 
   coord_flip() +
   scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = NULL, y = "Number of Lesion Events", fill = "NEDAP Detection Status") +
+  labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
   theme(legend.position = "bottom")
 ```
 
 # Q5: Influence of Lameness History
 
-Each cow's lameness-history label (`New` / `Repeat` / `Chronic`, from the same chronicity classifier `report_explore_lame_new.qmd` uses, or "No Prior Lameness This Lactation" if she has no prior LAME/TRIM/FOOTRIM event this lactation) is taken as of her first NEDLAME alert. With only `r nrow(cohort)` cows split across 2 treatment arms x 4 history categories, cells here are thin (some under 20) — treat this section as descriptive/exploratory, not a confirmatory subgroup test. The milk-trend and time-to-event plots below are faceted by **alert type** rather than history group, since that split turned out more informative; history's own distribution is shown just below.
+Each cow's lameness-history label (`New` / `Repeat` / `Chronic`, from the same chronicity classifier `report_explore_lame_new.qmd` uses) reflects her **full lifetime record** as of her first NEDLAME alert — `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime concept. A cow with no LAME/TRIM/FOOTRIM diagnosis anywhere in her life before her alert (still about a third of the cohort even with 5 years of history to draw on) is folded into `New`, the closest existing category to "no established chronic pattern" — there's no separate "never diagnosed" bucket. With only `r nrow(cohort)` cows split across 2 treatment arms x 3 history categories, cells here are thin (some under 20) — treat this section as descriptive/exploratory, not a confirmatory subgroup test. The milk-trend and time-to-event plots below are faceted by **alert type** rather than history group, since that split turned out more informative; history's own distribution is shown just below.
 
 ```{r}
 #| label: q5-balance-plot
@@ -643,6 +695,7 @@ cohort |>
   group_by(tx_group) |>
   mutate(pct = n / sum(n) * 100) |>
   ungroup() |>
+  mutate(history_group = fct_relabel(history_group, \(x) str_wrap(x, width = 14))) |>
   ggplot(aes(x = history_group, y = n, fill = tx_group)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6) +
   geom_text(aes(label = paste0(n, " (", round(pct, 0), "%)")),
@@ -652,7 +705,9 @@ cohort |>
   theme_minimal() +
   labs(x = NULL, y = "N Cows", fill = "Treatment Group",
        title = "Lameness-History Distribution at Enrollment") +
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = 20, hjust = 1))
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(lineheight = 0.9),
+        plot.margin = margin(10, 15, 10, 15))
 ```
 
 ## Milk Trend by Alert Type
