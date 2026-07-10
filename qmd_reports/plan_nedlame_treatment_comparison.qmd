@@ -1,0 +1,74 @@
+---
+title: "Plan: NEDLAME Alert Pilot Treatment-Comparison Report"
+subtitle: "Design record for qmd_reports/report_nedlame_treatment_comparison.qmd"
+editor: source
+format:
+ html:
+   embed-resources: true
+   toc: true
+   toc-location: left
+execute:
+    echo: false
+    message: false
+    warning: false
+---
+
+## Context
+
+The farm is piloting a Nedap-driven mobility/activity alert (`NEDLAME` event in DairyComp) intended to catch lameness earlier than routine staff observation. Cows getting a `NEDLAME` alert are split into two arms via the `MNFRS` field: **MNFRS = 1 ("TX")** cows get automatically trimmed, **MNFRS = 2 ("Control")** cows are just monitored (staff decide whether/when to act). The goal of this report is to help determine whether the Nedap alert + auto-trim protocol is worth adopting going forward — does it improve milk recovery, catch lameness earlier, and find lesions staff/routine trimming would otherwise miss, without simply duplicating what staff already catch on their own.
+
+This document records the analysis plan as approved, and notes where implementation diverged from (or refined) the original plan during build-out. The report itself lives at `qmd_reports/report_nedlame_treatment_comparison.qmd`.
+
+## Data facts established before building
+
+- `data/intermediate_files/events_all_columns.parquet` is the only intermediate file that retains `MNFRS` — it's dropped from `events_formatted.parquet`. The report reads the `_all_columns` file for anything MNFRS-related.
+- `MNFRS` drifts over a cow's life (`0` before enrollment, `1`/`2` once enrolled) but is stable across all of a given cow's `NEDLAME` rows. **Each cow's treatment group is defined from the MNFRS value on her first NEDLAME event.**
+- Empirically validated: MNFRS = 1 cows get a `FOOTRIM`/`TRIM` event within 14 days of their first NEDLAME alert 81.5% of the time, vs 42.9% for MNFRS = 2 — confirming `1 = TX (Trim)`, `2 = Control`.
+- `NEDLAME` spans only 2026-06-02 to 2026-07-07 (~5 weeks) — a brand-new event stream that caps every time-window analysis in the report. 434 cows ever alerted: 186 TX / 248 Control. `remark` (`LOW`, `LOW DECLINE`, `STRONG DECLINE`) is the alert-severity/type field.
+- `data/milk/UMN_milk_SV_MM-DD-YYYY.csv` (1,090 files) was not wired into any existing pipeline script. The record date lives only in the filename. `DMLK1` was chosen as the production variable (vs. `MILK`/`WMLK1`).
+- The "lameness history" classification (`status_lesion`: New/Repeat/Chronic) is produced by functions fetched live at render time from `github.com/Dairy-Cow-Foot-Doc/os_functions` (same mechanism `report_explore_lame_new.qmd` already uses) — reused as-is rather than vendoring a local copy.
+
+## Key design decisions (and revisions made during review/build)
+
+1. **Lactation-safe joins.** Milk rows only carry a raw `ID` (not the composite `id_animal`), and raw IDs get reused across animals over time (retagging). The milk loader (`functions/fxn_read_milk_folder.R`) resolves each milk row to a specific animal-lactation by nearest-preceding `date_fresh` rather than trusting an open-ended `date_dry` window — an initial version of this join let a stale, never-closed-out lactation from a *different, earlier* animal silently swallow a later cow's milk rows (some resulting DIM values were 800+ days). The fix picks the closest fresh date at/before the milk record and drops anything still implausibly far out (>450 DIM) as an unresolved collision. Every other join (time-to-next-event, staff-ID check, NEDAP-miss check) is scoped to `id_animal + lact_number` for the same reason.
+2. **Milk trend normalization.** Cows are flagged at very different lactation stages, so raw milk pounds aren't comparable across cows. Q1 normalizes each cow's series to % of her own pre-alert baseline (mean over the 7 days before the alert) rather than plotting absolute pounds.
+3. **Q2 "two versions."** Because MNFRS=1 cows are auto-trimmed, "time to any trim" mechanically favors TX regardless of whether a real problem exists. A second version restricts to trims/LAME events where a lesion was actually found. (In the current data these two versions come out identical — every post-NEDLAME first trim so far did find a lesion — but the code keeps both since that won't necessarily hold as more data accumulates.)
+4. **Q3 uses `CHKLAME`, not `LAME`,** as the "farm staff independently identified" signal (corrected during review — `CHKLAME` is the event that represents a staff-initiated lameness check, distinct from the Nedap-driven `NEDLAME` alert).
+5. **Q4 scope.** Interpreted literally against the original question — the denominator is *all* lesion-bearing `LAME` events after June 1st, not just cows already in the NEDLAME cohort, so it also surfaces cows NEDAP never alerted on at all, not only cows it was "late" on.
+6. **Q6 (time to culling after enrollment)** was added after initial plan review, reusing the same culling-survival pattern already in `report_explore_lame_new.qmd`, anchored on the first NEDLAME date instead of a lesion-event date.
+7. **`gtsummary`** was added to the report's package list after the first render failed — `tbl_survfit()`/`as_gt()` depend on it and it was missed in the initial plan's package list.
+8. **Q5 KM plot** needed a workaround: `ggsurvfit` only exposes a single combined `strata` column, not separate covariates, so a plot faceted by lameness-history group can't be built directly off a multi-term survival formula. The report fits one `survfit2()` per history level instead and stacks the `broom::tidy()` output before plotting.
+
+## Caveats carried into the final report
+
+- MNFRS's meaning was validated empirically, not from vendor documentation — worth double-checking against the DairyComp/NEDLAME PDF if/when available.
+- Every time-to-event and milk-trend window is capped by NEDLAME's short (~5 week) history; treat results as an early read, not a mature-pilot conclusion.
+- Q5's 2 arms x 4 history categories over 434 cows produces thin cells, and the two arms aren't perfectly balanced on prior lameness history at enrollment either — treat as descriptive/exploratory, not confirmatory.
+- Roughly 98-99% of cows had a resolvable milk baseline in the analysis window; the remainder lacked resolvable milk records in that window.
+
+## Round 2: user feedback after first review
+
+The user reviewed the first rendered report and the DairyComp NEDLAME/MNFRS setup documentation ("NEDAP Set up for DC claude.pdf") and requested the following changes, plus surfaced three real bugs in the process.
+
+### PDF confirms MNFRS/NEDLAME setup
+
+The setup doc confirms, independent of this report's own empirical inference:
+
+- `NEDLAME` is created via 3 protocols with remarks `Strong Decline`, `Low Decline`, `Low` — matching exactly the 3 `remark` values found in the data.
+- `NDTLIST` explicitly enrolls `MNFRS = 1` cows onto the trim list ("put nedap cows on trim list") — confirms `MNFRS = 1 = TX (Trim)` was correct, not just a statistical coincidence.
+- Enrollment logic differs by severity: Strong/Low Decline re-enroll after 7 days since the last alert; `Low` re-enrolls only after 90 days ("to not have chronic cows flagged all the time"). This wasn't built into the report (it only affects re-alerting cadence, not the "first alert" cohort definition used throughout), but explains why `Low` alerts are rarer relative to how common low-grade declines probably are.
+- NEDLAME go-live was ~June 1 2026 (system config), which lines up with the first observed NEDLAME event on 2026-06-02 and directly motivated the Q4 rolling-lookback fix below.
+
+### Three data-processing bugs found and fixed (all three follow the same pattern: filtering *after* a `left_join` instead of *before*, which silently drops a row instead of correctly treating it as "no match" — the fix each time was to pre-filter the candidate table, then `left_join` onto the base table so it never loses rows)
+
+1. **`fxn_code_lesions()` name collision.** The externally-fetched GitHub functions (`fxn_collapse_lesions`, `fxn_trim_vars`, `fxn_dz_status`) come bundled with their own `fxn_code_lesions()`, whose `trimonly` logic only checks the `protocols` field for `"NONE"`. This farm's routine/no-lesion trims are coded `"NONE"` in the `remark` field instead, which the GitHub version doesn't check. Because the local, correctly-calibrated `functions/fxn_code_lesions.R` was sourced *before* `fxn_load_os_fxns()`, the GitHub version silently overwrote it, so *every* LAME/FOOTRIM/TRIM row in the dataset was misclassified as having a lesion (`trimonly` was 0 and `lesion` was 1 for all 43,918 rows). This is exactly why Q2's "any trim" and "with a lesion" curves looked identical in the first draft. **Fix:** source the local file *after* `fxn_load_os_fxns()` so it wins.
+2. **Q2's time-to-next-event join.** `fxn_time_to_next()` was filtering candidate LAME/FOOTRIM/TRIM events to the valid post-NEDLAME window *after* joining them onto the cohort. A cow with candidate events somewhere in her history but *none* inside the valid window would have all her joined rows filtered out and vanish from the analysis entirely, instead of being correctly counted as censored. This was quietly excluding ~45% of cows from the "any event" curve (and a different subset from the "with lesion" curve) — a second, independent reason the two Q2 curves looked identical.
+3. **The lameness-history join.** Building `history_group` had the exact same bug: history rows were filtered to "at/before enrollment" *after* joining onto `cohort`, so any cow whose only lameness history in that lactation fell *after* her NEDLAME alert got dropped from `cohort` **entirely** — not just mislabeled. This corrupted the shared base table used by every section, not just Q5: 49 of 434 cows (~11%) were silently missing. Caught because Q4's group counts didn't reconcile with an independent validation script.
+
+### New/changed analysis per user request
+
+- **Q1**: added a "Milk Trend by Alert Type" facet (Strong Decline / Low Decline / Low), alongside the original treatment-group comparison.
+- **Q2**: now genuinely differs between "any trim" and "with a lesion" versions (see bug #1/#2 above) — TX median time-to-any-event is ~11 days; the "with lesion" version has too few events within the window for either arm to reach a median.
+- **Q3**: added a "By Alert Type" tab (does staff catch Strong Decline cows more often than Low Decline/Low ones?) alongside the existing by-treatment-group comparison.
+- **Q4**: lookback window is now **rolling**, capped at how many days NEDLAME had been live as of each lesion event, not a fixed 21 days reaching back before the system existed. Relabeled the "no group" bucket to "Never Alerted (Not in Pilot Cohort)" with an explanatory footnote, and added a lesion-type breakdown chart (by detection status: never alerted / alerted-but-missed / alerted-in-time).
+- **Q5**: the milk-trend and time-to-event plots now facet by **alert type** rather than lameness history (more informative per user feedback); the history-distribution table was converted to a labeled bar chart (count and % per bar); the separate "staff-ID/NEDAP-miss by history" table was dropped as redundant with the new Q3/Q4 alert-type breakdowns.
