@@ -164,3 +164,33 @@ The user, reading the rendered report, flagged two things:
 Follow-up question on Q4: for the 159 cases NEDAP didn't catch, how many were still caught independently by farm staff (a `CHKLAME` event, same signal Q3 uses, in the 7 days before or on the day of the lesion diagnosis)?
 
 Added a new subsection to Q4, "Of the Misses, Did Farm Staff Catch Them Anyway?", reusing the `chklame` object already built in Q3. **Answer: only 39 of 159 (24.5%)** — Control 3/20 (15.0%), TX 1/9 (11.1%), Never Alerted 35/130 (26.9%). In other words, roughly three-quarters of the cases NEDAP missed were *also* missed by staff independently before the lesion was formally diagnosed — the detection gap isn't being substantially closed by staff vigilance as a backstop.
+
+## Round 8: real-world calibration findings — the "miss rate" may be overstating true technology failure
+
+**Status: open, unresolved, flagged for follow-up. Do not treat Q4's current miss-rate numbers as final until this is addressed.**
+
+The user cross-checked several cow IDs (from the "staff caught it" / "both missed" example lists given for Q4) against the actual Nedap/Pulse sensor platform (locomotion-score history, not just what made it into DairyComp) and DairyComp cowcards, and emailed collaborators with findings on 4 specific cows:
+
+- **22251** — confirmed a **true miss**: no evidence of a corresponding Pulse-side flag either. This one holds up as a genuine technology gap.
+- **8512** — **NOT a true miss, a pipeline/process issue**: the user found she *was* flagged by the Nedap camera as "low and declining" on **June 22**, but there is **no NEDLAME event anywhere near June 22 in our DairyComp data** (confirmed independently from `events_all_columns.parquet` — her only NEDLAME row is 2026-06-29, a week later). The Nedap-side flag never made it into DairyComp. The user is asking Nedap/IT whether the system logs the daily CSV files sent to the farm computer, specifically wondering if the 1x/day import cadence is dropping short-duration flags.
+- **11139** — same kind of issue as 8512 (Nedap-side flag likely didn't reach DairyComp in time; her DC data shows a LAME diagnosis 2026-06-09 but no NEDLAME until 2026-07-05, 26 days later).
+- **21668** — a **different** issue: the user's hypothesis is that DairyComp's own enrollment logic excluded her due to "trim history," even though she should have been eligible. **This doesn't cleanly match the `FTDAT<-28` proxy currently implemented in Q4** — her real FOOTRIM/TRIM history (confirmed from our data) shows her last actual trim was **2025-10-16, about 9 months before** the lesion in question (2026-07-02), nowhere near the 28-day window. She does have very frequent recurring `LAME` diagnoses (white line disease, roughly monthly, `MNFRS=1`/TX the whole time) without a matching trim in between — raising the possibility that DairyComp's real `FTDAT`-style gate tracks something broader than literal `FOOTRIM`/`TRIM` events (e.g. any recent LAME-type record), not just trims specifically. **This means the current 28-day recent-trim exclusion in Q4 may be under-excluding cases that were actually DC-ineligible for a different reason than modeled.**
+
+### Why this matters for the whole report, not just these 4 cows
+
+Q4's "68.2% not caught by NEDAP" figure conflates at least three different failure modes that need to be told apart:
+1. **True technology miss** — the sensor genuinely never detected anything (like 22251).
+2. **Integration/pipeline failure** — the sensor detected it, but the flag never reached DairyComp (like 8512, 11139). This is a *data pipeline* problem, not evidence the underlying detection technology failed.
+3. **Eligibility exclusion, possibly mismodeled** — DairyComp's own enrollment rules blocked a new alert for a reason not fully captured by the current dry-off/28-day-trim proxy (like 21668).
+
+Right now Q4 can only see DairyComp's side of the story, so failure modes 1 and 2 are indistinguishable in the current report — meaning the true detection-technology miss rate is likely *lower* than 68.2%, with the gap between them representing pipeline losses, not sensor failures.
+
+### Requested next step (user's action item, in progress)
+
+The user is requesting the **raw Nedap/Pulse flag history from January 1 to present** (from Nedap/IT) — the actual sensor-side flags, independent of whether they made it into DairyComp. Once that's available:
+
+- **Rebuild Q4 with a 3-way (not 2-way) detection breakdown per case**: sensor never flagged / sensor flagged but didn't reach DC / sensor flagged and reached DC (current "caught"). This decomposes the current miss rate into a true-technology-miss rate and a separate pipeline-loss rate — likely the single most valuable addition to this analysis once the data exists.
+- **Re-derive the actual `FTDAT` field definition** rather than continuing to guess from the PDF's literal syntax — ask the farm's DairyComp support (or check the item's formula directly via `ALTER\2` in DC) what `FTDAT` actually computes from. 21668 suggests it isn't simply "days since last FOOTRIM/TRIM."
+- Once the true rule is known, re-run the recent-trim exclusion in Q4 against it and check whether the excluded-case count (currently 15) changes.
+
+This is exactly the kind of finding worth designing the 3-arm follow-up study around — e.g. instrumenting the Nedap→DairyComp integration itself (logging every raw flag with a timestamp, independent of DC import) from day one, rather than discovering pipeline losses after the fact via manual cowcard spot-checks.

@@ -17,6 +17,7 @@ params:
   milk_baseline_days: 7
   q4_lookback_days: 21
   history_after_date: "2026-06-01"
+  recent_trim_suppression_days: 28
 ---
 
 ```{r}
@@ -460,7 +461,7 @@ km_lesion |>
 
 ## Trim Outcomes: How Many Found Nothing?
 
-Of the cows who had a first post-NEDLAME LAME/FOOTRIM/TRIM event (the "any" curve above), what fraction of those visits were trim-only (`trimonly` - no lesion coded) vs. an actual lesion found - by treatment group.
+Of the cows who had a first post-NEDLAME LAME/FOOTRIM/TRIM event (the "any" curve above), what fraction of those visits were trim-only (`trimonly` - no lesion coded) vs. an actual lesion found - by treatment group. **This table's population is only the `r nrow(cohort)`-cow NEDLAME cohort, narrowed further to those with an event inside their short post-alert observation window** — it is not the same population as Q4 below, which pulls lesion cases from the whole herd (including cows never alerted at all) with no such window restriction. Any apparent overlap between a count here and a count in Q4 is coincidental, not the same set of cows.
 
 ```{r}
 #| label: q2-trimonly-summary
@@ -585,23 +586,56 @@ staff_id |>
 
 Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report) — a cow diagnosed lame twice after June 1 doesn't get double-counted.
 
+::: {.callout-warning}
+**This section can only see DairyComp's side of the story, and a real-world spot-check found that isn't the whole story.** Manually checking cow IDs against the Nedap/Pulse platform directly (not just what landed in DairyComp) found cases where the sensor *did* flag a cow but the flag never reached DairyComp as a `NEDLAME` event (a pipeline/integration gap, not a detection failure), and at least one case where DairyComp's own eligibility rules likely excluded a cow for a reason not fully captured by the dry-off/recent-trim exclusions modeled below. **The miss rate below is best read as an upper bound on the true technology-miss rate, not a precise figure** — see the plan doc's "Round 8" for the specific examples and the follow-up needed (raw Nedap flag history) to separate true misses from pipeline losses.
+:::
+
+**This section's population is the whole herd**, not just the `r nrow(cohort)`-cow NEDLAME cohort from Q1-Q3 above — a cow who never received a NEDLAME alert at all can still show up here if she had a qualifying lesion diagnosis. This is deliberate: the question is how many real lameness cases NEDAP is catching across the herd, which necessarily includes cows it never flagged in the first place, not only the cows already in the pilot. Don't compare counts here directly against Q2/Q3's cohort-scoped counts.
+
 Lesions diagnosed **after a cow was already dried off** are excluded entirely: NEDLAME's mobility/activity monitoring is production-linked, so a dry-cow lameness case isn't a fair "miss" to hold against it either way.
+
+Lesions diagnosed **within `r params$recent_trim_suppression_days` days of the cow's previous trim** are also excluded entirely: per the DairyComp `NEDLAME` setup, a cow can't be enrolled for a new alert unless it's been more than `r params$recent_trim_suppression_days` days since her last trim (this is by design — it stops a cow from being re-flagged over and over right after she's already been addressed). Since NEDAP was structurally unable to fire an alert during that window regardless of how lame she actually was, a lesion found in that window isn't a fair "miss" either — same reasoning as the dry-off exclusion above.
 
 NEDLAME alerting only went live on `r format(nedlame_start_date)` (per the DairyComp setup), so a fixed `r params$q4_lookback_days`-day lookback isn't fair to lesion events found in the first few weeks after go-live — there simply wasn't `r params$q4_lookback_days` days of NEDLAME history yet for NEDAP to have caught anything in. The lookback window here is **rolling**: for each lesion event it's capped at however many days NEDLAME had actually been running by that date (never more than `r params$q4_lookback_days`, but shorter for events soon after go-live), so early cases are judged against the detection window that could actually have existed, not a fixed window reaching back before the system was on.
 
 ```{r}
 #| label: q4-build
 
+trims_for_suppression <- events_formatted |>
+  filter(event %in% c("FOOTRIM", "TRIM")) |>
+  select(id_animal, lact_number, trim_date = date_event) |>
+  distinct()
+
 lame_lesion_recent_all <- lame_data |>
   filter(event == "LAME", lesion == 1, date_event >= ymd(params$history_after_date)) |>
   left_join(animal_lactations |> select(id_animal, lact_number, date_dry), by = c("id_animal", "lact_number"))
 
-# exclude lesions diagnosed after the cow was already dried off
+# Days since this cow's most recent PRIOR trim, for each lesion case - computed
+# so that a case with no prior trim at all still gets exactly one row (Inf),
+# rather than a naive filter-then-min silently dropping it (see lessons-learned.md
+# in mcp_server/knowledge/ for why that pattern is dangerous).
+recent_trim_check <- lame_lesion_recent_all |>
+  select(id_animal, lact_number, date_event) |>
+  left_join(trims_for_suppression, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  mutate(days_since_trim = if_else(!is.na(trim_date) & trim_date < date_event, as.numeric(date_event - trim_date), Inf)) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(days_since_last_trim = min(days_since_trim), .groups = "drop")
+
+lame_lesion_recent_all <- lame_lesion_recent_all |>
+  left_join(recent_trim_check, by = c("id_animal", "lact_number", "date_event"))
+
+# exclude lesions diagnosed after the cow was already dried off, or diagnosed
+# while NEDAP would have been structurally suppressed by a too-recent trim
 n_excluded_dry <- sum(!is.na(lame_lesion_recent_all$date_dry) & lame_lesion_recent_all$date_event > lame_lesion_recent_all$date_dry)
+n_excluded_recent_trim <- sum(
+  lame_lesion_recent_all$days_since_last_trim <= params$recent_trim_suppression_days &
+    (is.na(lame_lesion_recent_all$date_dry) | lame_lesion_recent_all$date_event <= lame_lesion_recent_all$date_dry)
+)
 
 lame_lesion_recent <- lame_lesion_recent_all |>
   filter(is.na(date_dry) | date_event <= date_dry) |>
-  select(-date_dry) |>
+  filter(days_since_last_trim > params$recent_trim_suppression_days) |>
+  select(-date_dry, -days_since_last_trim) |>
   # first qualifying lesion case per cow-lactation only
   group_by(id_animal, lact_number) |>
   slice_min(date_event, n = 1, with_ties = FALSE) |>
@@ -627,7 +661,9 @@ q4 <- lame_lesion_recent |>
 n_truncated_lookback <- sum(q4$lookback_days_used < params$q4_lookback_days)
 ```
 
-`r nrow(q4)` qualifying lesion cases on/after `r params$history_after_date` (one per cow, first diagnosis only; `r n_excluded_dry` additional cases were excluded as diagnosed after dry-off), of which `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
+`r nrow(q4)` qualifying lesion cases on/after `r params$history_after_date` (one per cow, first diagnosis only; `r n_excluded_dry` additional cases were excluded as diagnosed after dry-off, and `r n_excluded_recent_trim` more as diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted regardless), of which `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
+
+Note: `r params$recent_trim_suppression_days` days is the more permissive of the two trim-suppression gates in the DairyComp setup (`Strong Decline`/`Low Decline` enrollment both require it; `Low` enrollment requires 90 days instead, "to not have chronic cows flagged all the time"). Since a `Strong Decline` or `Low Decline` alert could still have fired past `r params$recent_trim_suppression_days` days even if a `Low` alert specifically couldn't, using the shorter window here is the conservative choice — it likely slightly *understates* how many cases were truly NEDAP-ineligible.
 
 ```{r}
 #| label: q4-table
@@ -681,6 +717,37 @@ ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, 
   theme_minimal() +
   labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
   theme(legend.position = "bottom")
+```
+
+## Of the Misses, Did Farm Staff Catch Them Anyway?
+
+For the cases NEDAP didn't catch, this checks for a `CHKLAME` event (farm staff independently flagging a lame cow — see Q3) in the 7 days before, or on the same day as, the lesion diagnosis. A "yes" here means staff still caught the cow on their own even though NEDAP missed her; a "no" means neither NEDAP nor staff caught her before she was formally diagnosed.
+
+```{r}
+#| label: q4-staff-catch-build
+
+missed_cases <- q4 |> filter(!caught_by_nedap)
+
+staff_catch <- missed_cases |>
+  left_join(chklame, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  mutate(staff_flagged = !is.na(date_event.y) & date_event.y <= date_event.x & date_event.y >= date_event.x - 7) |>
+  group_by(id_animal, lact_number, date_event = date_event.x, tx_group) |>
+  summarize(staff_flagged = any(staff_flagged), .groups = "drop")
+```
+
+```{r}
+#| label: q4-staff-catch-table
+
+staff_catch |>
+  group_by(tx_group) |>
+  summarize(n_missed = n(), n_staff_flagged = sum(staff_flagged), pct_staff_flagged = mean(staff_flagged) * 100, .groups = "drop") |>
+  bind_rows(
+    staff_catch |> summarize(tx_group = "Overall", n_missed = n(), n_staff_flagged = sum(staff_flagged), pct_staff_flagged = mean(staff_flagged) * 100)
+  ) |>
+  gt(rowname_col = "tx_group") |>
+  fmt_number(columns = pct_staff_flagged, decimals = 1) |>
+  cols_label(n_missed = "N Missed by NEDAP", n_staff_flagged = "Also Staff-Flagged (CHKLAME)", pct_staff_flagged = "% Also Staff-Flagged") |>
+  tab_header(title = "Of NEDAP's Misses, How Many Did Staff Catch Independently?")
 ```
 
 # Q5: Influence of Lameness History
