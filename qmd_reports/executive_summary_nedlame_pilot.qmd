@@ -1,0 +1,38 @@
+---
+title: "NEDLAME Alert Pilot: Executive Summary"
+subtitle: "Key findings so far — for discussion"
+editor: source
+format:
+ html:
+   embed-resources: true
+   toc: false
+execute:
+    echo: false
+---
+
+*Figures below are drawn from `qmd_reports/report_nedlame_treatment_comparison.qmd`, which has the full methodology, caveats, and charts. This is a summary for discussion, not a standalone analysis — if the full report changes, this page needs to be regenerated to match.*
+
+## The pilot, in brief
+
+434 cows received a Nedap mobility-alert (`NEDLAME`) over a 5-week window (2026-06-02 to 2026-07-07) — the alert system's entire history to date. 186 were automatically trimmed (**TX**); 248 were left to staff's judgment (**Control**). Every finding below is an early read on a brand-new, short-running pilot — not a mature-study conclusion.
+
+## Headline findings
+
+1. **Milk production**: no clear separation between arms. Both groups show the same modest decline after the alert (~98–100% of baseline at day 0, drifting down to ~93% by day 30) — auto-trimming isn't showing a milk-recovery advantage yet, but the window is short.
+
+2. **Time to next trim/lameness event**: TX cows get a follow-up visit far sooner (50% within the observation window vs. 17% for Control) — expected, since TX auto-trims. But **about half of TX's first follow-up visits find nothing** (54.8% trim-only/no lesion, vs. 31.0% for Control's mostly staff-driven visits). The auto-trim protocol trades speed for a meaningful over-trimming rate.
+
+3. **Independent staff detection**: staff catch lame cows on their own at a similar rate regardless of arm (Control 16.5%, TX 19.4%) — the alert + auto-trim protocol isn't replacing staff vigilance, it's running alongside it. Staff catch `Strong Decline` alerts more than twice as often as `Low Decline` ones (22.0% vs. 14.1%) — worth watching as more data comes in.
+
+4. **What NEDAP is missing**: across the whole herd, **68% of lesion diagnoses since June 1 weren't caught by a NEDLAME alert first**. The overwhelming majority of that gap is cows who were **never alerted at all** (135 of 245 qualifying cases) — not cows who were alerted too late. Among cows who *were* eventually alerted, TX's arm closes the gap faster (17.9% missed vs. 38.9% for Control) — but the bigger opportunity looks like alert coverage/sensitivity, not the trim-vs-no-trim choice.
+
+5. **Lameness history**: most alerted cows (180 of 434) carry a `Chronic` history label, but that's mostly an artifact of how chronicity is defined (any 2nd+ diagnosis more than a day apart) rather than evidence of active, recurring problems — don't over-read it. Not enough cows with a `Repeat` history label (2 total) to say anything about that group.
+
+6. **Culling**: too early to tell — only 9 Control and 7 TX cows (out of 434) have been culled so far, over a 5-week window.
+
+## What this suggests for discussion
+
+- The auto-trim protocol gets cows seen faster, at the cost of trimming a lot of cows who turn out fine — worth weighing against the labor/hoof-health cost of that over-trimming rate.
+- Staff are already catching a meaningful share of lame cows on their own, alert or no alert — the pilot's main value-add may be less about replacing staff judgment and more about the cows staff *aren't* catching.
+- The single biggest gap right now is cows who never get alerted in the first place, not cows who get alerted too late — that's likely the highest-leverage place to focus if the goal is reducing missed lameness cases.
+- Everything here is based on 5 weeks of data. Time-to-event and culling findings especially will firm up (or change) with more history — worth revisiting this summary once there's a few more months on the clock.

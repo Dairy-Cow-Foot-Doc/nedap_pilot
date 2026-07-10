@@ -77,10 +77,14 @@ nedlame_start_date <- min(events_all$date_event[events_all$Event == "NEDLAME"], 
 ```{r}
 #| label: cohort
 
-# One row per cow-lactation that ever got a NEDLAME alert. Treatment group
-# is read off the MNFRS value on the FIRST NEDLAME event for that cow -
-# MNFRS is stable across a cow's NEDLAME rows even though it drifts over
-# her broader event history (0 before enrollment, 1/2 once enrolled).
+# One row per cow (id_animal) that ever got a NEDLAME alert - grouped by
+# id_animal alone since a cow only has one "first" NEDLAME ever; lact_number
+# is just whichever lactation she happened to be in at that alert, carried
+# along for the lactation-scoped joins later, not a second grouping key.
+# Treatment group is read off the MNFRS value on the FIRST NEDLAME event for
+# that cow - MNFRS is stable across a cow's NEDLAME rows even though it
+# drifts over her broader event history (0 before enrollment, 1/2 once
+# enrolled).
 first_nedlame <- events_all |>
   filter(Event == "NEDLAME") |>
   group_by(id_animal) |>
@@ -537,20 +541,20 @@ staff_id <- cohort |>
 ## By Treatment Group
 
 ```{r}
-#| label: q3-table
+#| label: q3-treatment-group-plot
+#| fig-height: 4
 
-q3_summary <- staff_id |>
+staff_id |>
   group_by(tx_group) |>
-  summarize(n = n(), n_staff_id = sum(staff_identified), pct_staff_id = mean(staff_identified) * 100, .groups = "drop")
-
-q3_test <- fisher.test(table(staff_id$tx_group, staff_id$staff_identified))
-
-q3_summary |>
-  gt(rowname_col = "tx_group") |>
-  fmt_number(columns = pct_staff_id, decimals = 1) |>
-  cols_label(n = "N Cows", n_staff_id = "Staff-Identified", pct_staff_id = "% Staff-Identified") |>
-  tab_header(title = "Independent Staff Identification (CHKLAME)") |>
-  tab_source_note(source_note = paste0("Fisher's exact test p = ", signif(q3_test$p.value, 3)))
+  summarize(pct_staff_id = mean(staff_identified) * 100, n = n(), .groups = "drop") |>
+  ggplot(aes(x = tx_group, y = pct_staff_id, fill = tx_group)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = paste0(round(pct_staff_id, 1), "%\n(n=", n, ")")), vjust = -0.2, size = 3) +
+  scale_fill_viridis_d() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  guides(fill = "none") +
+  labs(x = NULL, y = "% Staff-Identified (CHKLAME)")
 ```
 
 ## By Alert Type
@@ -560,8 +564,6 @@ Does staff catch a cow on their own more often when the Nedap alert itself was m
 ```{r}
 #| label: q3-alert-type-by-group-plot
 #| fig-height: 4
-
-q3_alert_test <- fisher.test(table(staff_id$alert_type, staff_id$staff_identified))
 
 staff_id |>
   mutate(alert_type = factor(alert_type, levels = c("LOW", "LOW DECLINE", "STRONG DECLINE"))) |>
@@ -574,8 +576,7 @@ staff_id |>
   scale_fill_viridis_d() +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
-  labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group",
-       caption = paste0("Fisher's exact test (alert type vs. staff-identified, pooled across treatment groups): p = ", signif(q3_alert_test$p.value, 3))) +
+  labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
 :::
@@ -823,12 +824,28 @@ km_cull |>
   tab_header(title = "% Culled After First NEDLAME Alert")
 ```
 
+```{r}
+#| label: mnfrs-caveat-stat
+
+# Pulled directly from Q2's own km_any object (not a separately hand-computed
+# figure) so this can't drift out of sync with the rest of the report again -
+# an earlier draft of this caveat cited a hand-typed 81.5%/42.9% figure that
+# didn't reproduce against the current pipeline once the join-order bugs
+# above were fixed.
+km_any_tidy <- broom::tidy(km_any) |>
+  mutate(tx_group_label = str_remove(strata, "^tx_group="), risk_pct = (1 - estimate) * 100)
+
+pct_trimmed_14d_tx <- km_any_tidy |> filter(tx_group_label == "TX (Trim)", time <= 14) |> slice_max(time, n = 1) |> pull(risk_pct)
+pct_trimmed_14d_control <- km_any_tidy |> filter(tx_group_label == "Control", time <= 14) |> slice_max(time, n = 1) |> pull(risk_pct)
+```
+
 # Caveats
 
-- **MNFRS coding is now confirmed from the DairyComp setup documentation**, not just inferred: the `NDTLIST` command explicitly enrolls `MNFRS = 1` cows onto the trim list ("put nedap cows on trim list"), matching the empirical pattern found here (`MNFRS = 1` cows get trimmed within 14 days of their alert 81.5% of the time vs 42.9% for `MNFRS = 2`).
+- **MNFRS coding is now confirmed from the DairyComp setup documentation**, not just inferred: the `NDTLIST` command explicitly enrolls `MNFRS = 1` cows onto the trim list ("put nedap cows on trim list"), matching the empirical pattern found here (per Q2's own KM estimate, `r round(pct_trimmed_14d_tx, 0)`% of `MNFRS = 1` cows have a subsequent LAME/FOOTRIM/TRIM event within 14 days of their alert vs `r round(pct_trimmed_14d_control, 0)`% for `MNFRS = 2`).
+- **`Chronic` here just means "not her first-ever diagnosis, and more than a day since the last one"** — the external chronicity classifier's `Repeat` vs. `Chronic` cutoff is a 1-day gap, so almost any cow with 2+ lifetime lesion diagnoses lands in `Chronic` regardless of whether those diagnoses were weeks or years apart (180 of 434 cows are `Chronic` here, only 2 are `Repeat`). Don't read `Chronic` as "actively/currently recurring" — it doesn't distinguish a cow with one old resolved case 4 years ago from one with three flare-ups this year.
 - **Two data-processing bugs were found and fixed while building this report**, both of which materially changed earlier draft results:
   1. The externally-fetched `fxn_collapse_lesions()`/`fxn_trim_vars()`/`fxn_dz_status()` functions (pulled live from GitHub) come bundled with their *own* `fxn_code_lesions()`, whose `trimonly` logic only checks the `protocols` field for "NONE" - this farm's routine/no-lesion trims are coded "NONE" in the `remark` field instead, which that version doesn't check. The GitHub function was silently overwriting this repo's own (correctly-calibrated) `functions/fxn_code_lesions.R`, so *every* LAME/FOOTRIM/TRIM row was being misclassified as having a lesion. Fixed by sourcing the local file last so it wins. This is why Q2's "any trim" and "with a lesion" curves were identical in an earlier draft.
   2. Q2's time-to-next-event join was filtering candidate events to the valid post-NEDLAME window *after* joining to the cohort rather than before, which silently dropped a cow from the analysis entirely (instead of correctly counting her as censored) whenever she had trim/LAME events somewhere in her history but none inside the valid window. This was quietly excluding ~45% of cows from the "any event" curve.
 - **Short history**: `NEDLAME` only spans `r as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))` days of data (go-live `r format(nedlame_start_date)`), capping every time-to-event and milk-trend window above — results should be treated as an early read, not a mature-pilot conclusion. Q4's lookback window is rolling for this same reason (see Q4).
-- **Small sample for Q5**: 2 treatment arms x 4 history categories over `r nrow(cohort)` cows produces thin cells; the two arms are not perfectly balanced on prior lameness history at enrollment either (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
+- **Small sample for Q5**: 2 treatment arms x 3 history categories over `r nrow(cohort)` cows produces thin cells (`Repeat` has only 2 cows total); the two arms are not perfectly balanced on prior lameness history at enrollment either (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
 - **Milk join resolution**: `r round(100 * n_milk_cows / nrow(cohort), 1)`% of cohort cows had a usable milk baseline in the analysis window; the remainder lacked resolvable milk records (e.g. dried off, sold, or outside the pulled milk-file date range).

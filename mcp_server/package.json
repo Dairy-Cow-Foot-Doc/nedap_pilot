@@ -1,0 +1,17 @@
+{
+  "name": "nedlame-rct-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server exposing validated analysis patterns and R functions from the NEDLAME treatment-comparison report, for reuse on the 3-arm RCT follow-up.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["mcp", "dairy", "rct"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  }
+}

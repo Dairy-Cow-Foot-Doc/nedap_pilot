@@ -116,3 +116,32 @@ Per the user's request, the two `os_functions` bugs (fix #1 `fxn_code_lesions`, 
 - Cloned `github.com/Dairy-Cow-Foot-Doc/os_functions`, created branch `fix/lesion-classification-bugs`, applied both fixes directly to the upstream files, and re-verified against real farm data using the *actual* upstream files (not the local override copies) — confirmed both issues resolved.
 - Committed and pushed the branch (push succeeded using credentials already configured in this environment — consistent with this being the user's own org).
 - `gh` CLI isn't installed in this environment, so the PR itself wasn't opened automatically (opening a PR is a visible external action better left to explicit confirmation anyway). GitHub's own push output provided a direct PR-creation link: `https://github.com/Dairy-Cow-Foot-Doc/os_functions/pull/new/fix/lesion-classification-bugs`. A ready-to-use PR description was written to `PR_DESCRIPTION.md` in the local clone for the user to paste in.
+
+## Round 5: moved to discussion-stage presentation, independent critical review, executive summary, MCP server
+
+### Discussion-stage cleanup
+
+- **Q3**: both tabs ("By Treatment Group" and "By Alert Type") converted to graph-only — the tables were redundant with the charts (this is what surfaced the pooled-vs-split "mismatch" in round 4 in the first place).
+- **All p-values/significance tests removed** (both Fisher's exact tests in Q3 were the only ones in the report) — per explicit instruction that this report is for internal discussion at this stage, not a confirmatory statistical conclusion. Descriptive %, counts, and KM confidence-interval ribbons are kept; formal hypothesis tests are not.
+
+### Independent critical review
+
+Rather than only self-review after 4 already-found bugs, a fresh subagent was given the full report plus context on everything already fixed and asked to critically audit it end-to-end (join correctness, boundary conditions, denominator consistency, NA handling, scope consistency, prose-vs-code mismatches). Findings:
+
+- **Confirmed and fixed**: the Caveats section still said "4 history categories" after the Q5 fix reduced it to 3 (stale text, not re-checked after the code change) — corrected to 3.
+- **Confirmed and fixed**: the Caveats' MNFRS trim-rate statistic ("81.5% vs 42.9%") was a hand-typed figure from early in the build process that didn't reproduce against the current (fully bug-fixed) pipeline under any of several plausible recomputation methods. Replaced with a live-computed figure pulled directly from Q2's own `km_any` KM object (56% vs. 20% at day 14) via a small inline chunk, so this specific number can't drift out of sync with the rest of the report again the way it just did.
+- **Surfaced, not a bug, but worth flagging to the reader**: the external chronicity classifier's `Repeat` vs. `Chronic` cutoff is a 1-day gap, so almost any cow with 2+ lifetime lesion diagnoses lands in `Chronic` regardless of recency (180 `Chronic` vs. only 2 `Repeat`, out of 434). Added a caveat so `Chronic` isn't misread as "actively/currently recurring."
+- **Minor doc fix**: a stale comment on the `cohort` chunk said "one row per cow-lactation" when the code (`group_by(id_animal)` only) produces one row per cow — reworded for accuracy.
+- Everything else the reviewer checked (the 3 previously-fixed join patterns, Q1's milk join, Q4's dry-off/rolling-lookback boundary math, Q6's cull join, the `alert_type` factor levels, the Q5 `id_animal`-only rejoin safety) came back confirmed correct — see the full review transcript if needed, not reproduced here for length.
+
+### Executive summary
+
+`qmd_reports/executive_summary_nedlame_pilot.qmd` — a short, code-free discussion document with the headline finding per question (Q1–Q6) and a "what this suggests for discussion" section, built from the final validated numbers pulled directly from the fixed pipeline (not re-derived independently, to avoid yet another two-documents-drift-apart risk).
+
+### MCP server for the 3-arm follow-up
+
+Per explicit clarification ("Model Context Protocol server," not just plain files), built `mcp_server/` — a Node.js MCP server (stdio transport, `@modelcontextprotocol/sdk`) exposing:
+- **Resources**: `lessons-learned.md` (the 4 bugs + their root causes + design choices that look like bugs but aren't) and `methodology-patterns.md` (10 patterns generalized for an N-arm study), plus the 3 trickiest validated R functions as readable resources.
+- **Tools**: `list_reusable_functions`, `get_function_source`, `get_lessons_learned`, `get_methodology_patterns`, `get_pitfall_checklist`, and `generate_treatment_group_r_code` (takes a trigger event name, group-code field, and an arm-label map of any size, and generates the cohort/treatment-group derivation R code generalized to however many arms the follow-up study has).
+
+Smoke-tested via `mcp_server/test_client.js` (a real MCP client connecting over stdio) — all 6 tools and 5 resources verified working, including generating correct 3-arm code from a test input. See `mcp_server/README.md` for what MCP is, setup, and how to register it with `claude mcp add`.
