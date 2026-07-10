@@ -1,137 +1,46 @@
-# Dairy Health Data Processing
+# NEDLAME Alert Pilot — Dairy Health Data Analysis
 
-The goal of this is to streamline initial data processing so that more
-time can be spent acting on conclusions from data rather than processing
-it. The example code below pulls 5 years of data in order to have the
-opportunity to look at trends over at least 3 years with complete
-lactations for most cows. However, depending on what you want to look
-at, a shorter time frame may be utilized.
+This repo answers one question: **is the Nedap `NEDLAME` mobility-alert pilot worth adopting?** Cows flagged by the alert are split into two arms — automatically trimmed (**TX**) vs. left to staff judgement (**Control**) — and this analysis compares them on milk production, time to follow-up, independent staff detection, and how many lameness cases the alert actually catches.
 
-## Data flow at a glance
+It started as a fork of [DairyHealthDataProcessing](https://github.com/LivestockVeterinaryResources/DairyHealthDataProcessing) (a general DairyComp-to-parquet processing pipeline, originally built for teaching) and has since grown into a specific, self-contained analysis project. The pipeline mechanics are still used under the hood — see [Underlying data pipeline](#underlying-data-pipeline) — but the reason this repo exists now is the pilot analysis, not the teaching framework.
 
-![Data flow from step0 through Milestone 5](design/step0_to_milestone_5_data_flow.svg)
+## Start here
 
-One entry point — `step0_master_processing.R` — runs a one-time pipeline
-(step1 → step2 → step3) that turns raw DairyComp exports into parquet
-artifacts in `data/intermediate_files/`. The course milestones each read one
-of those artifacts. Full walkthrough:
-[design/milestone-data-flow.md](design/milestone-data-flow.md).
+- **[qmd_reports/report_nedlame_treatment_comparison.qmd](qmd_reports/report_nedlame_treatment_comparison.qmd)** — the full analysis: milk trend, time-to-next-lameness-event, independent staff detection, alert miss-rate, lameness history, time-to-culling. Renders to `reports/qmd_reports/report_nedlame_treatment_comparison.html`.
+- **[qmd_reports/executive_summary_nedlame_pilot.qmd](qmd_reports/executive_summary_nedlame_pilot.qmd)** — a short, code-free summary of the headline findings, for discussion.
+- **[qmd_reports/plan_nedlame_treatment_comparison.qmd](qmd_reports/plan_nedlame_treatment_comparison.qmd)** — the design record: every methodology decision, every bug found (and how), and why the report is built the way it is. Read this before changing the analysis — several things that look like bugs are deliberate, and it explains why.
+- **[mcp_server/](mcp_server/)** — an MCP server packaging the validated patterns and R functions from this analysis for reuse on the 3-arm follow-up study. See its README for what MCP is and how to register it.
 
-This workflow is set up to intentionally NOT share original data files
-due to both their size and privacy. For this reason any files you put in
-the data/ subfolders will not be shared to git unless they are in the
-data/shared_files folder.
+## What's specific to this pilot (not part of the general pipeline)
 
-More details about the data structure can be found in the resources
-folder: DataProcessingDocumentation.pptx.
+- **`MNFRS`** (in `data/intermediate_files/events_all_columns.parquet` only — it's dropped from `events_formatted.parquet`) identifies the treatment arm: `1` = TX (auto-trimmed), `2` = Control. Confirmed against the farm's DairyComp `NEDLAME`/`MNFRS` setup documentation.
+- **`data/milk/`** (`UMN_milk_SV_MM-DD-YYYY.csv` files) is a milk-production data source not wired into the general pipeline's `step1a_read_in_production_data.R`. `functions/fxn_read_milk_folder.R` reads it and resolves each row's raw animal ID to a specific animal-lactation (raw IDs get reused across animals over time, so this isn't a trivial join — see the function's comments).
+- **`functions/fxn_code_lesions.R`** and **`functions/fxn_collapse_lesions.R`** are corrected local overrides of same-named functions normally fetched live from `github.com/Dairy-Cow-Foot-Doc/os_functions` (via `functions/fxn_load_os_fxns.R`). Both had real bugs that silently misclassified lesions on this farm's data — see the plan doc for details. A fix was prepared and pushed upstream (branch `fix/lesion-classification-bugs`); check whether it's been merged before assuming these local overrides are still necessary.
 
-Template files/functions can also be found in the resources folder.
-These are meant to be starter scripts for common (but non standard)
-functions
+## Underlying data pipeline
 
-------------------------------------------------------------------------
+The general mechanics (unchanged from the upstream framework): one entry point, `step0_master_processing.R`, runs a pipeline that turns raw DairyComp exports into parquet artifacts in `data/intermediate_files/`:
 
-This process is made to spend as little time as possible pulling data.\
-Therefore we will pull very granular data for all animals, and then
-filter out what we don't need later
+- `animals.parquet` — one row per unique animal
+- `animal_lactations.parquet` — one row per unique animal-lactation
+- `events_formatted.parquet` — one row per event, standardized columns (drops `MNFRS` — this pilot's code reads `events_all_columns.parquet` instead when it needs that field, see above)
+- `events_all_columns.parquet` — the untrimmed version of the above, keeps every raw column
+- `denominator_by_calendar_time_period.parquet` — animal counts per farm/lactation-group/time-period
 
--   We need the following items from Dairy Comp along with the columns
-    always generated with an events2 command in DC305 "HERDID" "ID"
-    "PEN" "REG" "EID" "CBRD"\
-    "BDAT" "EDAT" "LACT" "RC" "HDAT"\
-    "FDAT" "CDAT" "DDAT" "PODAT" "ABDAT"\
-    "VDAT" "ARDAT" "Event" "DIM" "Date"\
-    "Remark" "R" "T" "B" "Protocols" "Technician"
+To regenerate these from a fresh DairyComp pull:
 
-FIRST - Pull events from dairy comp using one option from the code
-below. Save the resulting csv file in the folder named
-**data//event_files**
+1. Pull events from DairyComp (`EVENTS\2S2000CHN #1 #2 #4 #5 #6 #11 #12 #13 #15 #28 #29 #30 #31 #32 #38 #40 #43`, or the "days back" variant) into `data/event_files/`.
+2. Optionally pull heifer data (same command + `FOR LACT=0`) into the same folder.
+3. Optionally pull production data into `data/milk_files/` — **note**: this pilot's actual milk data lives in `data/milk/` instead, in a different format; see above.
+4. Check the options at the top of `step0_master_processing.R`, then run it.
+5. Use the files in `data/intermediate_files/` (or the reports in `qmd_reports/` that already read them) from there.
 
-```         
--   Option 1 Pull 5 years in one file: EVENTS\\2S2000CHN #1 #2 #4 #5
-    #6 #11 #12 #13 #15 #28 #29 #30 #31 #32 #38 #40 #43
+`data/` subfolders aren't shared to git except `data/shared_files/` (size/privacy) — see `.gitignore`.
 
--   Option 2 pull smaller time frames using "days back" starting
-    with "S""days back" and ending with "L""days back":
-    EVENTS\\2S99L0CHN #1 #2 #4 #5 #6 #11 #12 #13 #15 #28 #29 #30 #31
-    #32 #38 #40 #43
-    
-```
+### Project paths
 
-NEXT - if you want to pull heifer data, pull the data and save in the
-**event_files** folder (you can have both heifers and cows in your
-event_files)
+Plain project-root-relative paths (e.g. `read_parquet("data/intermediate_files/animals.parquet")`); multi-part paths use base R `file.path()`. Run scripts and render reports from the project root — `_quarto.yml` sets `execute-dir: project` so Quarto documents execute from the root automatically.
 
-```         
--   Pull heifer data: EVENTS\\2S2000CHNY #1 #2 #4 #5
-    #6 #11 #12 #13 #15 #28 #29 #30 #31 #32 #38 #40 #43 FOR LACT=0
-    
-```
+## Leftover from the upstream teaching framework
 
-NEXT - if you want to look at production data, pull the data and save in
-the **data//milk_files** folder
-
-```         
--   EVENTS #1 #11 #29 #6 #13\\4S2000H
-```
-
-NEXT - Open the file names "STEP0_MASTER_PROCESSING.R" in Rstudio. Check
-to make sure
-
--   that all farm specific options are set up correctly.
-
--   Set milk import function to TRUE if pulled milk data
-
--   Set heifer import function to TRUE if pulled heifer data
-
-LAST - Run STEP0_MASTER_PROCESSING.R
-
-FINALLY - Use the files in **data//intermediate files** folder to create
-reports.
-
--   animals.parquet - each row is a unique animal
-
--   animal_lactations.parquet - each row is a unique animal lactation
-
--   events_formatted.parquet - each row is an event (animal, date, event,
-    descriptive variables). The full, untrimmed version is
-    events_all_columns.parquet.
-
--   denominator_by_calendar_time_period.parquet - each row is a count of
-    animals per location / lactation group / time period
-
-You can view example reports in the **reports folder**. They will be in
-subfolders.\
-The ones listed below are all in **qmd_reports**
-
--   report_data_dictionary.html explains variables in intermediate files
-
--   report_how_to_use_denominators.html goes through how to use the
-    denominator files
-
--   the step3_xx files are show if you want more explanation of how the
-    denominator code works
-
--   report_explore_lame_new is an example consulting report that is
-    provided as an example of how to use the intermediate files (this is
-    the current version that step0 renders; report_explore_lame is an
-    older copy).
-
-------------------------------------------------------------------------
-
-## Project paths
-
-This project uses plain **project-root-relative paths** (e.g.
-`read_parquet("data/intermediate_files/animals.parquet")`); multi-part
-paths use base R `file.path()`. There is no `{here}` dependency.
-
-For paths to resolve, run scripts and render reports from the **project
-root** — i.e., the directory containing the `.Rproj` file. RStudio
-Projects set this automatically, and `_quarto.yml` sets
-`execute-dir: project` so Quarto documents also execute from the root.
-
-------------------------------------------------------------------------
-
-Code structure details and reference documents: tidyverse style guide
-<https://style.tidyverse.org/files.html>.\
-<https://design.tidyverse.org/>
+`milestones_dairy/`, `in_development/`, and `junk/` are course/teaching material and work-in-progress scripts inherited from the upstream `DairyHealthDataProcessing` framework — not part of this pilot's analysis. `qmd_reports/report_data_dictionary.qmd`, `report_how_to_use_denominators.qmd`, and `report_explore_lame_new.qmd` (the general lameness-report template this pilot's report is modeled on) are also from the upstream framework and still useful as general-purpose references.
