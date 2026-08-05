@@ -35,6 +35,7 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+*.rmarkdown
 
 # R Environment Variables
 .Renviron
@@ -77,6 +78,10 @@ data/template_files/*.parquet
 data/stashed_files/*.parquet
 data/milk_files/*.parquet
 data/milk/*.parquet
+
+# raw Nedap sensor exports - same privacy/size reasoning as the other
+# data/ subfolders above, just not dropped into a subfolder this time
+data/*.csv
 
 *.html
 

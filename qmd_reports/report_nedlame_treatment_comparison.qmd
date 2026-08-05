@@ -587,22 +587,26 @@ staff_id |>
 Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report) — a cow diagnosed lame twice after June 1 doesn't get double-counted.
 
 ::: {.callout-warning}
-**This section can only see DairyComp's side of the story, and a real-world spot-check found that isn't the whole story.** Manually checking cow IDs against the Nedap/Pulse platform directly (not just what landed in DairyComp) found cases where the sensor *did* flag a cow but the flag never reached DairyComp as a `NEDLAME` event (a pipeline/integration gap, not a detection failure), and at least one case where DairyComp's own eligibility rules likely excluded a cow for a reason not fully captured by the dry-off/recent-trim exclusions modeled below. **The miss rate below is best read as an upper bound on the true technology-miss rate, not a precise figure** — see the plan doc's "Round 8" for the specific examples and the follow-up needed (raw Nedap flag history) to separate true misses from pipeline losses.
+**This section can only see DairyComp's side of the story, and a real-world spot-check found that isn't the whole story.** Manually checking cow IDs against the Nedap/Pulse platform directly (not just what landed in DairyComp) found cases where the sensor *did* flag a cow but the flag never reached DairyComp as a `NEDLAME` event — a pipeline/integration gap, not a detection failure, and one this section still can't see or correct for. (An earlier version of this caveat also flagged a possible eligibility-modeling gap, based on a cow whose recent-trim exclusion didn't look right - that's now been confirmed and fixed: the exclusion below correctly checks days since her last `LAME`/`FOOTRIM`/`TRIM` record of any kind, not just formal trims.) **The miss rate below is still best read as an upper bound on the true technology-miss rate, not a precise figure**, because of the unresolved pipeline-gap issue — see the plan doc's "Round 8" for the specific examples and the follow-up needed (raw Nedap flag history) to separate true misses from pipeline losses.
 :::
 
 **This section's population is the whole herd**, not just the `r nrow(cohort)`-cow NEDLAME cohort from Q1-Q3 above — a cow who never received a NEDLAME alert at all can still show up here if she had a qualifying lesion diagnosis. This is deliberate: the question is how many real lameness cases NEDAP is catching across the herd, which necessarily includes cows it never flagged in the first place, not only the cows already in the pilot. Don't compare counts here directly against Q2/Q3's cohort-scoped counts.
 
 Lesions diagnosed **after a cow was already dried off** are excluded entirely: NEDLAME's mobility/activity monitoring is production-linked, so a dry-cow lameness case isn't a fair "miss" to hold against it either way.
 
-Lesions diagnosed **within `r params$recent_trim_suppression_days` days of the cow's previous trim** are also excluded entirely: per the DairyComp `NEDLAME` setup, a cow can't be enrolled for a new alert unless it's been more than `r params$recent_trim_suppression_days` days since her last trim (this is by design — it stops a cow from being re-flagged over and over right after she's already been addressed). Since NEDAP was structurally unable to fire an alert during that window regardless of how lame she actually was, a lesion found in that window isn't a fair "miss" either — same reasoning as the dry-off exclusion above.
+Lesions diagnosed **within `r params$recent_trim_suppression_days` days of the cow's previous `LAME`, `FOOTRIM`, or `TRIM` record** are also excluded entirely: per the DairyComp `NEDLAME` setup, a cow can't be enrolled for a new alert unless it's been more than `r params$recent_trim_suppression_days` days since her last lameness-related record of any of those types — not just a formal trim (this is by design — it stops a cow from being re-flagged over and over right after she's already been identified and is being addressed). Since NEDAP was structurally unable to fire an alert during that window regardless of how lame she actually was, a lesion found in that window isn't a fair "miss" either — same reasoning as the dry-off exclusion above.
 
 NEDLAME alerting only went live on `r format(nedlame_start_date)` (per the DairyComp setup), so a fixed `r params$q4_lookback_days`-day lookback isn't fair to lesion events found in the first few weeks after go-live — there simply wasn't `r params$q4_lookback_days` days of NEDLAME history yet for NEDAP to have caught anything in. The lookback window here is **rolling**: for each lesion event it's capped at however many days NEDLAME had actually been running by that date (never more than `r params$q4_lookback_days`, but shorter for events soon after go-live), so early cases are judged against the detection window that could actually have existed, not a fixed window reaching back before the system was on.
 
 ```{r}
 #| label: q4-build
 
+# Confirmed directly with the farm: the DairyComp FTDAT gate tracks days
+# since the most recent LAME diagnosis OR trim - not trims alone. A cow
+# with frequent LAME diagnoses but no formal trim in between is just as
+# ineligible for a new alert as a recently-trimmed one.
 trims_for_suppression <- events_formatted |>
-  filter(event %in% c("FOOTRIM", "TRIM")) |>
+  filter(event %in% c("LAME", "FOOTRIM", "TRIM")) |>
   select(id_animal, lact_number, trim_date = date_event) |>
   distinct()
 

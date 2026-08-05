@@ -174,23 +174,78 @@ The user cross-checked several cow IDs (from the "staff caught it" / "both misse
 - **22251** — confirmed a **true miss**: no evidence of a corresponding Pulse-side flag either. This one holds up as a genuine technology gap.
 - **8512** — **NOT a true miss, a pipeline/process issue**: the user found she *was* flagged by the Nedap camera as "low and declining" on **June 22**, but there is **no NEDLAME event anywhere near June 22 in our DairyComp data** (confirmed independently from `events_all_columns.parquet` — her only NEDLAME row is 2026-06-29, a week later). The Nedap-side flag never made it into DairyComp. The user is asking Nedap/IT whether the system logs the daily CSV files sent to the farm computer, specifically wondering if the 1x/day import cadence is dropping short-duration flags.
 - **11139** — same kind of issue as 8512 (Nedap-side flag likely didn't reach DairyComp in time; her DC data shows a LAME diagnosis 2026-06-09 but no NEDLAME until 2026-07-05, 26 days later).
-- **21668** — a **different** issue: the user's hypothesis is that DairyComp's own enrollment logic excluded her due to "trim history," even though she should have been eligible. **This doesn't cleanly match the `FTDAT<-28` proxy currently implemented in Q4** — her real FOOTRIM/TRIM history (confirmed from our data) shows her last actual trim was **2025-10-16, about 9 months before** the lesion in question (2026-07-02), nowhere near the 28-day window. She does have very frequent recurring `LAME` diagnoses (white line disease, roughly monthly, `MNFRS=1`/TX the whole time) without a matching trim in between — raising the possibility that DairyComp's real `FTDAT`-style gate tracks something broader than literal `FOOTRIM`/`TRIM` events (e.g. any recent LAME-type record), not just trims specifically. **This means the current 28-day recent-trim exclusion in Q4 may be under-excluding cases that were actually DC-ineligible for a different reason than modeled.**
+- **21668** — a **different** issue, since resolved (see Round 9): the user's hypothesis was that DairyComp's own enrollment logic excluded her due to her recent lameness history even though her actual `FOOTRIM`/`TRIM` history (last real trim 2025-10-16, ~9 months before the lesion in question) didn't look recent enough to explain it. **Confirmed by the user: the DairyComp `FTDAT` gate tracks days since the most recent `LAME` diagnosis *or* trim, not trims alone** — 21668's very frequent recurring `LAME` diagnoses (white line disease, roughly monthly, `MNFRS=1`/TX the whole time) explain her exclusion correctly once this is accounted for. The Q4 exclusion logic has been corrected accordingly — see Round 9.
 
 ### Why this matters for the whole report, not just these 4 cows
 
-Q4's "68.2% not caught by NEDAP" figure conflates at least three different failure modes that need to be told apart:
+Q4's "68.2% not caught by NEDAP" figure (now 68.6% after Round 9's fix, essentially unchanged) conflates at least two different failure modes that need to be told apart:
 1. **True technology miss** — the sensor genuinely never detected anything (like 22251).
 2. **Integration/pipeline failure** — the sensor detected it, but the flag never reached DairyComp (like 8512, 11139). This is a *data pipeline* problem, not evidence the underlying detection technology failed.
-3. **Eligibility exclusion, possibly mismodeled** — DairyComp's own enrollment rules blocked a new alert for a reason not fully captured by the current dry-off/28-day-trim proxy (like 21668).
 
-Right now Q4 can only see DairyComp's side of the story, so failure modes 1 and 2 are indistinguishable in the current report — meaning the true detection-technology miss rate is likely *lower* than 68.2%, with the gap between them representing pipeline losses, not sensor failures.
+(A third candidate failure mode — DairyComp eligibility exclusions being mismodeled, per 21668 — turned out to be a real bug in this report rather than an ambiguity in DairyComp's own logic; see Round 9. It's fixed now, not an open conflation issue.)
+
+Right now Q4 can only see DairyComp's side of the story, so failure modes 1 and 2 are indistinguishable in the current report — meaning the true detection-technology miss rate is likely *lower* than 68.6%, with the gap between them representing pipeline losses, not sensor failures.
 
 ### Requested next step (user's action item, in progress)
 
 The user is requesting the **raw Nedap/Pulse flag history from January 1 to present** (from Nedap/IT) — the actual sensor-side flags, independent of whether they made it into DairyComp. Once that's available:
 
 - **Rebuild Q4 with a 3-way (not 2-way) detection breakdown per case**: sensor never flagged / sensor flagged but didn't reach DC / sensor flagged and reached DC (current "caught"). This decomposes the current miss rate into a true-technology-miss rate and a separate pipeline-loss rate — likely the single most valuable addition to this analysis once the data exists.
-- **Re-derive the actual `FTDAT` field definition** rather than continuing to guess from the PDF's literal syntax — ask the farm's DairyComp support (or check the item's formula directly via `ALTER\2` in DC) what `FTDAT` actually computes from. 21668 suggests it isn't simply "days since last FOOTRIM/TRIM."
-- Once the true rule is known, re-run the recent-trim exclusion in Q4 against it and check whether the excluded-case count (currently 15) changes.
+- ~~Re-derive the actual `FTDAT` field definition~~ — **done, see Round 9.**
 
 This is exactly the kind of finding worth designing the 3-arm follow-up study around — e.g. instrumenting the Nedap→DairyComp integration itself (logging every raw flag with a timestamp, independent of DC import) from day one, rather than discovering pipeline losses after the fact via manual cowcard spot-checks.
+
+## Round 9: FTDAT confirmed — it tracks LAME diagnoses too, not just trims
+
+The user confirmed directly: **`FTDAT` tracks days since the most recent `LAME`, `FOOTRIM`, *or* `TRIM` record — not trims alone.** This resolves the 21668 question from Round 8 (her frequent recurring `LAME` diagnoses, not a recent trim, were what made her ineligible for a new alert) and corrects a real gap in this report's Q4 modeling, not just an open question about DairyComp's design.
+
+**Fix**: `trims_for_suppression` (the candidate table for the recent-event exclusion in Q4) now filters `event %in% c("LAME", "FOOTRIM", "TRIM")` instead of just `c("FOOTRIM", "TRIM")`. Everything else about the exclusion (28-day window, applied before first-case selection, same `Inf`-safe days-since computation) is unchanged.
+
+**Effect on the numbers** — checked directly before editing anything:
+
+| | Before (FOOTRIM/TRIM only) | After (LAME+FOOTRIM/TRIM) |
+|---|---|---|
+| Cases excluded for recent event | 15 | 37 |
+| Final Q4 population | 233 | 220 |
+| Overall miss rate | 68.2% | 68.6% |
+| Control missed | 40.0% (n=50) | 41.3% (n=46) |
+| TX missed | 17.0% (n=53) | 16.0% (n=50) |
+| Never Alerted (still 100%) | n=130 | n=124 |
+| Staff caught the miss anyway | 24.5% | 23.8% |
+
+**Takeaway**: the corrected exclusion changes *which* 13 cases are in the analysis (more than double the recent-event exclusions), but the headline percentages barely move — the conclusions from Rounds 6-7 hold up under the corrected methodology. This is worth remembering as a general lesson: a real modeling bug doesn't always mean the headline numbers were wrong, but it should still be fixed and re-verified rather than assumed immaterial in advance.
+
+Updated everywhere this number appears: the report itself (`trims_for_suppression`, the recent-event prose, and the Q4 callout — the callout's third failure mode about "eligibility exclusion, possibly mismodeled" is now marked resolved rather than open), this plan doc, and the executive summary.
+
+## Round 10: raw Nedap attention data arrives — the Round 8 blocker's data source
+
+**Status: plan approved in part, implementation on hold pending updated data extract.**
+
+The user provided the raw Nedap/Pulse sensor data requested in Round 8: `data/SkyView_Tioga_Attentions.csv` (31,479 rows). Columns: `animal_number` (raw DC-style tag ID), `animal_uuid` (Nedap's own stable per-animal ID), `start_time_utc`/`end_time_utc`, `issue_type` (0 = low score, 1 = strong decline, 2 = low and declining — maps to this report's `LOW`/`STRONG DECLINE`/`LOW DECLINE` alert types respectively), `time_zone` (confirmed `US/Central` for 31,472 of 31,479 rows), `issue_uuid` (unique per row — confirmed each row is a discrete episode, not a repeated status ping), `is_completed`.
+
+### Exploration findings (already done, before waiting for the go-ahead)
+
+- **Coverage**: 2025-08-25 to 2026-07-16 — nearly a full year, far predating DC's NEDLAME integration (which only starts 2026-06-02). 8,377 raw attentions fall inside the pilot window (June 2+) vs. 544 DC-side `NEDLAME` events in the same window — but this raw ratio is *not* a clean pipeline-loss estimate on its own, since DC's own enrollment logic (the DSNLM 7/90-day and `FTDAT` 28/90-day cooldowns already modeled in this report) also legitimately suppresses/deduplicates repeat attentions from the same episode into a single DC alert. Any pipeline-loss estimate needs to account for that, not just diff the two raw counts.
+- **ID matching**: `animal_number` matches DC's raw `ID` directly. 23 of 3,436 `animal_number`s map to >1 `animal_uuid` (retagging), the same kind of ambiguity already solved for the milk data via nearest-preceding-fresh-date resolution (`fxn_resolve_milk_to_lactation()`) — the same pattern applies here.
+- **Direct validation against the 4 Round 8 example cows** — all four independently confirmed:
+  - **8512**: raw attention starts 2026-06-22 (issue_type=2), matching the user's own email exactly; DC's NEDLAME didn't fire until 06-29. Confirmed 7-day pipeline loss.
+  - **11139**: raw attention 2026-06-04 (same day as her actual `LAME` diagnosis); DC's NEDLAME didn't fire until 07-05 (when a second, later raw attention did get through). Confirmed pipeline loss.
+  - **22251**: before her 06-25 lesion, the raw feed only shows mild "low score" (issue_type=0) attentions, never an actual decline signal — confirms this really is a true miss, not a pipeline issue.
+  - **21668**: **zero raw attentions of any kind, ever**, in this feed — despite her frequent recurring `LAME` diagnoses. Not a DC eligibility exclusion after all (already fixed in Round 9); the sensor itself apparently never flagged her. Possibly a real limitation of decline-based detection for chronic/stable lameness (as opposed to acute new-onset decline) rather than a data issue — flagged as worth its own look once implementation resumes, separate from the pipeline-loss story.
+
+### Decisions confirmed by the user
+
+- The sensor-side lookback check (extending Q4 to a 3-way breakdown: sensor-never-fired / sensor-fired-but-lost-in-pipeline / sensor-fired-and-reached-DC) should use **the same rolling lookback window already implemented** (capped at `q4_lookback_days`, shortened near NEDLAME go-live) — no new window logic needed, just a parallel check against the raw feed using the existing window.
+- **Pre-June-2 historical data (Aug 2025–June 1 2026) should NOT be used in the current analysis.** Ideas for how it *could* be used later, for the user's approval before touching any of them:
+  1. **Retrospective sensor validation at much larger scale**: check historical `LAME` lesion diagnoses (going back to 2021 in `lame_data`, or at least back to Aug 2025 where the sensor feed starts) against raw attentions, entirely independent of DC's import pipeline — a far bigger sample than the 434-cow pilot cohort, since it's not gated by DC integration status at all.
+  2. **Typical lead time**: for historical diagnoses with a preceding raw attention, how many days of advance warning did it actually give — this estimates the technology's *ceiling* performance if the DC pipeline worked perfectly.
+  3. **False-positive/specificity rate**: how often does a raw attention fire without a subsequent diagnosis in a reasonable window — relevant to the labor cost of checking on every alert at full rollout.
+  4. **A larger-sample look at the 21668 pattern**: is "sensor never fires despite chronic/recurring diagnosis" common across other chronic cows in the historical window, or was 21668 unusual?
+- **Hold implementation entirely** — the user is extracting an updated, more recent data pull (both lesion/event data and milk data) and will signal when it's ready. Don't start building the loader function or the Q4 extension until that signal arrives, since building against data about to be superseded would be wasted/risky work.
+
+### Next steps (once the user signals new data is ready)
+
+1. Re-pull `events_all_columns.parquet`/`events_formatted.parquet` and the milk files from the fresh extract (the whole report's numbers may shift again).
+2. Build `functions/fxn_read_nedap_attentions.R` (mirrors `fxn_read_milk_folder.R`'s loader + nearest-fresh-date resolution pattern).
+3. Extend Q4 with the 3-way breakdown described above.
+4. Re-verify the whole report against the fresh data before considering any of this "done" again — given how much has shifted across Rounds 1-9, don't assume anything carries over unchanged.
