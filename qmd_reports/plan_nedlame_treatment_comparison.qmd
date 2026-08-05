@@ -442,7 +442,7 @@ Gerard noticed Q1 and Q5 each had their own "Milk Trend by Alert Type" plot — 
 
 - **Q1**: wrapped the existing by-treatment-group plot and the by-alert-type plot into a `::: panel-tabset` ("By Treatment Group" / "By Alert Type"). No numbers changed, purely a layout change.
 - **Q2**: added a third tab, "By Alert Type," to the existing panel-tabset (alongside "Time to Any Trim/LAME Event" and "...*With a Lesion*") — this is Q5's old `q5-km-plot` code, moved as-is (it already only needed `q2_any`, which Q2 builds itself, so no new dependency).
-- **Q5**: removed both alert-type-faceted plots entirely (now living in Q1/Q2). Added two new plots in their place — milk trend and time-to-next-event, both faceted by `history_group` (`New`/`Chronic` only) instead of `alert_type`. Confirmed `milk_norm` and `q2_any` already carry `history_group` (both are built from `cohort`, which gets `history_group` attached upstream in the `lesion-history-dataset` chunk) — no new joins needed.
+- **Q5**: removed both alert-type-faceted plots entirely (now living in Q1/Q2). Added two new plots in their place — milk trend and time-to-next-event, both faceted by `history_group` (`New`/`Chronic` only) instead of `alert_type`. **(Superseded in Round 17: the time-to-next-event-by-history plot was removed shortly after, on user feedback that it wasn't useful. Q5 now has one trend plot, not two.)** Confirmed `milk_norm` and `q2_any` already carry `history_group` (both are built from `cohort`, which gets `history_group` attached upstream in the `lesion-history-dataset` chunk) — no new joins needed.
 
 ### Dropping `Repeat` from Q5's trend plots
 
@@ -459,3 +459,48 @@ Not quite Gerard's exact guess (same-day duplicates) but the same underlying ide
 ### Verification
 
 Dry-ran all three new/moved chunks standalone (confirming `history_group` availability on `milk_norm`/`q2_any`, and that both `New` and `Chronic` have enough data in both arms to fit a KM curve) before the full render — no surprises.
+
+## Round 17: presentation pass, then a full audit before hand-off
+
+**Status: implemented and re-rendered.** This round covers two things that were committed without plan entries at the time, plus a formal audit.
+
+### Presentation changes (commits `cdafb29`, `55ac30b`)
+
+- **Overview**: added a `Total` column to the alert-type table; added a new **lactation-number** table (1 / 2 / 3+ by arm); consolidated all three descriptive views into one `panel-tabset`. The DIM violin chart moved here from its old standalone "Lactation-Stage Balance" spot in Q1, and **its `milk_norm` filter was dropped** — it now shows the full cohort rather than only cows with usable milk records, matching the DIM summary table beside it. That is a real scope change, not cosmetic.
+- **Q1 / Q2 / Q3**: Q1's two milk plots became a tabset; Q2 gained a third tab ("By Alert Type", moved from Q5) and confidence ribbons on it; Q3 gained an exploratory third tab (stacked bars by alert type).
+- **Q4**: forced the sensor-check legend to two rows so the longest label stops being clipped.
+- **Q5**: removed "Time to Next Trim/LAME Event by History Group" on user feedback that it wasn't informative.
+
+### Audit findings and fixes
+
+Two independent reviews (one correctness-focused, one editorial) were run against the rendered output, and every substantive claim was re-verified in R against the live data. Fixes applied:
+
+**Real errors:**
+
+1. **Executive summary quoted a statistic computed with the pre-Round-13 buggy definition.** "122 of 957 `NEDLAME` events (12.8%) fire within 14 days of a trim" used the `FOOTRIM`/`TRIM`-only definition that Round 13 established was wrong — two sentences above the paragraph explaining that very bug. Recomputed with `LAME`+`FOOTRIM`+`TRIM`: **204 of 957 (21.3%)**. The old figure understated the phenomenon by ~40%.
+2. **The "Never Alerted (Not in Pilot Cohort)" bucket was materially mis-described.** Q4's table source note called the non-pure share "a small number"; it is **42 of 230 (18%)** — cows whose only alert was excluded as a post-trim artifact. Only **188** were genuinely never alerted. A bulleted definition four lines later flatly contradicted the source note ("never received a NEDLAME alert at all, in the whole dataset"). Both now state the split, computed dynamically (`n_never_alerted_true` / `n_never_alerted_excluded`) so it can't drift. The executive summary's "59%" became **49% (188/387)**.
+3. **"Q4 is unaffected by the post-trim exclusion" was asserted twice and is only half true.** Q4's *overall* miss rate is genuinely unaffected (alerts are read from the full event log; verified 0 of the 42 were caught either way), but the **TX/Control/Never-Alerted split is affected**, because those arm labels come from `cohort` membership. Both statements corrected.
+4. **Q3's trim definition violated the report's own house rule** — `FOOTRIM`/`TRIM` only, the third occurrence of that exact mistake. Fixed to include `LAME`. Quantified impact: one cow (TX 20.6% → 20.2%); the fix is for consistency, not magnitude.
+5. **"even though she's on Activity" was asserted but never computed** — `cows_activity` was loaded and never referenced. Now actually checked (`in_activity`); the claim turns out to be true for all 18, but it is now computed rather than assumed.
+6. **Stale cross-references** to the Q5 plot removed earlier this round (intro prose and a Caveats bullet both still said "plots", plural).
+7. **Prose was looser than the code** on the exclusion window: "7 days or less after" vs. the code's strict 1-7 days (same-day alerts are deliberately kept). Corrected in both places.
+8. **Stale numbers in `mcp_server/knowledge/lessons-learned.md`** — still said "180 Chronic / 2 Repeat / 434 cows" (now 236 / 3 / 592) and repeated the "no diagnosis" vs "no event" imprecision that Round 15 fixed in the report. Both corrected there too, since that file exists to carry lessons into the 3-arm study.
+
+**Weak arguments removed:**
+
+9. **A base-rate fallacy was propping up the post-trim exclusion.** "123 of these 126 cows show a real decline signal" (97.6%) reads as corroboration, but **94.3% of the whole cohort** is decline-type — the excluded group is indistinguishable on that axis. Replaced with the check that *is* informative and was previously described as "not shown here": **81% of excluded cows had no further lameness event of any kind for the rest of that lactation**, now computed and shown.
+10. **Q4's TX-vs-Control split was being read as a treatment effect.** It is largely mechanical, for exactly the reason Q2 already flags about itself: TX cows are auto-trimmed off the alert, so the alert-triggered trim is frequently the visit at which the lesion is found, scoring the alert as "catching" it. Verified: TX generates a qualifying lesion case at **35.9%** of TX cows vs **19.1%** of Control cows, and **~half of TX's "catches" are diagnosed within 3 days** of the alert. The split rests on **7 TX vs 13 Control** misses. Added a `callout-important` to Q4 saying not to read the arm split as a treatment effect, and rewrote the executive summary's headline claim accordingly (it previously said TX "closes the gap dramatically faster").
+11. **The executive summary extrapolated past a limit the report explicitly sets** ("shouldn't be extrapolated beyond the coverage window") and recommended deprioritizing sensor sensitivity, which inverts the report's own largest finding (123 of 194 checkable misses are genuine sensor non-firings). Both rewritten.
+
+**Also:** defined the three alert types at first use in both documents (previously bare column headers, and implicitly framed as one severity ladder when they are three different triggers with different enrollment gates); removed third-person references to the analyst from the executive summary; fixed Q3 percent labels rendering as `50%` next to `14.4%`.
+
+### Known-clean (checked, nothing wrong)
+
+Tabset/callout integrity (all open and close correctly); no duplicate chunk labels; no dangling references to the removed Q5 objects; Q2's survival→risk CI flip (`1 - conf.high` / `1 - conf.low`) is correct, and its single `NA` is a legitimate tail artifact at `n.risk = 1`; Q3's stacked-bar labels map to the correct segments; the DIM chart and DIM table are now consistently full-cohort; no hidden R warnings in the render logs; and every headline number in the report reconciles against the rendered output.
+
+### Still open / deliberately not changed
+
+- **The report has almost no interpretive prose** — sections present method, then a figure, with no plain-language read of what it shows. All interpretation currently lives in the executive summary. Flagged, not fixed: the user is rewriting this content in their own words and interpretation is theirs to write.
+- **Q4's five subsections read as accreted** rather than designed; a reconciliation/waterfall table (387 → 250 → 194 → 71 → …) would resolve most of the remaining denominator confusion in one object. Recommended, not built.
+- **The plan doc's own front-matter** (above Round 1) still describes the original 434-cow / 5-week dataset in the present tense and is heavily stale. Left as-is because it reads as the original design record, but it should not be mined for current facts.
+- **How cows were assigned to TX vs Control is never stated** in any document. For a two-arm comparison read by vets, that is the first question a reader will ask, and it isn't answerable from what's written.
