@@ -148,3 +148,9 @@ step3_create_denominators_lact_dim_season_files
 
 # Shared design docs — tracked despite the *.md ignore above
 !design/*.md
+
+# MCP server knowledge base and docs — hand-authored, meant to persist
+# across sessions/projects (not Quarto build output), tracked despite
+# the *.md ignore above
+!mcp_server/README.md
+!mcp_server/knowledge/*.md

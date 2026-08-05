@@ -294,7 +294,7 @@ New subsection, placed between "What Lesions Is NEDAP Missing?" and "Of the Miss
 
 ## Round 12: excluding NEDLAME alerts that are really post-trim gait artifacts
 
-**Status: implemented and re-rendered.**
+**Status: implemented and re-rendered, but superseded by a bug fix in Round 13 (`trims_all` didn't include `LAME` events) — see Round 13 for the corrected numbers. Read this round for the reasoning/decision, but use Round 13's numbers, not the ones below.**
 
 While investigating a Q4 sensor-check example (cow 7207 — turned out not to fit this pattern, see below), Gerard raised a distinct, real methodological gap: a `NEDLAME` alert firing shortly *after* a trim isn't necessarily an independent catch — it may just be the camera picking up that cow's own post-treatment gait change (soreness, a hoof block, compensating gait). Two investigative passes confirmed this is a real, sizeable, herd-wide pattern, not a one-off:
 
@@ -331,3 +331,50 @@ Per Gerard's explicit direction: cows whose first `NEDLAME` fires **1-7 days aft
 
 1. Same as Round 11's open item: get a refreshed Nedap sensor export to extend the sensor-level check past 2026-07-16.
 2. Consider whether the same 1-7-day-after-trim logic should also gate *subsequent* (not just first-ever) `NEDLAME` alerts used anywhere else in the report — not currently needed since Q4 already checked out clean, but worth re-checking if Q4's methodology changes later.
+
+## Round 13: two more real-cowcard-caught bugs — `trims_all` missing `LAME`, and pre-fresh heifers counted as misses
+
+**Status: implemented and re-rendered. Both bugs were caught by Gerard cross-checking specific cow IDs against real cowcards — the same validation pattern that has caught every real bug in this report so far (see [[feedback-nedlame-pilot-workflow]]).**
+
+### Bug 1: Round 12's `trims_all` only checked `FOOTRIM`/`TRIM`, not `LAME`
+
+Gerard checked cow 7207's actual cowcard against the Round 12 writeup above (which used her as an example of the post-trim-artifact pattern *not* applying) and found she does fit the pattern after all: her cowcard shows `06/11/26 LAME BLKWLF/S0/B White Line`, then `06/12/26 NEDLAME STRONG DECLINE` — one day later. Round 12's `trims_all` was built as `filter(Event %in% c("FOOTRIM", "TRIM"))`, which missed this because her actual trim visit was coded as `LAME` (with the White Line lesion), not a separate `FOOTRIM`. This is the exact same class of mistake this report already caught and fixed once before, for a different chunk (Round 9's `FTDAT` correction) — **a `LAME` diagnosis visit commonly *is* the physical trim**, it just doesn't also get a separate `FOOTRIM` code that day.
+
+**Fix**: `trims_all` (in the `cohort` chunk) now includes `LAME`, `FOOTRIM`, and `TRIM` — matching the definition already used for Q4's `trims_for_suppression`. Verified cow 7207 is now correctly flagged (1 day after her trim) before re-rendering.
+
+**Effect**: exclusions grow from 81 to **126 of 718 cows** (43→72 Control, 38→54 TX), leaving a cohort of **592 (262 TX / 330 Control)**, down from Round 12's 637. 123 of the 126 show a real decline signal.
+
+### Bug 2: Q4 was counting pre-fresh heifers (`lact_number == 0`) as misses
+
+Separately, Gerard noticed cow 31377 — a `lact_number == 0` heifer who had never freshened — was showing up in Q4 as a "miss," and asked whether there were others. There were: **31 of 418 Q4 qualifying cases (7.4%) had `lact_number == 0`, and every single one was counted as a miss** (100%, since a cow who never freshened has no `date_fresh` and therefore was never in `cohort`, so she always falls into "Never Alerted"). Checked `animal_lactations` directly: every one of these 31 has `date_fresh = NA` at lact 0, confirming this herd's data represents "hasn't calved yet" exactly this way, consistently. A heifer who's never freshened was never eligible for NEDLAME's production-linked monitoring in the first place — same underlying reasoning as the existing dry-off exclusion, just at the opposite end of a lactation's life.
+
+**Fix**: Q4's `lame_lesion_recent_all` now also joins `date_fresh`, and `lame_lesion_recent` excludes any case with `is.na(date_fresh)` (pre-fresh), mirroring the dry-off exclusion's exact structure. New `n_excluded_prefresh` tracked and added to the summary sentence. Verified cow 31377 is gone from `q4` before re-rendering.
+
+**Effect**: Q4's qualifying-case count drops from 418 to **387** (31 fewer). Combined with Bug 1's cohort shrinkage (which also reclassifies some TX/Control cases in Q4 to "Never Alerted," since Q4's `tx_group` label is read off `cohort` membership), Q4's headline numbers shift more than the prefresh fix alone would suggest:
+
+| | Before (Round 12, both bugs present) | After (Round 13, both fixed) |
+|---|---|---|
+| Qualifying cases | 418 | 387 |
+| Overall % missed | 67.2% | 64.6% |
+| TX % missed (n) | 20.2% (109) | **7.4% (94)** |
+| Control % missed (n) | 44.4% (90) | **20.6% (63)** |
+| Never Alerted (n) | 219 (100%) | 230 (100%) |
+
+TX's and Control's miss rates both drop sharply — not just from removing the 31 pre-fresh cases (which land in "Never Alerted" either way), but because Bug 1's cohort shrinkage moves some TX/Control-labeled Q4 cases into "Never Alerted" too (a cow whose only `NEDLAME` was excluded as a post-trim artifact no longer has a valid `cohort` entry, so Q4 now labels her "Never Alerted" instead of her prior `tx_group`). **A new caveat was added to Q4's table source note flagging this**: "Never Alerted (Not in Pilot Cohort)" is no longer a pure "zero alerts ever" bucket — it can now include a small number of cows whose only alert was excluded from `cohort` as a likely artifact. This doesn't change the overall miss rate, but it does mean the TX/Control/Never-Alerted *split* specifically should be read knowing the boundary moved. Not restructured into a cleaner 4-way breakdown yet — flagged here for a future round if the TX-vs-Control split under Q4 gets scrutinized closely.
+
+**Sensor-level check (same section) also shifted**: 194 DC-recorded misses now fall inside the sensor export's coverage window (was 214), of which 71 (36.6%, was 33.2%) are pipeline losses and 123 (was 143) are true sensor misses.
+
+### Other numbers that moved (Q1-Q3, Q5, Q6 — supersedes Round 12's table)
+
+Cohort is now 592 (262 TX / 330 Control), down from Round 12's 637:
+
+- Milk (Q1): day-30 TX 93.8% vs Control 93.6% (barely changed from Round 12's 93.9%/93.4% — still essentially tied).
+- Time-to-event (Q2, any event): TX 87.2% by day 30 (was 83.9%), Control 32.0% (was 30.6%) — gap widens slightly further.
+- Trim-only/found-nothing (Q2): TX 54.6% (n=205), Control 43.1% (n=102), Overall 50.8% — essentially flat vs Round 12.
+- Staff detection (Q3): Control 18.8%, TX 20.6% — essentially flat vs Round 12.
+- History (Q5): `Chronic` 236/592 = 39.9% (128 Control + 108 TX), `Repeat` 3 — essentially flat.
+- Culling (Q6): Control 16/330 (4.8%), TX 12/262 (4.6%) — essentially flat.
+
+### Lesson reinforced
+
+This is the **second** time in this report that "trim" needed to mean `LAME` + `FOOTRIM` + `TRIM`, not just the latter two (Round 9 for `FTDAT`/Q4 suppression, now Round 13 for the post-trim-artifact exclusion) — worth remembering as a house rule for *any* future chunk that needs to check "was this cow trimmed recently": always use all three event types, never `FOOTRIM`/`TRIM` alone. Logged in the MCP server's `lessons-learned.md` as well.
