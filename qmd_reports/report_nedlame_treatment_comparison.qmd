@@ -203,7 +203,7 @@ diseases <- c("inf", "noninf", "lesion")
 
 lame_data <- events_formatted |>
   select(id_animal, lact_number, date_event, event,
-         remark_letters1, protocols_letters1, location_event) |>
+         remark_letters1, protocols_letters1, location_event, protocols) |>
   filter(event %in% c("LAME", "TRIM", "FOOTRIM")) |>
   fxn_code_lesions(protocol_var = protocols_letters1, remark_var = remark_letters1) |>
   filter(!is.na(trimonly)) |>
@@ -292,6 +292,25 @@ attentions_resolved <- fxn_resolve_nedap_to_lactation(attentions_raw, animal_lac
 
 nedap_coverage_start <- min(attentions_resolved$attention_date, na.rm = TRUE)
 nedap_coverage_end <- max(attentions_resolved$attention_date, na.rm = TRUE)
+```
+
+```{r}
+#| label: platform-enrollment-data
+
+# Nedap runs two separate platform instances at this farm - "Activity"
+# (used by farm staff daily) and "SmartSight" (mobility monitoring,
+# generates NEDLAME) - kept separate at the farm's request to avoid
+# confusion when checking the Nedap platform. A cow absent from
+# SmartSight's animal list was never being monitored for lameness at
+# all, regardless of what the raw attentions export's date coverage
+# shows - this check is animal-level enrollment, not date-bound, so it
+# can resolve cases the date-bound attentions export above can't (see
+# the Platform Enrollment Check subsection in Q4).
+cows_activity <- read_csv("data/cows_activity.csv", show_col_types = FALSE) |>
+  transmute(id = as.character(Animal))
+
+cows_smartsight <- read_csv("data/cows_smartsight.csv", show_col_types = FALSE) |>
+  transmute(id = as.character(Animal))
 ```
 
 # Overview
@@ -926,6 +945,109 @@ q4_sensor |>
 ```
 
 Of the `r nrow(misses_in_coverage)` DC-recorded misses that fall within the raw sensor's coverage window (`r n_outside_coverage` lesion cases fell after `r format(nedap_coverage_end)` and can't be checked this way with the current export), `r n_pipeline_loss` (`r pct_pipeline_loss`%) actually had the sensor fire within the lookback window — the flag simply never reached DairyComp as a `NEDLAME` event — and the remaining `r n_true_miss` had no sensor firing at all in that window, a true miss at the sensor level. **Within this coverage window, the technology-level miss rate is measurably lower than the DC-recorded miss rate above suggests**, though this gap shouldn't be extrapolated to cases outside the coverage window without a fresher sensor export — see the plan doc for how big the currently-checkable window is relative to the full analysis period.
+
+## Platform Enrollment Check: Was the Cow Even Being Monitored?
+
+The checks above are all date-bound — they can only ask "did the sensor fire in this specific window." Separately, a cow can only ever be monitored for lameness if she's actually enrolled on Nedap's **SmartSight** platform in the first place, independent of any date. This farm runs SmartSight as a separate instance from **Activity** (the platform staff use daily), specifically to avoid confusion when checking cows on the Nedap side — but that separation means a cow can be active and current on Activity while never having been added to SmartSight at all.
+
+```{r}
+#| label: platform-enrollment-build
+
+q4_sensor <- q4_sensor |>
+  left_join(events_all |> select(id_animal, id) |> distinct(), by = "id_animal") |>
+  mutate(not_in_smartsight = !(id %in% cows_smartsight$id))
+
+misses_not_in_smartsight <- q4_sensor |> filter(!caught_by_nedap, not_in_smartsight)
+n_not_in_smartsight <- nrow(misses_not_in_smartsight)
+n_lact1_not_in_smartsight <- sum(misses_not_in_smartsight$lact_number == 1)
+n_total_misses <- sum(!q4_sensor$caught_by_nedap)
+```
+
+```{r}
+#| label: platform-enrollment-table
+
+misses_not_in_smartsight |>
+  count(detection_group_3way) |>
+  gt(rowname_col = "detection_group_3way") |>
+  cols_label(n = "N Cases") |>
+  tab_header(title = "Misses Explained by Missing SmartSight Enrollment") |>
+  tab_source_note(source_note = paste0(n_lact1_not_in_smartsight, " of ", n_not_in_smartsight, " are lact_number == 1 (first-lactation cows) - not a random scatter."))
+```
+
+Cross-checking Q4's misses against the farm's platform exports directly found `r n_not_in_smartsight` of `r n_total_misses` DC-recorded misses (`r round(100 * n_not_in_smartsight / n_total_misses, 1)`%) involve a cow completely absent from SmartSight's animal list, even though she's on Activity — meaning she was never eligible to be caught by NEDAP at all, regardless of how lame she actually was. Because this is an enrollment check, not a date-bound one, it can resolve cases the raw attentions export above couldn't: `r sum(misses_not_in_smartsight$detection_group_3way == "Sensor Never Fired (True Miss)")` of these were already counted as true sensor misses above (now further explained — not just "didn't fire," but "couldn't have fired"), and `r sum(misses_not_in_smartsight$detection_group_3way == "Not Checked (Outside Raw Sensor Data Coverage)")` more had fallen into the date-bound "Not Checked" bucket, now resolved with more certainty.
+
+::: {.callout-note}
+Every one of these `r n_not_in_smartsight` cases is a first-lactation cow (`lact_number == 1`) — not a random scatter. That pattern points to a systematic onboarding gap (newly-freshened heifers not yet added to SmartSight) rather than isolated missing enrollments. It's also consistent with a more benign explanation, though: if SmartSight requires some minimum days-in-milk before an animal shows up in its own export, this exact lact-1-only pattern would appear even with no real monitoring gap at all. Worth confirming directly with Nedap/farm staff before treating this as a settled finding either way — flagged here, not resolved.
+:::
+
+## Of the Pipeline Losses, How Many Are By-Design Exclusions?
+
+Not every "sensor fired but the flag never reached DC" case above is necessarily a pipeline bug. Confirmed directly with the farm: DairyComp's enrollment logic for `Low`-type alerts is deliberately stricter than the raw sensor's own low-score threshold — a cow only enrolls as a `Low` cow if her score is between 1 and 30 (not just under 70, the sensor's own low-score cutoff — using the wider band directly would flood the `Low` list with alerts), **and** she has no history of upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`, or an injury-coded lesion). Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked here — **this is a floor on how many pipeline-loss cases are really by-design exclusions, not a complete answer.**
+
+```{r}
+#| label: pipeline-loss-injury-build
+
+# Checked lifetime, same reasoning as Q5's chronicity check - this is
+# about the cow's history, not scoped to her current lactation.
+leg_abovefoot_injury_history <- lame_data |>
+  filter(protocols == "Leg-AboveFoot" | injury == 1) |>
+  select(id_animal, hist_date = date_event) |>
+  distinct()
+
+pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Sensor Fired, Lost in Pipeline")
+
+# Which alert type(s) actually fired within the lookback window for each
+# pipeline-loss case - needed to restrict the injury/Leg-AboveFoot check
+# to cases where only a LOW attention fired, since that's the specific
+# enrollment gate this exclusion applies to (Strong/Low Decline aren't
+# gated the same way, per the farm).
+pipeline_loss_fired_types <- pipeline_loss_cases |>
+  select(id_animal, lact_number, date_event, lookback_days_used) |>
+  left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
+            by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(low_only = all(alert_type == "LOW"), .groups = "drop")
+
+# Same pre-filter-before-join pattern used throughout this report.
+injury_history_check <- pipeline_loss_cases |>
+  select(id_animal, lact_number, date_event) |>
+  left_join(leg_abovefoot_injury_history, by = "id_animal", relationship = "many-to-many") |>
+  mutate(has_prior_injury = !is.na(hist_date) & hist_date < date_event) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(has_injury_leg_history = any(has_prior_injury), .groups = "drop")
+
+pipeline_loss_cases <- pipeline_loss_cases |>
+  left_join(pipeline_loss_fired_types, by = c("id_animal", "lact_number", "date_event")) |>
+  left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event"))
+
+n_pipeline_loss_low_only <- sum(pipeline_loss_cases$low_only, na.rm = TRUE)
+n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$low_only & pipeline_loss_cases$has_injury_leg_history, na.rm = TRUE)
+```
+
+```{r}
+#| label: pipeline-loss-injury-plot
+#| fig-height: 4
+
+pipeline_loss_cases |>
+  mutate(category = case_when(
+    !low_only ~ "Escalated Past LOW (Not This Exclusion)",
+    has_injury_leg_history ~ "LOW-Only + Injury/Leg History (Likely By-Design)",
+    TRUE ~ "LOW-Only, No Injury/Leg History (Unexplained)"
+  )) |>
+  count(category) |>
+  ggplot(aes(x = fct_reorder(category, n), y = n, fill = category)) +
+  geom_col() +
+  geom_text(aes(label = n), hjust = -0.3, size = 3.5) +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  guides(fill = "none") +
+  labs(x = NULL, y = "N Pipeline-Loss Cases") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
+```
+
+Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases, `r n_pipeline_loss_low_only` never escalated past a mild `LOW` attention — the subset this specific exclusion actually applies to. `r n_pipeline_loss_injury_explained` of those (`r round(100 * n_pipeline_loss_injury_explained / n_pipeline_loss_low_only, 1)`%) have a prior `Leg-AboveFoot`/injury history, meaning they were very likely correctly excluded from `Low` enrollment by design, not lost to a data/integration bug. **This is a floor, not the full answer** — the score-range criterion can't be checked at all here, so the true share of "pipeline losses" that are actually by-design exclusions is likely higher than `r n_pipeline_loss_injury_explained` of `r nrow(pipeline_loss_cases)`.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 

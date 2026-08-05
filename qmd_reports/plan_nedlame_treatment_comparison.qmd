@@ -378,3 +378,40 @@ Cohort is now 592 (262 TX / 330 Control), down from Round 12's 637:
 ### Lesson reinforced
 
 This is the **second** time in this report that "trim" needed to mean `LAME` + `FOOTRIM` + `TRIM`, not just the latter two (Round 9 for `FTDAT`/Q4 suppression, now Round 13 for the post-trim-artifact exclusion) — worth remembering as a house rule for *any* future chunk that needs to check "was this cow trimmed recently": always use all three event types, never `FOOTRIM`/`TRIM` alone. Logged in the MCP server's `lessons-learned.md` as well.
+
+## Round 14: two more refinements to the pipeline-loss/true-miss breakdown — platform enrollment and by-design exclusions
+
+**Status: implemented and re-rendered.**
+
+Continuing to spot-check Q4's sensor-level check against real data surfaced two more real mechanisms, both raised directly by Gerard. Unlike Rounds 12-13, neither of these is a *bug* in this report's code — they're additional context that refines how the existing "Sensor Fired, Lost in Pipeline" and "Sensor Never Fired (True Miss)" categories should be read. Both are implemented as additive sub-analyses layered on top of the existing 3-way breakdown; **neither changes the headline `detection_group_3way` labels or the report's other headline numbers** — they explain *why* within the categories that already exist.
+
+### Platform enrollment: SmartSight vs. Activity
+
+Gerard was doing manual spot-checks and noticed some cows are on Nedap's **Activity** platform (used by farm staff daily) but absent from **SmartSight** (the separate instance set up specifically for mobility monitoring, kept apart from Activity to avoid confusion when checking cows at the farm level). A cow absent from SmartSight's animal list was never being monitored for lameness at all, regardless of the raw attentions export's date coverage — this is an **enrollment** check, not a date-bound one, so unlike the raw attentions export (capped at 2026-07-16), it applies to every Q4 case regardless of date.
+
+Gerard exported both platforms' animal lists (`data/cows_activity.csv`, 5,281 animals; `data/cows_smartsight.csv`, 3,506 animals — both gitignored, same convention as other raw exports). Cross-referencing against Q4's misses:
+
+- **2,125 cows are on Activity but not SmartSight** herd-wide (349 the other direction — smaller, and not the direction Gerard flagged, but noted for completeness).
+- **18 of 250 DC-recorded misses (7.2%) involve a cow entirely absent from SmartSight.** All 18 are first-lactation (`lact_number == 1`) — not a random scatter, suggestive of a systematic onboarding gap for newly-freshened heifers, though also consistent with SmartSight's own export simply not including very recently-enrolled animals yet (Gerard's own hedge: "I'm assuming the smartsight one is incorrect as the activity gets used by the farm on a daily basis" — flagged in the report as unresolved, not settled).
+- Because this check isn't date-bound, it **resolves cases the raw attentions export couldn't**: 8 of the 18 were already `Sensor Never Fired (True Miss)` (now further explained — not just "didn't fire," but "couldn't have fired"), and 10 more had been sitting in `Not Checked (Outside Raw Sensor Data Coverage)`, now resolved with certainty regardless of that export's date limit.
+
+**New subsection**: "## Platform Enrollment Check: Was the Cow Even Being Monitored?", placed right after "Sensor-Level Check." New `platform-enrollment-data` chunk (loads both CSVs) added after `nedap-attentions-data`.
+
+### By-design exclusions within pipeline losses: the injury/Leg-AboveFoot enrollment gate
+
+Gerard separately described DairyComp's enrollment logic for `Low`-type alerts in detail: a cow only enrolls as `Low` if her score is between **1 and 30** — not just under 70 (the sensor's own low-score cutoff; a wider band there would flood the `Low` list) — **and** she has no history of upper-leg lameness, coded as `Leg-AboveFoot` in the trim `protocols` field, or an injury-coded lesion. Score-at-flag isn't in this data (Gerard confirmed this himself — "I realize we don't have score of cow at flag so we can't answer that question"), so only the injury/`Leg-AboveFoot` half can be checked. **This makes the result a floor, not a complete answer.**
+
+Confirmed the two fields directly: `protocols == "Leg-AboveFoot"` (1,055 rows in `lame_data`) and the `injury` lesion flag (already computed, 1,276 of 44,591 rows) — verified via cow 7207's own cowcard, which shows exactly this code.
+
+Of the **71 total pipeline-loss cases**:
+- **56 (78.9%) never escalated past a mild `LOW` attention** — the subset this specific enrollment gate actually applies to (Strong/Low Decline aren't gated the same way).
+- **13 of those 56 (23.2%) have a prior lifetime `Leg-AboveFoot`/injury history** — these were very likely correctly excluded from `Low` enrollment by design, not lost to an integration bug.
+- 2 more cases have this same history but escalated past `LOW` too (including cow 7207 herself) — the exclusion doesn't fully explain those two, since escalated alert types aren't gated by this rule.
+
+**Net: at least 13 of 71 pipeline-loss cases (18.3%) are better read as correct system behavior than as pipeline bugs** — narrowing (not eliminating) the "~33-37% pipeline loss" headline from Round 11's original sensor-level check.
+
+**New subsection**: "## Of the Pipeline Losses, How Many Are By-Design Exclusions?", placed right after the Platform Enrollment Check subsection, still before "Of the Misses, Did Farm Staff Catch Them Anyway?".
+
+### Implementation note
+
+Both checks required adding the `protocols` column back into `lame_data`'s `select()` (it was previously dropped, keeping only `protocols_letters1` — the parsed/abbreviated version). Verified `protocols` and `injury` both survive the full `fxn_code_lesions()` → `fxn_collapse_lesions()` → `fxn_trim_vars()` → `fxn_dz_status()` pipeline intact before wiring either new subsection in.
