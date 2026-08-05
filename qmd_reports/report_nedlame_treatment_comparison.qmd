@@ -331,6 +331,7 @@ cows_smartsight <- read_csv("data/cows_smartsight.csv", show_col_types = FALSE) 
 cohort |>
   count(tx_group, alert_type) |>
   pivot_wider(names_from = alert_type, values_from = n, values_fill = 0) |>
+  mutate(Total = rowSums(across(where(is.numeric)))) |>
   gt(rowname_col = "tx_group") |>
   tab_header(title = "Cows per Treatment Group by Alert Type") |>
   tab_stubhead(label = "Treatment Group")
@@ -353,6 +354,29 @@ cohort |>
     subtitle = "Days in milk (DIM) when first NEDLAME alert fired"
   ) |>
   cols_label(n = "N Cows", mean_dim = "Mean DIM", median_dim = "Median DIM")
+```
+
+```{r}
+#| label: lact-group-table
+
+cohort |>
+  mutate(lact_group_display = case_when(
+    lact_number == 1 ~ "1",
+    lact_number == 2 ~ "2",
+    lact_number >= 3 ~ "3+",
+    TRUE ~ NA_character_
+  )) |>
+  count(tx_group, lact_group_display) |>
+  pivot_wider(names_from = lact_group_display, values_from = n, values_fill = 0) |>
+  select(tx_group, `1`, `2`, `3+`) |>
+  mutate(Total = rowSums(across(where(is.numeric)))) |>
+  gt(rowname_col = "tx_group") |>
+  tab_header(
+    title = "Lactation Number at Enrollment",
+    subtitle = "Lactation cow was in when her first NEDLAME alert fired"
+  ) |>
+  tab_stubhead(label = "Treatment Group") |>
+  cols_label(`3+` = "3+")
 ```
 
 ## Excluded: Alerts Following a Recent Trim
