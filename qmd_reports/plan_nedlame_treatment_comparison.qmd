@@ -291,3 +291,43 @@ New subsection, placed between "What Lesions Is NEDAP Missing?" and "Of the Miss
 
 1. Ask the user for a refreshed Nedap sensor export (covering up through the current data-pull date) to extend the sensor-level check past 2026-07-16 and close the 104-case "Not Checked" gap.
 2. Once pre-June-2 historical data use is separately approved (see Round 10's 4 suggested uses), the sensor export could also support a much larger-sample retrospective validation, independent of DC's import pipeline entirely.
+
+## Round 12: excluding NEDLAME alerts that are really post-trim gait artifacts
+
+**Status: implemented and re-rendered.**
+
+While investigating a Q4 sensor-check example (cow 7207 — turned out not to fit this pattern, see below), Gerard raised a distinct, real methodological gap: a `NEDLAME` alert firing shortly *after* a trim isn't necessarily an independent catch — it may just be the camera picking up that cow's own post-treatment gait change (soreness, a hoof block, compensating gait). Two investigative passes confirmed this is a real, sizeable, herd-wide pattern, not a one-off:
+
+- Herd-wide, **122 of 957 total `NEDLAME` events (12.8%) fire within 14 days after a trim**, concentrated in the first 3 days, and **101 of 102 of those within 5 days are real decline signals** (`LOW DECLINE`/`STRONG DECLINE`), not mild pings — ruling out "just noise."
+- Checked whether this was inflating Q4's "caught by NEDAP" credit (a post-trim alert getting miscredited for catching an unrelated *later* lesion): **zero of Q4's 137 "caught" cases were driven by this pattern** — Q4 is unaffected.
+- Checked whether it was contaminating the **pilot cohort itself** (the cows whose first-ever `NEDLAME` sets their `tx_group`/`dim_at_nedlame`, feeding Q1-Q3/Q5/Q6): **yes** — 87 of 718 cohort cows (12.1%, within 14 days) had their first alert fire shortly after a trim, and **71 of those 87 (81.6%) never had any further `LAME`/`FOOTRIM`/`TRIM` event afterward, ever** — strong evidence nothing was actually wrong.
+
+Cow 7207 itself, on inspection, did **not** fit the pattern that prompted the question — her `LAME` (White Line) diagnosis on 2026-06-11 was followed by a `STRONG DECLINE` `NEDLAME` the *next* day with no trim anywhere nearby (last one was over a year prior). That's a case of staff finding it first and the sensor independently confirming the same declining gait a day later — a good-agreement case, not an artifact. But following up on the underlying question surfaced the real, separate pattern above.
+
+### Data-load timing, confirmed by the user
+
+`NEDLAME`'s daily batch import runs at ~5am and stamps each alert with the day it was *loaded*, not necessarily the day the underlying sensor attention happened — an attention any time after ~5am on day D gets logged with date D+1. Combined with trim records commonly being entered a day or two late (correctly backdated to the actual trim date, but not yet in DC's system when the next `NEDLAME` batch runs), this means:
+- A `NEDLAME` alert dated **on or before** a trim date is a genuine, independent catch.
+- A `NEDLAME` alert dated **any number of days after** a trim is very likely the camera detecting that cow's own post-trim gait change — it only got past DC's own recent-trim suppression gate because the trim wasn't in the system yet when the alert's batch ran.
+
+There is no true entry-timestamp field in the DairyComp export to directly confirm *why* a trim was recorded late (checked `EDAT` specifically — it's static per cow, not a per-row entry timestamp, for all but 2 of 14,223 cows) — so this can only be detected via the symptom (alert-after-trim timing), not proven from data entry metadata directly. That's fine for the exclusion rule below, which only needs the symptom.
+
+### Decision, implemented
+
+Per Gerard's explicit direction: cows whose first `NEDLAME` fires **1-7 days after** a trim/footrim (same cow-lactation) are **excluded** from `cohort` (Q1-Q3, Q5, Q6) and **flagged** in a new report section — nothing silently dropped. Same-day-or-before alerts count as valid, independent catches. New param `post_trim_exclusion_days: 7`. New chunk in `cohort` builds `trims_all`/`post_trim_check`, splits `all_nedlame_cows` into `cohort` (kept) and `cohort_excluded_post_trim` (flagged), and a new "## Excluded: Alerts Following a Recent Trim" subsection (with its own table + chart) sits right after the Overview, before Q1. Q4 is deliberately left unscoped from `cohort` (it already pulls `NEDLAME`/lesion history from the whole herd directly), consistent with the "zero impact on Q4" finding above.
+
+**Result**: 81 of 718 cows excluded (43 Control / 38 TX, mean 2.7-2.8 days after their nearest trim), leaving a cohort of **637 (359 Control / 278 TX)**. 80 of the 81 show a real decline signal, consistent with the post-trim-gait theory.
+
+### Numbers that moved as a result
+
+- Milk trend (Q1): day-30 numbers converge more than before — TX 93.9% vs Control 93.4% (previously TX 92.4% vs Control 93.8%, i.e. TX looked slightly worse; now essentially tied). Consistent with removing cows who had no real lameness-driven milk impact to begin with.
+- Time-to-event (Q2, "any event"): TX's day-30 rate rises to 83.9% (from 76.2%) since the excluded cows were disproportionately "nothing ever happened" cases; Control rises more modestly to 30.6% (from 28.2%). The gap between arms widens, as expected once non-informative artifact cases are removed.
+- Staff detection (Q3): Control 18.7% (from 17.7%), TX 20.5% (from 19.0%) — both edge up slightly for the same reason.
+- History (Q5): 42.4% `Chronic` (270/637, was 41.1%), 3 `Repeat` — essentially unchanged proportionally.
+- Culling (Q6): Control 19/359 (5.3%), TX 13/278 (4.7%) — essentially unchanged proportionally.
+- Q4 is unaffected by design (see above).
+
+### Next steps
+
+1. Same as Round 11's open item: get a refreshed Nedap sensor export to extend the sensor-level check past 2026-07-16.
+2. Consider whether the same 1-7-day-after-trim logic should also gate *subsequent* (not just first-ever) `NEDLAME` alerts used anywhere else in the report — not currently needed since Q4 already checked out clean, but worth re-checking if Q4's methodology changes later.

@@ -18,6 +18,7 @@ params:
   q4_lookback_days: 21
   history_after_date: "2026-06-01"
   recent_trim_suppression_days: 28
+  post_trim_exclusion_days: 7
 ---
 
 ```{r}
@@ -124,10 +125,39 @@ first_nedlame <- first_nedlame_raw |>
   slice_max(date_fresh, n = 1, with_ties = FALSE) |>
   ungroup()
 
+# Flag cows whose FIRST NEDLAME fired 1-`r params$post_trim_exclusion_days`
+# days AFTER a recorded trim/footrim, same cow-lactation - per the farm's
+# confirmed data-load schedule (NEDLAME's daily batch loads at ~5am and
+# stamps each alert with the day it was LOADED, not necessarily the day
+# the underlying sensor attention happened - an attention any time after
+# ~5am on day D gets logged with date D+1), an alert dated on or before
+# the trim date is a genuine independent catch, but one dated 1+ days
+# AFTER the trim is very likely the camera picking up that cow's own
+# post-trim gait change, not a new problem. It got through DC's own
+# FTDAT suppression gate only because the trim record itself is commonly
+# entered a day or two late (backdated to the actual trim date) - it
+# simply wasn't in the system yet when NEDLAME's batch ran. See the new
+# "Excluded" section below for the full writeup and examples.
+trims_all <- events_all |>
+  filter(Event %in% c("FOOTRIM", "TRIM")) |>
+  select(id_animal, lact_number, trim_date = date_event) |>
+  distinct()
+
+post_trim_check <- first_nedlame |>
+  select(id_animal, lact_number, first_nedlame_date) |>
+  inner_join(trims_all, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  filter(trim_date < first_nedlame_date, trim_date >= first_nedlame_date - params$post_trim_exclusion_days) |>
+  group_by(id_animal, lact_number) |>
+  summarize(days_since_nearest_trim = min(as.numeric(first_nedlame_date - trim_date)), .groups = "drop")
+
+first_nedlame <- first_nedlame |>
+  left_join(post_trim_check, by = c("id_animal", "lact_number")) |>
+  mutate(flagged_post_trim = !is.na(days_since_nearest_trim))
+
 # Attach lactation-stage context (date_fresh/date_dry) so every downstream
 # join can be scoped to id_animal + lact_number, never crossing into a
 # different lactation for the same cow.
-cohort <- first_nedlame |>
+all_nedlame_cows <- first_nedlame |>
   mutate(
     dim_at_nedlame = as.numeric(first_nedlame_date - date_fresh),
     date_lact_end = pmin(
@@ -137,8 +167,17 @@ cohort <- first_nedlame |>
     )
   )
 
+# `cohort` (used throughout Q1-Q3, Q5, Q6) excludes the flagged cows;
+# `cohort_excluded_post_trim` keeps them, visibly, for the "Excluded"
+# section - nothing is silently dropped. Q4 is deliberately NOT scoped
+# to `cohort` (it pulls NEDLAME/lesion history from the whole herd
+# directly), so this exclusion does not affect Q4's miss-rate numbers.
+cohort <- all_nedlame_cows |> filter(!flagged_post_trim)
+cohort_excluded_post_trim <- all_nedlame_cows |> filter(flagged_post_trim)
+
 n_tx <- sum(cohort$tx_group == "TX (Trim)")
 n_control <- sum(cohort$tx_group == "Control")
+n_excluded_post_trim <- nrow(cohort_excluded_post_trim)
 ```
 
 ```{r}
@@ -248,7 +287,7 @@ nedap_coverage_end <- max(attentions_resolved$attention_date, na.rm = TRUE)
 
 # Overview
 
-`r n_tx` cows were enrolled in the **TX (Trim)** arm (`MNFRS = 1`, automatically trimmed after alert) and `r n_control` in the **Control** arm (`MNFRS = 2`, staff decide whether/when to act), based on `r nrow(first_nedlame)` cows that ever received a `NEDLAME` alert between `r format(min(first_nedlame$first_nedlame_date))` and `r format(max(first_nedlame$first_nedlame_date))`. This is a short (~`r round(as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))/7, 0)`-week) history since NEDLAME is a newly-added event stream, which caps every time-window analysis below.
+`r n_tx` cows were enrolled in the **TX (Trim)** arm (`MNFRS = 1`, automatically trimmed after alert) and `r n_control` in the **Control** arm (`MNFRS = 2`, staff decide whether/when to act), based on `r nrow(first_nedlame)` cows that ever received a `NEDLAME` alert between `r format(min(first_nedlame$first_nedlame_date))` and `r format(max(first_nedlame$first_nedlame_date))` — of whom `r n_excluded_post_trim` were excluded as likely post-trim artifacts rather than independent catches (see "Excluded" just below). This is a short (~`r round(as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))/7, 0)`-week) history since NEDLAME is a newly-added event stream, which caps every time-window analysis below.
 
 **A methodology note that applies throughout**: wherever this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it always uses her **first** qualifying occurrence in the relevant window, not every occurrence — a cow flagged or diagnosed more than once doesn't get counted multiple times. When a single visit/date has more than one distinct lesion type coded (e.g. white line disease *and* digital dermatitis found at the same exam), each distinct type is kept; the same lesion type coded more than once on one day only counts once (see the note in Q4 for the specific chart this matters most for).
 
@@ -281,6 +320,48 @@ cohort |>
   ) |>
   cols_label(n = "N Cows", mean_dim = "Mean DIM", median_dim = "Median DIM")
 ```
+
+## Excluded: Alerts Following a Recent Trim
+
+`r n_excluded_post_trim` cows are excluded from every TX vs Control comparison below (Q1-Q3, Q5, Q6) because their **first-ever `NEDLAME` alert fired `r params$post_trim_exclusion_days` days or less *after* a recorded trim/footrim**, same cow-lactation — the sensor most likely caught that cow's own post-trim gait change, not a new, independent problem.
+
+**Why the cutoff is "after the trim date," not "within N days of it either direction"**: `NEDLAME`'s daily batch import runs at ~5am and stamps each alert with the day it was *loaded*, not necessarily the day the underlying sensor attention happened — an attention any time after ~5am on day D gets logged with date D+1. That means an alert dated **on or before** the trim date is a genuine, independent catch (the camera flagged her, and a trim followed — exactly how the system is supposed to work), but an alert dated **any number of days after** the trim is a different story: it's very likely the camera picking up soreness/altered gait from the trim that already happened, and it only got through DC's own recent-trim suppression gate because the trim record itself is commonly entered a day or two late (correctly backdated to the actual trim date, but not yet in the system when `NEDLAME`'s batch ran that morning).
+
+```{r}
+#| label: post-trim-exclusion-table
+
+cohort_excluded_post_trim |>
+  group_by(tx_group) |>
+  summarize(
+    n = n(),
+    mean_days_after_trim = round(mean(days_since_nearest_trim), 1),
+    .groups = "drop"
+  ) |>
+  bind_rows(
+    cohort_excluded_post_trim |> summarize(tx_group = "Overall", n = n(), mean_days_after_trim = round(mean(days_since_nearest_trim), 1))
+  ) |>
+  gt(rowname_col = "tx_group") |>
+  cols_label(n = "N Excluded", mean_days_after_trim = "Mean Days After Trim") |>
+  tab_header(title = paste0("Cows Excluded: First NEDLAME 1-", params$post_trim_exclusion_days, " Days After a Trim"))
+```
+
+```{r}
+#| label: post-trim-exclusion-plot
+#| fig-height: 4
+
+cohort_excluded_post_trim |>
+  count(alert_type, days_since_nearest_trim) |>
+  ggplot(aes(x = factor(days_since_nearest_trim), y = n, fill = alert_type)) +
+  geom_col() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = "Days Between Trim and NEDLAME Alert", y = "N Cows Excluded", fill = "Alert Type") +
+  theme(legend.position = "bottom")
+```
+
+Consistent with the post-trim-gait theory, `r sum(cohort_excluded_post_trim$alert_type %in% c("LOW DECLINE", "STRONG DECLINE"))` of these `r n_excluded_post_trim` cows show a real decline signal (`LOW DECLINE`/`STRONG DECLINE`, not the mild `LOW` type — see chart above), and a separate check (not shown here) found the large majority never had *any* further `LAME`/`FOOTRIM`/`TRIM` event afterward — nothing else ever came of the alert, consistent with a transient, self-resolving cause rather than a new lameness case.
+
+**Scope of this exclusion**: it only affects `cohort` (Q1-Q3, Q5, Q6's TX-vs-Control comparisons). Q4's herd-wide miss-rate analysis is deliberately unaffected — Q4 pulls `NEDLAME` and lesion history directly from the full event log, not from `cohort`, and a separate check found none of Q4's "caught by NEDAP" credits were driven by this pattern anyway.
 
 # Q1: Milk Production Trend After First NEDLAME Alert
 
@@ -1024,3 +1105,4 @@ pct_trimmed_14d_control <- km_any_tidy |> filter(tx_group_label == "Control", ti
 - **Short history**: `NEDLAME` only spans `r as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))` days of data (go-live `r format(nedlame_start_date)`), capping every time-to-event and milk-trend window above — results should be treated as an early read, not a mature-pilot conclusion. Q4's lookback window is rolling for this same reason (see Q4).
 - **Small sample for Q5**: 2 treatment arms x 3 history categories over `r nrow(cohort)` cows produces thin cells (`Repeat` has only `r sum(cohort$history_group == "Repeat")` cows total); the two arms are not perfectly balanced on prior lameness history at enrollment either (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
 - **Milk join resolution**: `r round(100 * n_milk_cows / nrow(cohort), 1)`% of cohort cows had a usable milk baseline in the analysis window; the remainder lacked resolvable milk records (e.g. dried off, sold, or outside the pulled milk-file date range).
+- **Post-trim alert exclusion (Q1-Q3, Q5, Q6 only)**: `r n_excluded_post_trim` cows whose first `NEDLAME` fired within `r params$post_trim_exclusion_days` days after a recorded trim were excluded from the TX-vs-Control cohort as likely post-treatment gait artifacts rather than independent catches — see the "Excluded" section above for the full reasoning (tied to `NEDLAME`'s 5am batch-load schedule and trims commonly being entered a day or two late). This is a judgment call, not a certainty: it's possible a small number of these really were new, coincidentally-timed problems. Q4 is unaffected, since it doesn't draw from `cohort`.
