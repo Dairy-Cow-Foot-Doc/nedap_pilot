@@ -325,6 +325,9 @@ cows_smartsight <- read_csv("data/cows_smartsight.csv", show_col_types = FALSE) 
 
 **A methodology note that applies throughout**: wherever this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it always uses her **first** qualifying occurrence in the relevant window, not every occurrence — a cow flagged or diagnosed more than once doesn't get counted multiple times. When a single visit/date has more than one distinct lesion type coded (e.g. white line disease *and* digital dermatitis found at the same exam), each distinct type is kept; the same lesion type coded more than once on one day only counts once (see the note in Q4 for the specific chart this matters most for).
 
+::: panel-tabset
+## By Alert Type
+
 ```{r}
 #| label: overview-table
 
@@ -337,24 +340,7 @@ cohort |>
   tab_stubhead(label = "Treatment Group")
 ```
 
-```{r}
-#| label: dim-balance-table
-
-cohort |>
-  group_by(tx_group) |>
-  summarize(
-    n = n(),
-    mean_dim = round(mean(dim_at_nedlame, na.rm = TRUE), 0),
-    median_dim = round(median(dim_at_nedlame, na.rm = TRUE), 0),
-    .groups = "drop"
-  ) |>
-  gt(rowname_col = "tx_group") |>
-  tab_header(
-    title = "Lactation Stage at Enrollment",
-    subtitle = "Days in milk (DIM) when first NEDLAME alert fired"
-  ) |>
-  cols_label(n = "N Cows", mean_dim = "Mean DIM", median_dim = "Median DIM")
-```
+## By Lactation Number
 
 ```{r}
 #| label: lact-group-table
@@ -378,6 +364,42 @@ cohort |>
   tab_stubhead(label = "Treatment Group") |>
   cols_label(`3+` = "3+")
 ```
+
+## By Lactation Stage (DIM)
+
+```{r}
+#| label: dim-balance-table
+
+cohort |>
+  group_by(tx_group) |>
+  summarize(
+    n = n(),
+    mean_dim = round(mean(dim_at_nedlame, na.rm = TRUE), 0),
+    median_dim = round(median(dim_at_nedlame, na.rm = TRUE), 0),
+    .groups = "drop"
+  ) |>
+  gt(rowname_col = "tx_group") |>
+  tab_header(
+    title = "Lactation Stage at Enrollment",
+    subtitle = "Days in milk (DIM) when first NEDLAME alert fired"
+  ) |>
+  cols_label(n = "N Cows", mean_dim = "Mean DIM", median_dim = "Median DIM")
+```
+
+```{r}
+#| label: q1-dim-check
+#| fig-height: 4
+
+cohort |>
+  ggplot(aes(x = tx_group, y = dim_at_nedlame, fill = tx_group)) +
+  geom_violin(alpha = 0.5, color = NA, trim = FALSE) +
+  geom_jitter(width = 0.1, height = 0, alpha = 0.4, size = 1) +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  guides(fill = "none") +
+  labs(x = NULL, y = "Days in Milk at First NEDLAME Alert")
+```
+:::
 
 ## Excluded: Alerts Following a Recent Trim
 
@@ -505,22 +527,6 @@ milk_norm |>
   theme(legend.position = "bottom")
 ```
 :::
-
-## Lactation-Stage Balance
-
-```{r}
-#| label: q1-dim-check
-
-cohort |>
-  filter(id_animal %in% milk_norm$id_animal) |>
-  ggplot(aes(x = tx_group, y = dim_at_nedlame, fill = tx_group)) +
-  geom_violin(alpha = 0.5, color = NA, trim = FALSE) +
-  geom_jitter(width = 0.1, height = 0, alpha = 0.4, size = 1) +
-  scale_fill_viridis_d() +
-  theme_minimal() +
-  guides(fill = "none") +
-  labs(x = NULL, y = "Days in Milk at First NEDLAME Alert")
-```
 
 # Q2: Time to Next LAME/FOOTRIM/TRIM Event
 
@@ -663,7 +669,11 @@ q2_alert_type_km_data <- fittable_alert_levels |>
       mutate(
         tx_group = str_remove(strata, "^tx_group="),
         alert_type = a,
-        risk = 1 - estimate
+        risk = 1 - estimate,
+        # survival's CI bounds flip when converted to risk (1 - survival):
+        # the upper bound on survival becomes the LOWER bound on risk.
+        risk_low = 1 - conf.high,
+        risk_high = 1 - conf.low
       )
   }) |>
   list_rbind() |>
@@ -671,13 +681,15 @@ q2_alert_type_km_data <- fittable_alert_levels |>
 
 skipped_alert_levels <- setdiff(alert_levels, fittable_alert_levels)
 
-ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group)) +
+ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = tx_group)) +
+  geom_ribbon(aes(ymin = risk_low, ymax = risk_high), alpha = 0.15, color = NA) +
   geom_step(linewidth = 1) +
   facet_wrap(~alert_type) +
   scale_color_viridis_d() +
+  scale_fill_viridis_d() +
   scale_y_continuous(labels = percent) +
   theme_minimal() +
-  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event", color = "Treatment Group") +
+  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event", color = "Treatment Group", fill = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
 
@@ -803,6 +815,28 @@ staff_id |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
   labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group") +
+  theme(legend.position = "bottom")
+```
+
+## Stacked by Alert Type (Option to Review)
+
+**Exploratory alternative to the two tabs above, not a final choice** — one stacked bar per treatment group, segment height = N cows in that alert type, each segment labeled with *its own* staff-identified rate (not the group's overall rate). Combines both prior views (composition by alert type + staff-ID rate per slice) into one chart.
+
+```{r}
+#| label: q3-stacked-plot
+#| fig-height: 5
+
+staff_id |>
+  mutate(alert_type = factor(alert_type, levels = c("LOW", "LOW DECLINE", "STRONG DECLINE"))) |>
+  group_by(tx_group, alert_type) |>
+  summarize(pct_staff_id = mean(staff_identified) * 100, n = n(), .groups = "drop") |>
+  ggplot(aes(x = tx_group, y = n, fill = alert_type)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = paste0(round(pct_staff_id, 1), "%\n(n=", n, ")")),
+            position = position_stack(vjust = 0.5), size = 3) +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = NULL, y = "N Cows", fill = "Alert Type") +
   theme(legend.position = "bottom")
 ```
 :::
@@ -1021,6 +1055,7 @@ q4_sensor |>
   geom_col(position = "fill") +
   scale_y_continuous(labels = scales::percent) +
   scale_fill_viridis_d() +
+  guides(fill = guide_legend(nrow = 2)) +
   theme_minimal() +
   labs(x = NULL, y = "Share of Lesion Cases", fill = "Sensor-Level Detection Status") +
   theme(legend.position = "bottom")
@@ -1191,7 +1226,7 @@ cohort |>
 ```
 
 ::: {.callout-note}
-**`Repeat` is excluded from the two plots below** (though it's included in the distribution chart above, for completeness). All 3 `Repeat` cows owe the label to the same coincidence: her most recent lesion diagnosis before enrollment happened to fall exactly one day after an earlier one — the classifier's own `Repeat`/`Chronic` cutoff is a 1-day gap (see Caveats). Checked all 3 directly: none tell a "just started recurring" story. One (cow 9725) has 11 lifetime lesion diagnoses and is arguably the most chronic cow in the entire cohort — mislabeled `Repeat` purely because of when her most recent diagnosis happened to land relative to her alert, not because anything about her actual pattern differs from a typical `Chronic` cow. Too small (3 cows) and too artifact-prone a category to facet on meaningfully.
+**`Repeat` is excluded from the plot below** (though it's included in the distribution chart above, for completeness). All 3 `Repeat` cows owe the label to the same coincidence: her most recent lesion diagnosis before enrollment happened to fall exactly one day after an earlier one — the classifier's own `Repeat`/`Chronic` cutoff is a 1-day gap (see Caveats). Checked all 3 directly: none tell a "just started recurring" story. One (cow 9725) has 11 lifetime lesion diagnoses and is arguably the most chronic cow in the entire cohort — mislabeled `Repeat` purely because of when her most recent diagnosis happened to land relative to her alert, not because anything about her actual pattern differs from a typical `Chronic` cow. Too small (3 cows) and too artifact-prone a category to facet on meaningfully.
 :::
 
 ## Milk Trend by History Group
@@ -1214,50 +1249,6 @@ milk_norm |>
   labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
-
-## Time to Next Trim/LAME Event by History Group
-
-```{r}
-#| label: q5-km-plot
-#| fig-height: 6
-
-history_levels_q5 <- c("New", "Chronic")
-
-# Same manual per-facet KM build as Q2's "By Alert Type" tab, faceted on
-# history_group instead of alert_type.
-fittable_history_levels <- history_levels_q5 |>
-  keep(\(h) {
-    d <- q2_any |> filter(history_group == h)
-    n_distinct(d$tx_group) == 2 && nrow(d) >= 10
-  })
-
-q5_km_data <- fittable_history_levels |>
-  map(\(h) {
-    d <- q2_any |> filter(history_group == h)
-    fit <- survfit2(Surv(days_to_event, event_occurred) ~ tx_group, data = d)
-    broom::tidy(fit) |>
-      mutate(
-        tx_group = str_remove(strata, "^tx_group="),
-        history_group = h,
-        risk = 1 - estimate
-      )
-  }) |>
-  list_rbind() |>
-  mutate(history_group = factor(history_group, levels = history_levels_q5))
-
-skipped_history_levels <- setdiff(history_levels_q5, fittable_history_levels)
-
-ggplot(q5_km_data, aes(x = time, y = risk, color = tx_group)) +
-  geom_step(linewidth = 1) +
-  facet_wrap(~history_group) +
-  scale_color_viridis_d() +
-  scale_y_continuous(labels = percent) +
-  theme_minimal() +
-  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event", color = "Treatment Group") +
-  theme(legend.position = "bottom")
-```
-
-`r if (length(skipped_history_levels) > 0) paste0("*History group(s) omitted for insufficient data in one or both arms: ", paste(skipped_history_levels, collapse = ", "), ".*")`
 
 # Q6: Time to Culling After NEDAP Enrollment
 
