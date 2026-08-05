@@ -249,3 +249,45 @@ The user provided the raw Nedap/Pulse sensor data requested in Round 8: `data/Sk
 2. Build `functions/fxn_read_nedap_attentions.R` (mirrors `fxn_read_milk_folder.R`'s loader + nearest-fresh-date resolution pattern).
 3. Extend Q4 with the 3-way breakdown described above.
 4. Re-verify the whole report against the fresh data before considering any of this "done" again — given how much has shifted across Rounds 1-9, don't assume anything carries over unchanged.
+
+## Round 11: fresh data lands, Nedap-attentions loader built, Q4 gets the sensor-level check
+
+**Status: implemented and re-rendered.**
+
+The user ran `step0_master_processing.R` himself ("I'm running step 00 right now... you can proceed with your plan while I sleep" → "its done") to pull a fresh extract. `events_all_columns.parquet`/`events_formatted.parquet` now run through **2026-08-03** (up from ~07-16), and the `NEDLAME` cohort grew from 434 to **718** cows (316 TX / 402 Control). Milk files now extend to 2026-08-04.
+
+### New bug found in the larger dataset: `lact_number` resolution at freshening transitions
+
+With the cohort now ~2x larger, 2 cows (21648, 9616) showed `date_lact_end < first_nedlame_date` — a logically impossible state, since a cow's lactation obviously can't end before her alert fires. Root cause: the raw `NEDLAME` event's own `lact_number` field can be stale right at a freshening transition (dry → fresh, same day or one day apart) — DC's raw event sometimes carries the *old* lactation number even though the cow had already freshened into the new one by the alert date.
+
+**Fix**: `lact_number` is no longer trusted from the raw `NEDLAME` event. It's resolved via the same nearest-preceding-fresh-date pattern already used for the milk join (`fxn_resolve_milk_to_lactation()`) — pick whichever `animal_lactations` row has the latest `date_fresh` at or before the alert date. Verified standalone in R first (718 rows preserved, 0 violations of `date_lact_end >= first_nedlame_date` after the fix) before editing the qmd's `cohort` chunk. This is the same class of bug as the milk-ID-reuse problem in Round 3 — a raw field that looks trustworthy but isn't, right at a lactation boundary — so `fxn_read_milk_folder.R`'s resolution pattern is now effectively the house standard for any raw-field-to-lactation lookup in this report.
+
+### `functions/fxn_read_nedap_attentions.R` built
+
+Mirrors `fxn_read_milk_folder.R`'s two-function shape:
+- `fxn_read_nedap_attentions()` reads `data/SkyView_Tioga_Attentions.csv`, converts `start_time_utc` (UTC) to local farm time (`America/Chicago`, matching the file's own `US/Central` label for effectively all rows) before extracting a date, and maps `issue_type` (0/1/2) to this report's `LOW`/`STRONG DECLINE`/`LOW DECLINE` alert-type labels.
+- `fxn_resolve_nedap_to_lactation()` resolves raw `animal_number` to `id_animal`/`lact_number` via nearest-preceding-`date_fresh`, same pattern as the milk resolver — necessary because `animal_number` gets reused across animals over time just like the milk files' raw `id` (23 of 3,436 confirmed in Round 10's exploration).
+
+### Q4 extended: "Sensor-Level Check: True Misses vs. Pipeline Losses"
+
+New subsection, placed between "What Lesions Is NEDAP Missing?" and "Of the Misses, Did Farm Staff Catch Them Anyway?". For each Q4 lesion case within the raw export's coverage window (`date_event <= nedap_coverage_end`), checks whether the raw sensor fired in the same rolling lookback window used for the DC-side check — splitting DC-recorded misses into **"Sensor Fired, Lost in Pipeline"** vs. **"Sensor Never Fired (True Miss)"**. Cases after the coverage window are labeled "Not Checked" rather than silently miscounted.
+
+**The raw Nedap CSV has not been refreshed alongside the DC/milk extract** — it's still the same one-time 31,479-row drop from Round 10, covering 2025-08-25 to 2026-07-16. This caps what the sensor-level check can see: of the 418 qualifying Q4 lesion cases, 104 fall after 2026-07-16 and are labeled "Not Checked."
+
+**Results** (fresh full render, 2026-08-05):
+- Q4 headline (DC-side only, unchanged methodology from Round 9): 418 qualifying lesion cases, 67.2% not caught by NEDAP first overall (TX 20.2% of 109, Control 44.4% of 90, Never Alerted 219/418 = 100% by definition).
+- Of the 281 DC-recorded misses total, 67 (23.8%) were also staff-flagged via `CHKLAME` — essentially unchanged from Round 9's 23.8%.
+- **New**: of the 214 DC-recorded misses that fall inside the sensor export's coverage window, **71 (33.2%) actually had the sensor fire in the lookback window** — a pipeline/integration loss, not a detection failure — leaving 143 as true sensor-level misses. This is the first quantified answer to the Round 8 email's core question: a real, non-trivial share (~1/3) of DairyComp's recorded "NEDAP misses" are not sensor failures at all.
+- This narrows but doesn't resolve the Round 8 caveat: the true technology-miss rate is now known to be *measurably* lower than 67.2% within the checkable window, but can't yet be stated as a single number for the full analysis period until the sensor export itself is refreshed past 2026-07-16.
+
+### Other numbers that moved (informational, methodology unchanged)
+
+- Milk trend (Q1): still no separation between arms at day 30 (~92-94% of baseline both arms) — same conclusion as Round 1-9, now on a larger, longer sample (~9 weeks vs ~5).
+- Time-to-event (Q2): TX reaches 76.2% "any event" by day 30 vs Control 28.2% (both higher than the earlier draft's numbers, as expected with a longer observation window); trim-only ("found nothing") rate is now 55.0% for TX (flat vs Round 9) but has risen to 41.2% for Control (up from 31.0%) — worth watching as a possible signal that Control's own staff-driven trims are also becoming less targeted, though the sample is still building.
+- Lameness history (Q5): 41% of cohort now `Chronic` (295/718), 3 `Repeat` — same ~41% share as Round 9, confirms the chronicity-label distribution is stable as the cohort grows.
+- Culling (Q6): 20/402 Control (5.0%), 15/316 TX (4.7%) culled — both the caveats' hardcoded "180 of 434 Chronic / 2 Repeat" text and the Overview's hardcoded "~5 week" history line were converted to `r`-computed inline expressions during this round specifically so they can't go stale again the next time the cohort grows.
+
+### Next steps
+
+1. Ask the user for a refreshed Nedap sensor export (covering up through the current data-pull date) to extend the sensor-level check past 2026-07-16 and close the 104-case "Not Checked" gap.
+2. Once pre-June-2 historical data use is separately approved (see Round 10's 4 suggested uses), the sensor export could also support a much larger-sample retrospective validation, independent of DC's import pipeline entirely.

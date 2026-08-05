@@ -59,6 +59,7 @@ data/template_files/*.csv
 data/stashed_files/*.csv
 data/milk_files/*.csv
 data/milk/*.csv
+data/milk/*.txt
 
 
 data/standardization_files/*.rds
