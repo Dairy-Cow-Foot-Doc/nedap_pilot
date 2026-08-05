@@ -108,7 +108,7 @@ The user was confused why "No Prior Lameness This Lactation" existed as a 4th bu
 
 This reverses the "lactation-matching safeguard" principle applied everywhere else in this report (deliberately, per explicit instruction this time) — **for lameness history specifically**, chronicity is a lifetime concept and shouldn't reset at each freshening. Changed `history_lookup`/`valid_history` to join on `id_animal` alone (not `id_animal + lact_number`), searching a cow's entire event record for her most recent status_lesion at/before her NEDLAME alert.
 
-This didn't fully eliminate the 4th bucket on its own, though: even using the full 5-year history, ~37% of the cohort (162 of 434 cows) still have *zero* LAME/TRIM/FOOTRIM diagnosis anywhere in their life before their alert — a real fact about the herd, not an artifact of lactation-scoping. Rather than keep a 4th "never diagnosed" bucket, these cows are folded into `New` (the closest existing category — both represent "no established chronic pattern yet"), giving genuinely 3 categories as asked. This modeling choice is stated explicitly in Q5's intro text so it's not hidden.
+This didn't fully eliminate the 4th bucket on its own, though: even using the full 5-year history, ~37% of the cohort (162 of 434 cows) still have *zero* LAME/TRIM/FOOTRIM diagnosis anywhere in their life before their alert — a real fact about the herd, not an artifact of lactation-scoping. Rather than keep a 4th "never diagnosed" bucket, these cows are folded into `New` (the closest existing category — both represent "no established chronic pattern yet"), giving genuinely 3 categories as asked. This modeling choice is stated explicitly in Q5's intro text so it's not hidden. **Correction (Round 15): the "zero diagnosis" framing here was itself imprecise — see Round 15 below. Most of this fold-in group actually has prior `LAME`/`FOOTRIM`/`TRIM` *events*, just never a *lesion*; the wording above (and in the qmd) has been fixed accordingly.**
 
 ### Fourth+fifth bug: reported upstream
 
@@ -415,3 +415,47 @@ Of the **71 total pipeline-loss cases**:
 ### Implementation note
 
 Both checks required adding the `protocols` column back into `lame_data`'s `select()` (it was previously dropped, keeping only `protocols_letters1` — the parsed/abbreviated version). Verified `protocols` and `injury` both survive the full `fxn_code_lesions()` → `fxn_collapse_lesions()` → `fxn_trim_vars()` → `fxn_dz_status()` pipeline intact before wiring either new subsection in.
+
+## Round 15: Q5's "New" fold-in was mislabeled — "no diagnosis" was described as "no event"
+
+**Status: documentation fix only. No methodology, classification, or number changed — `history_group` counts are identical before and after.**
+
+Gerard read the report's Q5 intro closely and questioned the wording: *"is it really true that new lame included cows without footrim diagnosis I think the code only looks for cows that only had a trim only diagnosis and event (LAME/Footrim) would not have mattered?"* He was right. Confirmed directly against the data: `fxn_dz_status()` only assigns a `status_lesion` value to rows where `trimonly == 0` (an actual lesion found) — checked exhaustively, all 16,923 `trimonly == 0` rows have a status, all 27,668 `trimonly == 1` rows are `NA`, no exceptions. So `history_lookup` only ever contains a cow's *lesion diagnoses* — her routine trim-only visits (however many) never produce a row there at all.
+
+That means the report's original wording ("a cow with no `LAME`/`TRIM`/`FOOTRIM` diagnosis anywhere in her life... is folded into `New`") was misleading. It conflated "no lesion ever diagnosed" (the real condition) with "no foot-care event of any kind" (what the wording implied). Breaking down the 353 cows currently labeled `New` (592-cow cohort):
+
+- **206 (58%) have prior `LAME`/`FOOTRIM`/`TRIM` events on record — just never one with a lesion.** These get folded into `New` purely because they produce zero rows in `history_lookup`.
+- **126 (36%) got `"New"` directly from the classifier itself** (a real matched row, not a fold-in) — almost certainly a first-ever lesion diagnosis, which the classifier itself labels `New`.
+- **Only 21 (6%) have literally zero foot-care events of any kind before their alert.**
+
+(A first pass at this breakdown found 344 instead of 353 — traced the missing 9 to a bug in the *verification script*, not the report: a `left_join` immediately followed by a `filter()` that, for a cow whose only lifetime event fell *after* her alert, correctly excluded that one irrelevant row but then left nothing for `group_by()`/`summarize()` to work with, silently dropping her from the count entirely — the same class of mistake the plan doc's own lessons-learned has flagged repeatedly for the *report's* code, this time caught in throwaway scratch code instead. Fixed by checking `setdiff()` against the pre-filter cohort directly rather than trusting the post-filter group count.)
+
+**Fix**: corrected the wording in two places in the qmd — the `lesion-history-dataset` chunk's code comment, and Q5's intro prose — to say "no lesion ever diagnosed" instead of "no `LAME`/`TRIM`/`FOOTRIM` diagnosis," and to explicitly call out that most of this bucket has prior trim events, just never a lesion. Added the corresponding correction note to this plan doc's Round 5 entry (where the original wording was first introduced) rather than editing that historical entry's numbers.
+
+## Round 16: de-duplicating the alert-type facets, dropping `Repeat` from Q5's trend plots
+
+**Status: implemented and re-rendered.**
+
+Gerard noticed Q1 and Q5 each had their own "Milk Trend by Alert Type" plot — identical content, just homed in two different sections — and asked for the two Q1 plots to become tabs, the Q2/Q5 time-to-event-by-alert-type plot to move into Q2 as a third tab, and Q5 itself to pivot to showing the milk/time-to-event trends faceted by lameness history (`New`/`Chronic`) instead, since that's what Q5 is actually supposed to be about.
+
+### Restructuring
+
+- **Q1**: wrapped the existing by-treatment-group plot and the by-alert-type plot into a `::: panel-tabset` ("By Treatment Group" / "By Alert Type"). No numbers changed, purely a layout change.
+- **Q2**: added a third tab, "By Alert Type," to the existing panel-tabset (alongside "Time to Any Trim/LAME Event" and "...*With a Lesion*") — this is Q5's old `q5-km-plot` code, moved as-is (it already only needed `q2_any`, which Q2 builds itself, so no new dependency).
+- **Q5**: removed both alert-type-faceted plots entirely (now living in Q1/Q2). Added two new plots in their place — milk trend and time-to-next-event, both faceted by `history_group` (`New`/`Chronic` only) instead of `alert_type`. Confirmed `milk_norm` and `q2_any` already carry `history_group` (both are built from `cohort`, which gets `history_group` attached upstream in the `lesion-history-dataset` chunk) — no new joins needed.
+
+### Dropping `Repeat` from Q5's trend plots
+
+Gerard also asked to drop `Repeat` from Q5, suspecting it was "a code issue (I imagine 2 entries on same day)." Checked directly against all 3 `Repeat` cows' actual lifetime lesion histories before implementing anything:
+
+- **Cow 10093**: lesion diagnoses 2025-08-29 (`New`) → 2025-08-30 (`Repeat`) — 1 day apart.
+- **Cow 22453**: ...→ 2025-10-01 (`Chronic`) → 2025-10-02 (`Repeat`) — 1 day apart.
+- **Cow 9725**: 11 lifetime lesion diagnoses, mostly `Chronic` → ...2025-09-24 (`Chronic`) → 2025-09-25 (`Repeat`) — 1 day apart.
+
+Not quite Gerard's exact guess (same-day duplicates) but the same underlying idea confirmed: all 3 owe their `Repeat` label to the classifier's own documented `Repeat`/`Chronic` cutoff being exactly a 1-day gap (already noted in Caveats) — her *most recent* pre-alert diagnosis happened to land 1 day after an earlier one, purely a snapshot-timing coincidence, not a real "just started recurring" pattern. Cow 9725 in particular is arguably the most chronic cow in the whole cohort (11 diagnoses) yet gets labeled `Repeat` for this reason alone.
+
+**Decision**: `Repeat` stays visible in the balance/distribution chart (for completeness, nothing hidden), but is excluded from the two new trend plots specifically, with a `callout-note` explaining why placed right before them. Caveats' "Small sample for Q5" bullet updated to match (no longer says "3 history categories," explains the exclusion instead).
+
+### Verification
+
+Dry-ran all three new/moved chunks standalone (confirming `history_group` availability on `milk_norm`/`q2_any`, and that both `New` and `Chronic` have enough data in both arms to fit a KM curve) before the full render — no surprises.

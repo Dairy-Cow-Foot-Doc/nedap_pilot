@@ -246,12 +246,18 @@ valid_history <- history_lookup |>
   filter(date_event <= first_nedlame_date) |>
   select(id_animal, lact_number, date_event, status_lesion)
 
-# A cow with literally no LAME/TRIM/FOOTRIM diagnosis anywhere in her life
-# before her NEDLAME alert (still ~37% of the cohort even using the full
-# 5-year history) has no status_lesion to inherit. Rather than invent a
-# 4th bucket for this, she's folded into "New" - the same label her
-# eventual first-ever diagnosis would get, and the closest existing
-# category to "no established chronic pattern."
+# A cow with no LESION ever diagnosed before her NEDLAME alert has no
+# status_lesion to inherit - fxn_dz_status() only assigns a status to
+# trimonly == 0 rows (an actual lesion found), so a cow's routine
+# trim-only visits (trimonly == 1) never produce a status_lesion, no
+# matter how many she's had. This is NOT the same as "no LAME/TRIM/
+# FOOTRIM event at all" - checked directly, most of these cows (206 of
+# 353 in the current cohort) DO have prior trim/LAME events, just never
+# one where a lesion was found; only a small remainder (~21 of 353)
+# truly have zero foot-care events before their alert. Rather than
+# invent a 4th bucket for either case, she's folded into "New" - the
+# same label her eventual first-ever diagnosis would get, and the
+# closest existing category to "no established chronic pattern."
 cohort <- cohort |>
   left_join(valid_history, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
   group_by(id_animal, lact_number) |>
@@ -431,6 +437,9 @@ trend <- milk_norm |>
 
 `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one resolvable milk record in this window and a usable pre-alert baseline.
 
+::: panel-tabset
+## By Treatment Group
+
 ```{r}
 #| label: q1-plot
 #| fig-height: 5
@@ -449,7 +458,7 @@ ggplot(trend, aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group))
   )
 ```
 
-## Milk Trend by Alert Type
+## By Alert Type
 
 Does the milk trend differ by how severe the Nedap alert was (`Strong Decline` vs `Low Decline` vs `Low`)?
 
@@ -471,6 +480,7 @@ milk_norm |>
   labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
+:::
 
 ## Lactation-Stage Balance
 
@@ -600,6 +610,54 @@ km_lesion |>
   as_gt() |>
   tab_header(title = "% With a Subsequent Lesion Found")
 ```
+
+## By Alert Type
+
+Does time-to-next-event differ by how severe the Nedap alert was (`Strong Decline` vs `Low Decline` vs `Low`)?
+
+```{r}
+#| label: q2-alert-type-plot
+#| fig-height: 6
+
+alert_levels <- c("LOW", "LOW DECLINE", "STRONG DECLINE")
+
+# ggsurvfit only exposes a single combined `strata` column, so a KM plot
+# faceted by alert_type is built manually: fit one survfit2() per
+# alert level (skipping any level without both treatment arms
+# represented) and stack the tidy() estimates before plotting.
+fittable_alert_levels <- alert_levels |>
+  keep(\(a) {
+    d <- q2_any |> filter(alert_type == a)
+    n_distinct(d$tx_group) == 2 && nrow(d) >= 10
+  })
+
+q2_alert_type_km_data <- fittable_alert_levels |>
+  map(\(a) {
+    d <- q2_any |> filter(alert_type == a)
+    fit <- survfit2(Surv(days_to_event, event_occurred) ~ tx_group, data = d)
+    broom::tidy(fit) |>
+      mutate(
+        tx_group = str_remove(strata, "^tx_group="),
+        alert_type = a,
+        risk = 1 - estimate
+      )
+  }) |>
+  list_rbind() |>
+  mutate(alert_type = factor(alert_type, levels = alert_levels))
+
+skipped_alert_levels <- setdiff(alert_levels, fittable_alert_levels)
+
+ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group)) +
+  geom_step(linewidth = 1) +
+  facet_wrap(~alert_type) +
+  scale_color_viridis_d() +
+  scale_y_continuous(labels = percent) +
+  theme_minimal() +
+  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event", color = "Treatment Group") +
+  theme(legend.position = "bottom")
+```
+
+`r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
 :::
 
 ## Trim Outcomes: How Many Found Nothing?
@@ -1082,7 +1140,7 @@ staff_catch |>
 
 # Q5: Influence of Lameness History
 
-Each cow's lameness-history label (`New` / `Repeat` / `Chronic`, from the same chronicity classifier `report_explore_lame_new.qmd` uses) reflects her **full lifetime record** as of her first NEDLAME alert — `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime concept. A cow with no LAME/TRIM/FOOTRIM diagnosis anywhere in her life before her alert (still about a third of the cohort even with 5 years of history to draw on) is folded into `New`, the closest existing category to "no established chronic pattern" — there's no separate "never diagnosed" bucket. With only `r nrow(cohort)` cows split across 2 treatment arms x 3 history categories, cells here are thin (some under 20) — treat this section as descriptive/exploratory, not a confirmatory subgroup test. The milk-trend and time-to-event plots below are faceted by **alert type** rather than history group, since that split turned out more informative; history's own distribution is shown just below.
+Each cow's lameness-history label (`New` / `Repeat` / `Chronic`, from the same chronicity classifier `report_explore_lame_new.qmd` uses) reflects her **full lifetime record** as of her first NEDLAME alert — `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime concept. A cow with no *lesion ever diagnosed* before her alert (still about a third of the cohort even with 5 years of history to draw on) is folded into `New`, the closest existing category to "no established chronic pattern" — there's no separate "never diagnosed" bucket. **This is not the same as "no foot-care event at all"**: most cows in this bucket do have prior `LAME`/`FOOTRIM`/`TRIM` visits on record, just never one where a lesion was actually found (routine trim-only visits don't count as a diagnosis for this classifier); only a small minority have literally zero foot-care history of any kind. With only `r nrow(cohort)` cows split across 2 treatment arms x 3 history categories, cells here are thin (some under 20) — treat this section as descriptive/exploratory, not a confirmatory subgroup test. History's own distribution (all 3 categories) is shown just below; the milk-trend and time-to-event plots further down facet by **`New`/`Chronic` only** — `Repeat` is excluded from those two plots specifically (see the note above them).
 
 ```{r}
 #| label: q5-balance-plot
@@ -1108,64 +1166,66 @@ cohort |>
         plot.margin = margin(10, 15, 10, 15))
 ```
 
-## Milk Trend by Alert Type
+::: {.callout-note}
+**`Repeat` is excluded from the two plots below** (though it's included in the distribution chart above, for completeness). All 3 `Repeat` cows owe the label to the same coincidence: her most recent lesion diagnosis before enrollment happened to fall exactly one day after an earlier one — the classifier's own `Repeat`/`Chronic` cutoff is a 1-day gap (see Caveats). Checked all 3 directly: none tell a "just started recurring" story. One (cow 9725) has 11 lifetime lesion diagnoses and is arguably the most chronic cow in the entire cohort — mislabeled `Repeat` purely because of when her most recent diagnosis happened to land relative to her alert, not because anything about her actual pattern differs from a typical `Chronic` cow. Too small (3 cows) and too artifact-prone a category to facet on meaningfully.
+:::
+
+## Milk Trend by History Group
 
 ```{r}
 #| label: q5-milk-plot
 #| fig-height: 6
 
 milk_norm |>
-  mutate(alert_type = factor(alert_type, levels = c("LOW", "LOW DECLINE", "STRONG DECLINE"))) |>
-  group_by(tx_group, alert_type, day_rel) |>
+  filter(history_group %in% c("New", "Chronic")) |>
+  group_by(tx_group, history_group, day_rel) |>
   summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE), n = n(), .groups = "drop") |>
   filter(n >= 5) |>
   ggplot(aes(x = day_rel, y = mean_pct, color = tx_group)) +
   geom_line(linewidth = 1) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
-  facet_wrap(~alert_type) +
+  facet_wrap(~history_group) +
   scale_color_viridis_d() +
   theme_minimal() +
   labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
 
-## Time to Next Trim/LAME Event by Alert Type
+## Time to Next Trim/LAME Event by History Group
 
 ```{r}
 #| label: q5-km-plot
 #| fig-height: 6
 
-alert_levels <- c("LOW", "LOW DECLINE", "STRONG DECLINE")
+history_levels_q5 <- c("New", "Chronic")
 
-# ggsurvfit only exposes a single combined `strata` column, so a KM plot
-# faceted by alert_type is built manually: fit one survfit2() per
-# alert level (skipping any level without both treatment arms
-# represented) and stack the tidy() estimates before plotting.
-fittable_alert_levels <- alert_levels |>
-  keep(\(a) {
-    d <- q2_any |> filter(alert_type == a)
+# Same manual per-facet KM build as Q2's "By Alert Type" tab, faceted on
+# history_group instead of alert_type.
+fittable_history_levels <- history_levels_q5 |>
+  keep(\(h) {
+    d <- q2_any |> filter(history_group == h)
     n_distinct(d$tx_group) == 2 && nrow(d) >= 10
   })
 
-q5_km_data <- fittable_alert_levels |>
-  map(\(a) {
-    d <- q2_any |> filter(alert_type == a)
+q5_km_data <- fittable_history_levels |>
+  map(\(h) {
+    d <- q2_any |> filter(history_group == h)
     fit <- survfit2(Surv(days_to_event, event_occurred) ~ tx_group, data = d)
     broom::tidy(fit) |>
       mutate(
         tx_group = str_remove(strata, "^tx_group="),
-        alert_type = a,
+        history_group = h,
         risk = 1 - estimate
       )
   }) |>
   list_rbind() |>
-  mutate(alert_type = factor(alert_type, levels = alert_levels))
+  mutate(history_group = factor(history_group, levels = history_levels_q5))
 
-skipped_alert_levels <- setdiff(alert_levels, fittable_alert_levels)
+skipped_history_levels <- setdiff(history_levels_q5, fittable_history_levels)
 
 ggplot(q5_km_data, aes(x = time, y = risk, color = tx_group)) +
   geom_step(linewidth = 1) +
-  facet_wrap(~alert_type) +
+  facet_wrap(~history_group) +
   scale_color_viridis_d() +
   scale_y_continuous(labels = percent) +
   theme_minimal() +
@@ -1173,7 +1233,7 @@ ggplot(q5_km_data, aes(x = time, y = risk, color = tx_group)) +
   theme(legend.position = "bottom")
 ```
 
-`r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
+`r if (length(skipped_history_levels) > 0) paste0("*History group(s) omitted for insufficient data in one or both arms: ", paste(skipped_history_levels, collapse = ", "), ".*")`
 
 # Q6: Time to Culling After NEDAP Enrollment
 
@@ -1244,6 +1304,6 @@ pct_trimmed_14d_control <- km_any_tidy |> filter(tx_group_label == "Control", ti
   1. The externally-fetched `fxn_collapse_lesions()`/`fxn_trim_vars()`/`fxn_dz_status()` functions (pulled live from GitHub) come bundled with their *own* `fxn_code_lesions()`, whose `trimonly` logic only checks the `protocols` field for "NONE" - this farm's routine/no-lesion trims are coded "NONE" in the `remark` field instead, which that version doesn't check. The GitHub function was silently overwriting this repo's own (correctly-calibrated) `functions/fxn_code_lesions.R`, so *every* LAME/FOOTRIM/TRIM row was being misclassified as having a lesion. Fixed by sourcing the local file last so it wins. This is why Q2's "any trim" and "with a lesion" curves were identical in an earlier draft.
   2. Q2's time-to-next-event join was filtering candidate events to the valid post-NEDLAME window *after* joining to the cohort rather than before, which silently dropped a cow from the analysis entirely (instead of correctly counting her as censored) whenever she had trim/LAME events somewhere in her history but none inside the valid window. This was quietly excluding ~45% of cows from the "any event" curve.
 - **Short history**: `NEDLAME` only spans `r as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))` days of data (go-live `r format(nedlame_start_date)`), capping every time-to-event and milk-trend window above — results should be treated as an early read, not a mature-pilot conclusion. Q4's lookback window is rolling for this same reason (see Q4).
-- **Small sample for Q5**: 2 treatment arms x 3 history categories over `r nrow(cohort)` cows produces thin cells (`Repeat` has only `r sum(cohort$history_group == "Repeat")` cows total); the two arms are not perfectly balanced on prior lameness history at enrollment either (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
+- **Small sample for Q5**: `Repeat` has only `r sum(cohort$history_group == "Repeat")` cows total out of `r nrow(cohort)` — too few and too artifact-prone (see Q5's callout) to facet on, so Q5's trend plots use `New`/`Chronic` only (still shown in the distribution chart). Even at 2 categories, the two arms aren't perfectly balanced on prior lameness history at enrollment (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
 - **Milk join resolution**: `r round(100 * n_milk_cows / nrow(cohort), 1)`% of cohort cows had a usable milk baseline in the analysis window; the remainder lacked resolvable milk records (e.g. dried off, sold, or outside the pulled milk-file date range).
 - **Post-trim alert exclusion (Q1-Q3, Q5, Q6 only)**: `r n_excluded_post_trim` cows whose first `NEDLAME` fired within `r params$post_trim_exclusion_days` days after a recorded trim were excluded from the TX-vs-Control cohort as likely post-treatment gait artifacts rather than independent catches — see the "Excluded" section above for the full reasoning (tied to `NEDLAME`'s 5am batch-load schedule and trims commonly being entered a day or two late). This is a judgment call, not a certainty: it's possible a small number of these really were new, coincidentally-timed problems. Q4 is unaffected, since it doesn't draw from `cohort`.
