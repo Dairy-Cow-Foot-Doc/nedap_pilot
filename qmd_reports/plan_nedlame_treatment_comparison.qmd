@@ -566,3 +566,47 @@ Applied the fix agreed in Round 17: `date_obs_end = pmax(pmin(date_lact_end, coa
 3. ~~TX-vs-Control allocation is never described~~ **Corrected: it IS described**, in the Setup in DairyComp section — *"Cows were added to trim list with a command that randomizes cows by lactation group."* Gerard pointed this out. One residual nit worth a line if he wants it: the sentence says the command randomizes, but the command shown (`Enter FTDAT=1.1.1 for MNFRS=1 ...`) acts on cows *already* set to `MNFRS=1`, so where `MNFRS` gets set to 1 vs 2 isn't shown.
 4. The SmartSight enrollment gap is still stated as *"likely a data transfer issue"* (Gerard's own line, in the misses section) though it remains unconfirmed; the benign alternative — the export simply omitting recently enrolled animals — produces the same lact-1-only pattern. Raised twice, left as his call.
 5. **Executive summary regenerated** against the clean report on 2026-08-05: cohort 592, Q4 250/387 (64.6%), pipeline losses restated as 51 not 71, all numbers recomputed from the clean report's own logic rather than carried over.
+
+## Round 19: collaborator questions — lesion by foot, and what the camera actually misses
+
+**Status: implemented, rendered, committed (`826f861`, `c7d78ad`).** Both items came out of the collaborator meeting.
+
+### Lesion breakdown by foot
+
+New "Which leg is being missed?" figure in the misses section, mirroring the lesion-type figure but split by foot, same detection-status fill. Rear feet carry 294 of 516 foot-level lesions vs 222 front, and "Never Alerted" is the largest block on all four feet — so the misses are not concentrated on one limb. All 387 qualifying cases have a foot recorded, so nothing is dropped relative to the lesion-type view.
+
+**Parsing note that matters for anyone reusing this.** `locate_lesion` packs one or more two-character foot codes into a single string: `RRLR` is right rear + left rear, `RRLRRFLF` is all four. **Substring matching is wrong** — `str_detect("LRRF", "RR")` is `TRUE`, but `LRRF` is LR + RF, so substring matching invents a right-rear lesion that was never recorded. Parse in two-character chunks. Verified across the whole dataset that every value is even length and every chunk is one of `LF`/`RF`/`LR`/`RR`.
+
+### What the camera is actually missing
+
+Gerard's collaborators suspected the misses were DD and front feet. **DD yes; front feet is backwards.** New "What is the camera actually missing?" section profiles the 123 true misses against the 171 cases the camera did flag — both inside the sensor coverage window, so both have raw flag data behind them.
+
+- **DD is 43% of the never-flagged cases against 29% of the flagged ones** (+14pp) — genuinely over-represented, not just common.
+- **White line is the mirror image, 21% vs 43%** (−22pp) — the camera catches WLD well.
+- **Rear feet are 64% of missed cases against 55% of flagged** — front feet are caught *better* than average.
+- Combined: among the 123, DD cases are **51 rear against 8 front**, while non-DD misses split roughly evenly (39/42). **The blind spot is rear-foot digital dermatitis**, not DD or rear feet on their own.
+
+Added one mechanistic sentence, explicitly marked as interpretation rather than result: DD is often bilateral, and a cow sore on both hinds walks symmetrically, which an asymmetry-based mobility score would be expected to under-detect. That is a testable question for Nedap, not something this data establishes.
+
+**Comparison-group discipline.** The contrast is deliberately against the cases the camera *did* flag, not against all lesion cases. "DD is the biggest category among misses" would be true even if DD were simply the commonest lesion; comparing group shares is what shows it is over-represented. Same base-rate reasoning as the Round 17 decline-signal correction.
+
+### Two bugs found while building this
+
+1. **Grouping mismatch (caught before publishing).** My first profile reported 133 true misses, not 123, because I grouped on "sensor never fired" alone rather than the report's definition (never fired **and** no DC alert). The 10-case gap is cows with a DairyComp alert but no raw attention in the window. Recomputed with the report's exact `detection_group_3way` definition.
+2. **Silent leg mislabelling (caught in the rendered output, not the code).** `leg_long` held the raw two-letter codes because the readable names were applied later, inside `q4_legs`. The new front/rear split tested `str_detect(leg, "Rear")`, matched nothing, and labelled **every** case "Front" — the DD table rendered a single column reading 53 / 70, summing to exactly 123, which looked entirely plausible. Fixed by mapping the labels once at source in `leg_long`. This is the same failure mode as the Round 18 label-rename bugs: a string that means one thing in one chunk and something else two chunks later. **Reading the rendered table is what caught it; the code looked fine.**
+
+### Grain note
+
+Front/rear counts in the "What is the camera actually missing?" section are **per case** (deduplicated to Front/Rear), so they are lower than the **per-foot** counts in the leg figure above, where a cow with two rear lesions contributes twice. Both are correct for their own question; don't compare them directly.
+
+### Also this round
+
+- Fixed the lameness-history sentence, which had a closing paren inside a backtick (rendering a stray `)`) plus a comma splitting subject from verb. Swept the rest of the prose — no other unbalanced parens.
+- Confirmed the "123 vs 122" query: both the report and the executive summary say 123 and always have. The 122 was the old *"122 of 957 alerts fire within 14 days of a trim"* statistic — a different quantity, itself stale, now 204 of 957.
+- Executive summary updated with the rear-foot DD finding and a new discussion bullet naming it the most actionable result in the report.
+
+### Still open
+
+1. `summary.html` is a manually-named copy of the report and drifts out of date on every render; the qmd has no `output-file` set. Gerard has said to ignore it.
+2. A fresher raw Nedap export remains the most useful next data pull — it would move most of the 93 unclassified misses into a resolved row.
+3. The SmartSight enrollment gap is still written as *"likely a data transfer issue"* while unconfirmed. Raised twice, left as his call.

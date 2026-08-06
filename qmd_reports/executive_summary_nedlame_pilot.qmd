@@ -59,11 +59,24 @@ That second group looked like a pipeline problem. Checking it against the enroll
 
 So the honest split of the checkable misses is roughly **123 detection misses, 51 pipeline losses, 20 correct suppressions.** A separate check found **18 of the 250 misses involve a cow missing from the SmartSight platform entirely** — she was never being watched.
 
+## What the camera is missing: rear-foot digital dermatitis
+
+Comparing those 123 detection misses against the 171 cases the camera did flag:
+
+- **DD is 43% of the missed cases against 29% of the flagged ones.** Over-represented, not just common.
+- **White line is the reverse — 21% of misses against 43% of flagged.** The camera picks white line up well.
+- **Rear feet are 64% of missed cases against 55% of flagged.** Front feet are caught *better* than average, which is the opposite of what we expected going in.
+
+Those two are one finding. Among the 123 misses, cases involving DD are **51 rear against 8 front**, while the non-DD misses split roughly evenly. The blind spot is **rear-foot DD**, not DD or rear feet on their own.
+
+One likely reason, though this data can't prove it: DD is often bilateral, and a cow sore on both hind feet walks symmetrically. A camera scoring mobility off asymmetry would be expected to under-detect exactly that. Worth putting to Nedap directly.
+
 Staff did not backstop these either: of the 250 misses, only **45 (18%)** had a staff lameness check in the week before diagnosis.
 
 ## For discussion
 
 - **The biggest single category is genuine detection misses (123 of 194 checkable), not data problems.** That is a sensitivity question for Nedap, and it should not get lost behind the pipeline story.
+- **Those misses have a shape: rear-foot DD.** That is a concrete, testable question to put to Nedap — does an asymmetry-based mobility score under-detect bilateral hind-foot disease? It is also the most actionable single result in this report.
 - **Pipeline losses are real but smaller than they first appear** — 51, not 71, once the enrollment rules are accounted for. Still worth fixing with the integration team.
 - **The batch-load timing issue affects 126 of 718 alerts (17.5%).** Entering trim data the same day would remove most of it.
 - **Auto-trimming gets cows seen faster but trims a lot of sound feet** — 54.6% of TX's first visits find no lesion. That is the cost side of the protocol.
