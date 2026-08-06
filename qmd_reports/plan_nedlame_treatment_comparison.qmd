@@ -504,3 +504,64 @@ Tabset/callout integrity (all open and close correctly); no duplicate chunk labe
 - **Q4's five subsections read as accreted** rather than designed; a reconciliation/waterfall table (387 → 250 → 194 → 71 → …) would resolve most of the remaining denominator confusion in one object. Recommended, not built.
 - **The plan doc's own front-matter** (above Round 1) still describes the original 434-cow / 5-week dataset in the present tense and is heavily stale. Left as-is because it reads as the original design record, but it should not be mined for current facts.
 - **How cows were assigned to TX vs Control is never stated** in any document. For a two-arm comparison read by vets, that is the first question a reader will ask, and it isn't answerable from what's written.
+
+## Round 18: Gerard's rewrite becomes the report; misses moved to the end; FTDAT by-design check
+
+**Status: implemented, rendered, committed (`b471175`).** This round is different from the others — Gerard rewrote the report in his own words and it now lives in a separate file, `qmd_reports/report_nedlame_treatment_comparison_clean.qmd`. **That clean file is the live report from here on.** The original `report_nedlame_treatment_comparison.qmd` is the pre-rewrite reference version; don't edit it expecting changes to show up.
+
+### What Gerard changed
+
+He restructured around plain-language section names instead of Q1-Q6 ("Milk Production After 1st NEDLAME Alert", "Trimming", "How does the Farm staff do?", "What cows were missed by the system?"), documented the actual DairyComp enrollment commands verbatim in a new "Setup in DairyComp" section, converted most prose to bullets, and retitled tables so the finding is in the title (e.g. "43-55% of Trims do not have a lesion", "Most cows were flagged as Low Declines"). He also **deleted the Q4 TX/Control miss-rate table** and the whole **Caveats** section, and dropped the Q3 stacked-bar option.
+
+Deleting the TX/Control table resolved the Round 17 concern about that split being a protocol artifact — the misleading rows are simply gone. He **kept** the sensor-level plot that still splits by `tx_group`, with a good reason: its value is the *Never Alerted* column, which shows true misses concentrating in cows that never got a usable flag. That is a different point from the TX-vs-Control contrast, so it stays.
+
+### Section reorder
+
+Per his request the misses material moved to the end: **Overview → Milk → Trimming → Farm staff → Lameness history → Culling → Misses**. Before moving the ~430-line block I verified it was self-contained in both directions — nothing after it referenced its objects, and it referenced nothing from Q5/Q6 — so execution order is safe.
+
+### FTDAT by-design check (the substantive analysis change)
+
+Q4 applied the `FTDAT` suppression test **only at the lesion date**, never at the **attention date**. A trim falling between the sensor flag and the lesion diagnosis leaves the lesion-date test clean while making the flag itself un-enrollable. Added the gate at the attention date — 90 days for the `Low` route, 28 for both decline routes, straight from the farm's own commands.
+
+- **8 of 71** pipeline-loss cases had *every* in-window flag blocked by its own `FTDAT` window.
+- Combined with the injury/upper-leg rule (**13**, one overlapping) → **20 of 71 working as designed, 51 genuinely unexplained.**
+- **Headline restated: pipeline losses drop from 71/194 (36.6%) to 51/194 (26.3%) of checkable misses.** Plot, prose and the reconciliation table were all updated together so they can't disagree.
+- Still a floor: score-at-flag isn't in the data, and the trim lookup is lactation-scoped while real `FTDAT` likely looks back further.
+
+Also established while investigating: **`DSNLM` in those commands is an inclusion criterion** ("alarm in last N days"), **not** a re-alert cooldown — do not model it as suppression. And of the 71, 52 never reached DairyComp at all while 19 had an alert outside the 21-day window.
+
+### Bugs found in the hand-edited version
+
+Renaming a label string in one place but not its consumers was the recurring theme; most of these fail silently rather than erroring.
+
+1. `detection_group` compared `tx_group` against the short label `"Never Alerted"`, but the column holds `"Never Alerted (Not in Pilot Cohort)"` — never matched, so all 230 never-alerted cows would have been shown as "Alerted, Missed".
+2. The `detection_group_3way` `factor()` levels didn't match the `case_when` strings — two of four categories would have become `NA` and vanished.
+3. Five downstream references still used the old label names (plus a leading-space typo, `== " Never Flagged (True Miss)"`) — all would have returned 0.
+4. `nrow(q4)` (387, *all* qualifying cases) was described as cows "without a NEDAP alert" — that is 250.
+5. `@fig-chronic` was broken: the chunk label used an underscore (`fig_chronic`), so the reference would have rendered as literal text.
+6. An empty `::: callout-note` block would have rendered as a blank box.
+7. The `tbl-` prefix sat on the compute chunk rather than the chunk that emits the table.
+8. Two forward references (`n_milk_cows`, `staff_catch` used above the chunks defining them) — these *did* halt the render.
+9. Eight typos/grammar errors in the misses section, including a broken sentence: *"Of the of … cows out had no NEDAP alert"*.
+
+One bug was mine: adding `date_left` to the cohort for the Q2 cull-censoring fix collided with Q6's own join, yielding `date_left.x`/`.y`. Removed the redundant join.
+
+### Q2 cull censoring
+
+Applied the fix agreed in Round 17: `date_obs_end = pmax(pmin(date_lact_end, coalesce(date_left, date_max_pull)), first_nedlame_date)`, used for both the candidate window and the censoring time. 27 of 592 cows were accruing at-risk time after leaving the herd (median 26 phantom days, 735 cow-days total; no phantom *events* — verified 0). Effect at 30 days: TX 87.2% → **89.2%**, Control 32.0% → **32.6%**. Added a one-line competing-risks caveat, since censoring at cull assumes non-informative censoring and cows culled *for lameness* are exactly those most likely to have been trimmed again.
+
+### Presentation rules now established
+
+- **No `::: callout-*` blocks in the report, ever.** Gerard removed them repeatedly and finally said so explicitly: they read as analyst-to-analyst marginalia and the audience is farm collaborators and vets. Anything worth saying goes in plain prose or a normal bullet, in his voice. `::: panel-tabset` is layout, not a callout, and stays.
+- Write short declaratives and bullets; put the finding in the heading.
+
+### Tooling added
+
+`scratchpad/check_forward_refs.R` walks the file comparing every inline `` `r var` `` against the line where its chunk defines it, and checks that every `@tbl-`/`@fig-` reference has a matching label. It catches in seconds what otherwise costs a five-minute render. Worth re-running after any reordering.
+
+### Still open
+
+1. **Executive summary is now stale** — it still describes the pre-rewrite structure and quotes the old 36.6% pipeline-loss figure. Needs regenerating against the clean report.
+2. **A fresher raw Nedap export** remains the single most useful next data pull; it would move most of the 93 unclassified misses into a resolved row.
+3. **TX-vs-Control allocation is still never described** in any document — likely the first question a vet asks.
+4. The SmartSight enrollment gap is still stated as *"likely a data transfer issue"* though it remains unconfirmed; the benign alternative (export omits recently enrolled animals) produces the same lact-1-only pattern.
