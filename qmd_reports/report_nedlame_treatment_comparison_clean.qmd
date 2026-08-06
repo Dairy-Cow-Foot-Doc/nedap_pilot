@@ -906,6 +906,108 @@ staff_id |>
 ```
 :::
 
+# Influence of Lameness History
+
+Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
+
+Each cow's lameness-history label (`New` / `Chronic`, reflects her **full lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime event.
+
+```{r}
+#| label: fig-chronic
+#| fig-height: 4
+
+cohort |>
+  count(tx_group, history_group) |>
+  group_by(tx_group) |>
+  mutate(pct = n / sum(n) * 100) |>
+  ungroup() |>
+  mutate(history_group = fct_relabel(history_group, \(x) str_wrap(x, width = 14))) |>
+  ggplot(aes(x = history_group, y = n, fill = tx_group)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  geom_text(aes(label = paste0(n, " (", round(pct, 0), "%)")),
+            position = position_dodge(width = 0.7), vjust = -0.3, size = 3) +
+  scale_fill_viridis_d() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
+  theme_minimal() +
+  labs(x = NULL, y = "N Cows", fill = "Treatment Group",
+       title = "Lameness-History Distribution at Enrollment") +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(lineheight = 0.9),
+        plot.margin = margin(10, 15, 10, 15))
+```
+
+`Repeat` is left out of the plot below but kept in the chart above. All 3 `Repeat` cows got that label the same way: their most recent lesion before enrolment landed exactly one day after an earlier one. That is a timing artifact, not a clinical category.
+
+## Milk Trend by History Group
+
+```{r}
+#| label: fig-chronic-milk
+#| fig-height: 6
+
+milk_norm |>
+  filter(history_group %in% c("New", "Chronic")) |>
+  group_by(tx_group, history_group, day_rel) |>
+  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE), n = n(), .groups = "drop") |>
+  filter(n >= 5) |>
+  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group)) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
+  facet_wrap(~history_group) +
+  scale_color_viridis_d() +
+  theme_minimal() +
+  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
+  theme(legend.position = "bottom")
+```
+
+# Time to Culling After NEDAP Enrollment
+
+To evaluate the impact of treatment group on culling a time to culling graph is show below. No real impact is seen.
+
+```{r}
+#| label: q6-build
+
+# `date_left` is already attached to `cohort` upstream (it's needed there to
+# censor Q2 at culling), so this chunk must NOT re-join it - doing so yields
+# date_left.x / date_left.y and the bare name disappears. date_sold/date_died
+# were only ever selected here, never used.
+q6 <- cohort |>
+  mutate(
+    culled_ever = as.integer(!is.na(date_left)),
+    days_to_censor_cull = if_else(
+      culled_ever == 1,
+      as.numeric(date_left - first_nedlame_date),
+      as.numeric(date_max_pull - first_nedlame_date)
+    )
+  ) |>
+  filter(days_to_censor_cull >= 0)
+
+km_cull <- survfit2(Surv(days_to_censor_cull, culled_ever) ~ tx_group, data = q6)
+```
+
+```{r}
+#| label: q6-plot
+#| fig-height: 5
+
+km_cull |>
+  ggsurvfit(type = "risk") +
+  add_confidence_interval() +
+  scale_ggsurvfit() +
+  scale_color_viridis_d() +
+  scale_fill_viridis_d() +
+  labs(x = "Days After First NEDLAME Alert", y = "% Culled") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+#| label: q6-table
+
+km_cull |>
+  tbl_survfit(times = c(7, 14, 30), label = " ", type = "risk", label_header = "{time} Days") |>
+  as_gt() |>
+  tab_header(title = "% Culled After First NEDLAME Alert")
+```
+
 # What cows were missed by the system?
 
 This section looks at cows with lesion regardless of treatment group. Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report).
@@ -1001,17 +1103,17 @@ n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
 
 A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
 
-Of the of `r nrow(q4)` cows with lesions, `r sum(!q4$caught_by_nedap)` (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) cows out had no NEDAP alert entered in DairyComp in the `r params$q4_lookback_days` days before their lesion was diagnosed.
+Of those `r nrow(q4)` cows, `r sum(!q4$caught_by_nedap)` (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) had no NEDAP alert entered in DairyComp in the `r params$q4_lookback_days` days before their lesion was diagnosed.
 
 ## What Lesions are being missed?
 
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
-- **Never Alerted** — this cow has no *valid* NEDLAME alert in the analysis cohort. Usually that means she was never alerted at all (`r n_never_alerted_true` of `r n_never_alerted_bucket` cases); for the remaining `r n_never_alerted_excluded`, an alert did get entered but was excluded as it occurred after trimming.
-- **Alerted, Missed** — this cow did get a NEDLAME alert at some point (she's in the TX or Control cohort), but not within the lookback window before *this* lesion was found. NEDAP was watching her, just not in time for this case. Some of these were after the cows first lesion.
-- **Alerted, Caught in Time** — a NEDLAME alert created within the lookback window before this lesion was diagnosed; NEDAP flagged it first.
+- **Never Alerted** — no usable NEDLAME alert. Most were never alerted at all (`r n_never_alerted_true` of `r n_never_alerted_bucket`); the other `r n_never_alerted_excluded` had an alert that was excluded because it came after trimming.
+- **Alerted, Missed** — she was alerted at some point, but not in the lookback window before *this* lesion. Some of these came after her first lesion.
+- **Alerted, Caught in Time** — an alert landed in the window before the lesion. NEDAP flagged her first.
 
-If a cow had more than one distinct lesion type diagnosed on the same day (e.g. white line disease *and* digital dermatitis at the same exam), each distinct type is counted separately here; the same lesion type coded more than once on one day only counts once.
+Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
 
 From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
 
@@ -1049,9 +1151,9 @@ ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, 
 
 ## Alert Check: True Misses vs. Pipeline Losses
 
-The figure above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cows was flagged but the flag never reached DairyComp. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
+The figure above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cow was flagged but the flag never reached DairyComp. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
 
-The figure below compares among lesions what the reasons for not being flagged where. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
+The figure below compares among lesions what the reasons for not being flagged were. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
 
 ```{r}
 #| label: q4-sensor-build
@@ -1125,7 +1227,7 @@ q4_sensor |>
   theme(legend.position = "bottom")
 ```
 
-Further investigation of the missed cows revealed that
+Further investigation of the missed cows showed:
 
 - Of the `r nrow(misses_in_coverage)` DC-recorded misses that fall within the raw sensor's coverage window, `r n_pipeline_loss` (`r pct_pipeline_loss`%) actually had an alert within the lookback window.
 
@@ -1133,12 +1235,12 @@ Further investigation of the missed cows revealed that
 
 - The remaining `r n_true_miss` had no flag at all in that window, a true miss.
 
-- the other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, where the current export can't see, and are left unclassified rather than assumed).
+- The other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, which the current export can't see. These are left unclassified rather than assumed.
 
-Since we are running a separate instance of NEDAP now I wanted to make sure all cows were visible on that instance. A cross check of cows between the SmartSight and activity instance of NEDAP now revealed in @tbl-platform-enrollment-build
+Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cross-check of cows between the SmartSight and Activity instances is shown in @tbl-platform-enrollment.
 
 ```{r}
-#| label: tbl-platform-enrollment-build
+#| label: platform-enrollment-build
 
 q4_sensor <- q4_sensor |>
   left_join(events_all |> select(id_animal, id) |> distinct(), by = "id_animal") |>
@@ -1160,7 +1262,7 @@ n_total_misses <- sum(!q4_sensor$caught_by_nedap)
 ```
 
 ```{r}
-#| label: platform-enrollment-table
+#| label: tbl-platform-enrollment
 
 misses_not_in_smartsight |>
   count(detection_group_3way) |>
@@ -1178,9 +1280,9 @@ misses_not_in_smartsight |>
 
 ## Pipeline Losses, How Many Are By-Design Exclusions?
 
-Due to the set up in DairyComp and NEDAP now a \<31 score criteria was placed to create a `Low` alert. Futher more cows with a history of injury were also excluded (upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`).
+Two rules limit which cows can become a `Low` alert: a score under 31, and no history of upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`).
 
-Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked and is show in the figure below.
+Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked. It is shown in the figure below.
 
 ```{r}
 #| label: pipeline-loss-injury-build
@@ -1215,12 +1317,50 @@ injury_history_check <- pipeline_loss_cases |>
   group_by(id_animal, lact_number, date_event) |>
   summarize(has_injury_leg_history = any(has_prior_injury), .groups = "drop")
 
+# SECOND by-design mechanism: the FTDAT gate, evaluated AT THE ATTENTION
+# DATE. Q4 already applies an FTDAT-style test, but only at the *lesion*
+# date - which never asks whether the cow was eligible at the moment the
+# camera actually fired. A trim falling between the attention and the lesion
+# leaves the lesion-date test clean while making the attention itself
+# un-enrollable. Gate widths come straight from the farm's DairyComp
+# commands: FTDAT<-90 for the Low route, FTDAT<-28 for both decline routes.
+trims_gate <- events_formatted |>
+  filter(event %in% c("LAME", "FOOTRIM", "TRIM")) |>
+  select(id_animal, lact_number, gate_trim_date = date_event) |>
+  distinct()
+
+attention_gate_check <- pipeline_loss_cases |>
+  select(id_animal, lact_number, date_event, lookback_days_used) |>
+  left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
+            by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+  left_join(trims_gate, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  mutate(days_since_trim = if_else(!is.na(gate_trim_date) & gate_trim_date < attention_date,
+                                    as.numeric(attention_date - gate_trim_date), Inf)) |>
+  group_by(id_animal, lact_number, date_event, attention_date, alert_type) |>
+  summarize(days_since_trim = min(days_since_trim), .groups = "drop") |>
+  mutate(gate_days = if_else(alert_type == "LOW", 90, 28),
+         attention_blocked = days_since_trim <= gate_days) |>
+  group_by(id_animal, lact_number, date_event) |>
+  # only "by design" if EVERY attention in the window was gated out; if even
+  # one was eligible, DairyComp should have enrolled her.
+  summarize(all_attentions_blocked = all(attention_blocked), .groups = "drop")
+
 pipeline_loss_cases <- pipeline_loss_cases |>
   left_join(pipeline_loss_fired_types, by = c("id_animal", "lact_number", "date_event")) |>
-  left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event"))
+  left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event")) |>
+  left_join(attention_gate_check, by = c("id_animal", "lact_number", "date_event")) |>
+  mutate(
+    all_attentions_blocked = coalesce(all_attentions_blocked, FALSE),
+    injury_explained = low_only & has_injury_leg_history,
+    by_design = all_attentions_blocked | injury_explained
+  )
 
 n_pipeline_loss_low_only <- sum(pipeline_loss_cases$low_only, na.rm = TRUE)
-n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$low_only & pipeline_loss_cases$has_injury_leg_history, na.rm = TRUE)
+n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$injury_explained, na.rm = TRUE)
+n_pipeline_loss_ftdat_blocked <- sum(pipeline_loss_cases$all_attentions_blocked, na.rm = TRUE)
+n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design, na.rm = TRUE)
+n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_design
 ```
 
 ```{r}
@@ -1229,9 +1369,10 @@ n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$low_only & pipeline_
 
 pipeline_loss_cases |>
   mutate(category = case_when(
-    !low_only ~ "Escalated Past LOW (Not This Exclusion)",
-    has_injury_leg_history ~ "LOW-Only + Injury/Leg History (Likely By-Design)",
-    TRUE ~ "LOW-Only, No Injury/Leg History (Unexplained)"
+    all_attentions_blocked ~ "By design: every flag inside its FTDAT window",
+    injury_explained       ~ "By design: injury/upper-leg history blocks Low",
+    !low_only              ~ "Unexplained: escalated past LOW",
+    TRUE                   ~ "Unexplained: LOW-only, no injury history"
   )) |>
   count(category) |>
   ggplot(aes(x = fct_reorder(category, n), y = n, fill = category)) +
@@ -1245,19 +1386,17 @@ pipeline_loss_cases |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases
+Two of the enrollment rules can be checked. Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases:
 
-- `r n_pipeline_loss_low_only` never escalated past a `LOW` flag
+- `r n_pipeline_loss_ftdat_blocked` had every flag land inside its own `FTDAT` window (90 days for `Low`, 28 for the declines). DairyComp was right to skip them.
 
-- `r n_pipeline_loss_injury_explained` of those (`r round(100 * n_pipeline_loss_injury_explained / n_pipeline_loss_low_only, 1)`%) have a prior `Leg-AboveFoot`/injury history, meaning they were very likely correctly excluded from `Low` enrollment by design, not a pipeline issue.
+- `r n_pipeline_loss_injury_explained` were `LOW`-only flags on cows with upper-leg lameness history, which blocks the `Low` route.
 
-- The escalated past Low category are cows that were missed in pipeline but did go on to have declining alert.
+- That is **`r n_pipeline_loss_by_design` of `r nrow(pipeline_loss_cases)` working as designed**, leaving **`r n_pipeline_loss_unexplained` as the real pipeline losses**.
 
-- **This is a floor, not the full answer** as the score-range criterion can't be checked at all here, so the true share of "pipeline losses" that are actually by-design exclusions is likely higher than `r n_pipeline_loss_injury_explained` of `r nrow(pipeline_loss_cases)`.
+- This is a floor. We can't check score at flag, and the trim lookup only covers the current lactation while `FTDAT` likely looks back further. Both push the by-design count down.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
-
-Of the cows that were missed by the camera but had a lesion (trimmed due to routine trim or farm staff reasons) x (%) were flagged by the farm staff
 
 ```{r}
 #| label: q4-staff-catch-build
@@ -1271,19 +1410,19 @@ staff_catch <- missed_cases |>
   summarize(staff_flagged = any(staff_flagged), .groups = "drop")
 ```
 
-```         
-```
+Of the `r nrow(staff_catch)` cows that were missed by the camera but had a lesion (trimmed due to routine trim or farm staff reasons),
+
+- `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
 
 ## Summarizing the Misses
 
-Each off the above checks narrows a *different* population, so a percentage from one subsection doesn't share a denominator with the next. This table reconciles the whole chain in one place — read the indented rows as splits of the row above them, and always take the "% of" column from the stated base.
+Each check above narrows a different group of cows, so the percentages don't share a denominator. The table below ties them together. Indented rows are splits of the row above, and the "% of" column always refers to the base named beside it.
 
 ```{r}
 #| label: q4-reconciliation
 
 n_caught_total <- sum(q4$caught_by_nedap)
 n_staff_caught <- sum(staff_catch$staff_flagged)
-n_true_miss_unexplained <- n_pipeline_loss - n_pipeline_loss_injury_explained
 
 q4_recon <- tibble::tribble(
   ~step, ~n, ~base, ~base_n,
@@ -1292,10 +1431,12 @@ q4_recon <- tibble::tribble(
   " Not caught — \"misses\"", n_total_misses, "qualifying cases", nrow(q4),
   "  Within raw sensor coverage (checkable)", nrow(misses_in_coverage), "misses", n_total_misses,
   "  Outside coverage (not checkable yet)", n_misses_outside_coverage, "misses", n_total_misses,
-  "   Sensor fired anyway — pipeline loss", n_pipeline_loss, "checkable misses", nrow(misses_in_coverage),
-  "   Sensor never fired — true sensor miss", n_true_miss, "checkable misses", nrow(misses_in_coverage),
-  "    Of pipeline losses: only mild LOW ever fired", n_pipeline_loss_low_only, "pipeline losses", n_pipeline_loss,
-  "     ...and has injury/upper-leg history — likely by-design, not a bug", n_pipeline_loss_injury_explained, "LOW-only pipeline losses", n_pipeline_loss_low_only
+  "   Flag fired anyway — candidate pipeline loss", n_pipeline_loss, "checkable misses", nrow(misses_in_coverage),
+  "   Never flagged — true miss", n_true_miss, "checkable misses", nrow(misses_in_coverage),
+  "    Of candidates: blocked by its own FTDAT window", n_pipeline_loss_ftdat_blocked, "candidates", n_pipeline_loss,
+  "    Of candidates: LOW-only + injury/upper-leg history", n_pipeline_loss_injury_explained, "candidates", n_pipeline_loss,
+  "    Of candidates: by design overall (either rule)", n_pipeline_loss_by_design, "candidates", n_pipeline_loss,
+  "    Of candidates: UNEXPLAINED — real pipeline losses", n_pipeline_loss_unexplained, "candidates", n_pipeline_loss
 ) |>
   mutate(pct = if_else(is.na(base_n), NA_real_, 100 * n / base_n))
 
@@ -1330,128 +1471,8 @@ q4_recon |>
 
 - `r n_true_miss` are genuine missing alerts
 
-- `r n_pipeline_loss` are cases where the sensor did alert
+- `r n_pipeline_loss` are cases where the camera did flag her
 
-  - at least `r n_pipeline_loss_injury_explained` were correct by-design suppressions rather than integration failures,
+  - `r n_pipeline_loss_by_design` were correct by-design suppressions (`FTDAT` window or injury/upper-leg rule), not integration failures,
 
-  - roughly `r n_true_miss_unexplained` as pipeline losses not otherwise explained.
-
-# Influence of Lameness History
-
-Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
-
-Each cow's lameness-history label (`New` / `Chronic`, reflects her **full lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime event.
-
-```{r}
-#| label: fig_chronic
-#| fig-height: 4
-
-cohort |>
-  count(tx_group, history_group) |>
-  group_by(tx_group) |>
-  mutate(pct = n / sum(n) * 100) |>
-  ungroup() |>
-  mutate(history_group = fct_relabel(history_group, \(x) str_wrap(x, width = 14))) |>
-  ggplot(aes(x = history_group, y = n, fill = tx_group)) +
-  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
-  geom_text(aes(label = paste0(n, " (", round(pct, 0), "%)")),
-            position = position_dodge(width = 0.7), vjust = -0.3, size = 3) +
-  scale_fill_viridis_d() +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
-  theme_minimal() +
-  labs(x = NULL, y = "N Cows", fill = "Treatment Group",
-       title = "Lameness-History Distribution at Enrollment") +
-  theme(legend.position = "bottom",
-        axis.text.x = element_text(lineheight = 0.9),
-        plot.margin = margin(10, 15, 10, 15))
-```
-
-::: callout-note
-:::
-
-## Milk Trend by History Group
-
-```{r}
-#| label: fig-chronic-milk
-#| fig-height: 6
-
-milk_norm |>
-  filter(history_group %in% c("New", "Chronic")) |>
-  group_by(tx_group, history_group, day_rel) |>
-  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE), n = n(), .groups = "drop") |>
-  filter(n >= 5) |>
-  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group)) +
-  geom_line(linewidth = 1) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
-  facet_wrap(~history_group) +
-  scale_color_viridis_d() +
-  theme_minimal() +
-  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
-  theme(legend.position = "bottom")
-```
-
-# Time to Culling After NEDAP Enrollment
-
-To evaluate the impact of treatment group on culling a time to culling graph is show below. No real impact is seen.
-
-```{r}
-#| label: q6-build
-
-# `date_left` is already attached to `cohort` upstream (it's needed there to
-# censor Q2 at culling), so this chunk must NOT re-join it - doing so yields
-# date_left.x / date_left.y and the bare name disappears. date_sold/date_died
-# were only ever selected here, never used.
-q6 <- cohort |>
-  mutate(
-    culled_ever = as.integer(!is.na(date_left)),
-    days_to_censor_cull = if_else(
-      culled_ever == 1,
-      as.numeric(date_left - first_nedlame_date),
-      as.numeric(date_max_pull - first_nedlame_date)
-    )
-  ) |>
-  filter(days_to_censor_cull >= 0)
-
-km_cull <- survfit2(Surv(days_to_censor_cull, culled_ever) ~ tx_group, data = q6)
-```
-
-```{r}
-#| label: q6-plot
-#| fig-height: 5
-
-km_cull |>
-  ggsurvfit(type = "risk") +
-  add_confidence_interval() +
-  scale_ggsurvfit() +
-  scale_color_viridis_d() +
-  scale_fill_viridis_d() +
-  labs(x = "Days After First NEDLAME Alert", y = "% Culled") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
-```{r}
-#| label: q6-table
-
-km_cull |>
-  tbl_survfit(times = c(7, 14, 30), label = " ", type = "risk", label_header = "{time} Days") |>
-  as_gt() |>
-  tab_header(title = "% Culled After First NEDLAME Alert")
-```
-
-```{r}
-#| label: mnfrs-caveat-stat
-
-# Pulled directly from Q2's own km_any object (not a separately hand-computed
-# figure) so this can't drift out of sync with the rest of the report again -
-# an earlier draft of this caveat cited a hand-typed 81.5%/42.9% figure that
-# didn't reproduce against the current pipeline once the join-order bugs
-# above were fixed.
-km_any_tidy <- broom::tidy(km_any) |>
-  mutate(tx_group_label = str_remove(strata, "^tx_group="), risk_pct = (1 - estimate) * 100)
-
-pct_trimmed_14d_tx <- km_any_tidy |> filter(tx_group_label == "TX (Trim)", time <= 14) |> slice_max(time, n = 1) |> pull(risk_pct)
-pct_trimmed_14d_control <- km_any_tidy |> filter(tx_group_label == "Control", time <= 14) |> slice_max(time, n = 1) |> pull(risk_pct)
-```
-
-#
+  - leaving `r n_pipeline_loss_unexplained` as genuine pipeline losses — `r round(100 * n_pipeline_loss_unexplained / nrow(misses_in_coverage), 1)`% of the checkable misses.
