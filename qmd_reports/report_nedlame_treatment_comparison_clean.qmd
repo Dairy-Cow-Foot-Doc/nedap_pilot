@@ -1172,12 +1172,16 @@ leg_long <- events_formatted |>
   select(id_animal, lact_number, date_event, locate_lesion) |>
   mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
   unnest(leg) |>
-  distinct(id_animal, lact_number, date_event, leg)
+  distinct(id_animal, lact_number, date_event, leg) |>
+  # Map to readable names HERE, once, so everything downstream sees
+  # "Left Rear" rather than "LR". Leaving the raw codes in place and
+  # renaming later silently broke a front/rear split that tested
+  # str_detect(leg, "Rear") - it matched nothing and called every foot Front.
+  mutate(leg = unname(leg_names[leg]))
 
 q4_legs <- leg_long |>
   inner_join(q4_group |> select(id_animal, lact_number, date_event, detection_group),
              by = c("id_animal", "lact_number", "date_event")) |>
-  mutate(leg = unname(leg_names[leg])) |>
   count(detection_group, leg)
 
 n_legs_rear <- sum(q4_legs$n[str_detect(q4_legs$leg, "Rear")])
@@ -1281,6 +1285,97 @@ Further investigation of the missed cows showed:
 - The remaining `r n_true_miss` had no flag at all in that window, a true miss.
 
 - The other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, which the current export can't see. These are left unclassified rather than assumed.
+
+## What is the camera actually missing?
+
+```{r}
+#| label: true-miss-build
+
+checkable <- q4_sensor |>
+  filter(in_coverage) |>
+  mutate(camera = if_else(detection_group_3way == "Never Flagged (True Miss)",
+                          "Camera never flagged", "Camera flagged her"))
+
+n_cam_miss <- sum(checkable$camera == "Camera never flagged")
+n_cam_flag <- sum(checkable$camera == "Camera flagged her")
+
+lesion_by_camera <- lame_lesion_recent |>
+  select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
+  inner_join(checkable |> select(id_animal, lact_number, date_event, camera),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  pivot_longer(all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
+  filter(has_lesion == 1) |>
+  count(camera, lesion_type) |>
+  mutate(pct = if_else(camera == "Camera never flagged", 100 * n / n_cam_miss, 100 * n / n_cam_flag))
+
+pct_dd_miss  <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "dd"  & lesion_by_camera$camera == "Camera never flagged"], 0)
+pct_dd_flag  <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "dd"  & lesion_by_camera$camera == "Camera flagged her"], 0)
+pct_wld_miss <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "wld" & lesion_by_camera$camera == "Camera never flagged"], 0)
+pct_wld_flag <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "wld" & lesion_by_camera$camera == "Camera flagged her"], 0)
+
+# Front/rear share within each group, computed here rather than inline so the
+# prose stays readable.
+leg_end <- leg_long |>
+  mutate(end = if_else(str_detect(leg, "Rear"), "Rear", "Front")) |>
+  distinct(id_animal, lact_number, date_event, end)
+
+leg_by_camera <- leg_end |>
+  inner_join(checkable |> select(id_animal, lact_number, date_event, camera),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  count(camera, end) |>
+  group_by(camera) |>
+  mutate(pct = 100 * n / sum(n)) |>
+  ungroup()
+
+pct_rear_miss <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera never flagged" & leg_by_camera$end == "Rear"], 0)
+pct_rear_flag <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera flagged her"   & leg_by_camera$end == "Rear"], 0)
+```
+
+The `r n_cam_miss` cases the camera never flagged are compared below against the `r n_cam_flag` it did flag. Both sit inside the sensor coverage window, so both have raw flag data behind them. Percentages are within each group, and a cow can have more than one lesion type and more than one affected foot, so they add to more than 100%.
+
+```{r}
+#| label: fig-true-miss-lesion
+#| fig-height: 4
+
+lesion_by_camera |>
+  ggplot(aes(x = fct_reorder(lesion_type, pct, .fun = max), y = pct, fill = camera)) +
+  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = NULL, y = "% of cases in that group", fill = NULL) +
+  theme(legend.position = "bottom")
+```
+
+- **Digital dermatitis is over-represented**: `r pct_dd_miss`% of the cases the camera never flagged, against `r pct_dd_flag`% of the ones it did flag.
+- **White line is the opposite**: `r pct_wld_miss`% of misses vs `r pct_wld_flag`% of flagged cases. The camera picks white line up well.
+
+```{r}
+#| label: tbl-true-miss-leg
+
+dd_cases <- lame_lesion_recent |> filter(dd == 1) |> distinct(id_animal, lact_number, date_event)
+
+tm_dd_leg <- leg_end |>
+  inner_join(checkable |> filter(camera == "Camera never flagged") |>
+               select(id_animal, lact_number, date_event),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  left_join(dd_cases |> mutate(had_dd = TRUE), by = c("id_animal", "lact_number", "date_event")) |>
+  mutate(`Lesion group` = if_else(coalesce(had_dd, FALSE), "Case included DD", "No DD")) |>
+  count(`Lesion group`, end) |>
+  pivot_wider(names_from = end, values_from = n, values_fill = 0)
+
+n_dd_rear  <- tm_dd_leg$Rear[tm_dd_leg$`Lesion group` == "Case included DD"]
+n_dd_front <- tm_dd_leg$Front[tm_dd_leg$`Lesion group` == "Case included DD"]
+
+tm_dd_leg |>
+  gt(rowname_col = "Lesion group") |>
+  tab_header(title = "Missed DD sits on the rear feet") |>
+  tab_stubhead(label = "Among the cases the camera never flagged")
+```
+
+- Rear feet make up `r pct_rear_miss`% of the missed cases against `r pct_rear_flag`% of the flagged ones, so front feet are caught *better* than average. The suspicion that front feet were the problem does not hold.
+- The two findings are the same finding: missed DD is `r n_dd_rear` rear against `r n_dd_front` front, while the non-DD misses split roughly evenly. **The blind spot is rear-foot digital dermatitis, not DD or rear feet on their own.**
+- A likely reason, though this data can't prove it: DD is often bilateral, and a cow sore on both hind feet walks symmetrically. A camera scoring mobility off asymmetry would be expected to under-detect exactly that. Worth putting to Nedap.
 
 Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cross-check of cows between the SmartSight and Activity instances is shown in @tbl-platform-enrollment.
 
