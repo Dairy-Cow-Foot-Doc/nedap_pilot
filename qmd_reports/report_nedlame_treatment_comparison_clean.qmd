@@ -910,7 +910,7 @@ staff_id |>
 
 Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
 
-Each cow's lameness-history label (`New` / `Chronic)`, reflects her **lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity for lameness should be considered a lifetime event.
+Each cow's lameness-history label (`New` / `Chronic`) reflects her **lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity for lameness should be considered a lifetime event.
 
 ```{r}
 #| label: fig-chronic
@@ -1150,6 +1150,49 @@ ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, 
   labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
   theme(legend.position = "bottom")
 ```
+
+## Which leg is being missed?
+
+The same cases split by which foot the lesion was found on. A cow can have lesions on more than one foot, so the bars add to more than `r nrow(q4_group)` cases.
+
+```{r}
+#| label: fig-missed-by-leg
+#| fig-height: 4
+
+leg_names <- c(LF = "Left Front", RF = "Right Front", LR = "Left Rear", RR = "Right Rear")
+
+# locate_lesion packs one or more two-character foot codes into one string
+# ("RRLR" = right rear + left rear, "RRLRRFLF" = all four). It must be parsed
+# in 2-character chunks, NOT with substring matching: str_detect("LRRF", "RR")
+# is TRUE, but "LRRF" is LR + RF, so substring matching would invent a
+# right-rear lesion that was never recorded. Checked every value in the data -
+# all are even length and every chunk is one of LF/RF/LR/RR.
+leg_long <- events_formatted |>
+  filter(event %in% c("LAME", "FOOTRIM", "TRIM"), !is.na(locate_lesion), locate_lesion != "") |>
+  select(id_animal, lact_number, date_event, locate_lesion) |>
+  mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
+  unnest(leg) |>
+  distinct(id_animal, lact_number, date_event, leg)
+
+q4_legs <- leg_long |>
+  inner_join(q4_group |> select(id_animal, lact_number, date_event, detection_group),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  mutate(leg = unname(leg_names[leg])) |>
+  count(detection_group, leg)
+
+n_legs_rear <- sum(q4_legs$n[str_detect(q4_legs$leg, "Rear")])
+n_legs_front <- sum(q4_legs$n[str_detect(q4_legs$leg, "Front")])
+
+ggplot(q4_legs, aes(x = fct_reorder(leg, n, .fun = sum), y = n, fill = detection_group)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
+  theme(legend.position = "bottom")
+```
+
+Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. The never-alerted share is the largest block on every foot, so the misses are not concentrated on one limb.
 
 ## Alert Check: True Misses vs. Pipeline Losses
 
