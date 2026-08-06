@@ -351,7 +351,7 @@ For this study the follow things were created in DairyComp to handle the file da
 
     - ENTER EC=70\\P213 FOR LFTYP=30100 LMFLG=1 (DSNLM=7-1 FTDAT\<-28)(FTDAT\<-28 %73.NDLAME.101\>LOW)
 
-- Cows were added to trim list with a command that randomizes cows by lactation group.
+- Cows were added to trim list with a command that uses an existing item (MNFRS) that randomizes cows by lactation group.
 
   - Enter FTDAT=1.1.1 for MNFRS=1 %.70NEDLAME.101=TODAY
 
@@ -910,7 +910,7 @@ staff_id |>
 
 Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
 
-Each cow's lameness-history label (`New` / `Chronic`, reflects her **full lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime event.
+Each cow's lameness-history label (`New` / `Chronic)`, reflects her **lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity for lameness should be considered a lifetime event.
 
 ```{r}
 #| label: fig-chronic
@@ -936,7 +936,9 @@ cohort |>
         plot.margin = margin(10, 15, 10, 15))
 ```
 
-`Repeat` is left out of the plot below but kept in the chart above. All 3 `Repeat` cows got that label the same way: their most recent lesion before enrolment landed exactly one day after an earlier one. That is a timing artifact, not a clinical category.
+::: callout-note
+`Repeat` is left out of the plot below but kept in the chart above. All 3 `Repeat` cows got that label the same way: their most recent lesion before enrollment landed exactly one day after an earlier one. That is a timing artifact, not a clinical category.
+:::
 
 ## Milk Trend by History Group
 
