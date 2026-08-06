@@ -369,9 +369,9 @@ This results in
 
 - `r n_control` in the **Control** arm (`MNFRS = 2`, staff decide whether/when to act),
 
-**A methodology note that applies throughout**: no cow is counted more than once in any table below. Where this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it either uses her **first** qualifying occurrence in the relevant window or asks only whether *at least one* occurred. Therefore a cow flagged or diagnosed repeatedly isn't over-weighted. When a single trimming date has more than one distinct lesion type coded (e.g. white line disease *and* digital dermatitis found at the same trimming), each distinct type is kept; the same lesion type coded more than once on one day only counts once.
+**NOTE**: no cow is counted more than once in any table below. Where this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it either uses her **first** qualifying occurrence in the relevant window or asks only whether *at least one* occurred. Therefore a cow flagged or diagnosed repeatedly isn't counted more than once. When a single trimming date has more than one distinct lesion type coded (e.g. white line disease *and* digital dermatitis found at the same trimming), each distinct type is kept; the same lesion type coded more than once on one day only counts once.
 
-### Description of Cows 
+### Description of Cows
 
 The tables below describe the cows enrolled by treatment group
 
@@ -449,7 +449,7 @@ cohort |>
 ```
 :::
 
-Details about excluded cows with alerts right 1-7 days after trimming
+### Details about excluded cows with alerts right 1-7 days after trimming
 
 ```{r}
 #| label: tbl-post-trim-exclusion-table
@@ -554,7 +554,7 @@ The figures below show the impact of the treatment group on milk production.
 
 - `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record post trimming and a usable pre-alert baseline.
 
-Due to the fact that cows were at very different lactation stages when flagged milk production aren't directly comparable across cows. Each cow's production is normalized to **% of her own pre-alert baseline** (mean production over the `r params$milk_baseline_days` days before the alert) before averaging by day and treatment group. This allow us to isolates the *shape* of the trend/recovery from each cow's absolute production level.
+Due to the fact that cows were at very different lactation stages when flagged milk production is not directly comparable across cows. Each cow's production is normalized to **% of her own pre-alert baseline** (mean production over the `r params$milk_baseline_days` days before the alert) before averaging by day and treatment group. This allow us to isolates the *shape* of the trend/recovery from each cow's absolute production level.
 
 ::: panel-tabset
 ## By Treatment Group
@@ -601,17 +601,15 @@ milk_norm |>
 ```
 :::
 
-# Trimming 
+# Trimming
 
-## Time to next trimming after alert 
+## Time to next trimming after alert
 
-For each cow, we look for the first trimming event after her first NEDLAME alert, **within the same lactation**.
+To determine the accuracy of the alert for each cow, we looked for the first trimming event after her first NEDLAME alert. Cows were censored at the end of their lactation or culling.
 
-The figures below show the time to the next trimming event split by treatment group and for various lesion or alerts types. Cows were censored at the end of their lactation or culling.
+The figures below show the time to the next trimming event split by treatment group and for various lesion or alerts types.
 
 - It is clear that most of the trim cows got trimmed within 7-10 days.
-
-*Caveat on censoring at culling: this assumes a culled cow would have had the same future trim risk as similar cows that stayed. That is arguable, since cows culled for lameness are exactly the ones most likely to have been trimmed again. A competing-risks model would handle it properly; censoring is an improvement, not a complete fix.*
 
 ```{r}
 #| label: q2-build
@@ -724,7 +722,7 @@ km_lesion |>
 
 ## By Alert Type
 
-Does time to trimming after the alert differ by the type of the NEDAP alert?
+Decline cows mostly all get trimmed
 
 ```{r}
 #| label: q2-alert-type-plot
@@ -779,7 +777,9 @@ ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = t
 
 ## How many trims with no lesions?
 
-The table below shows the number of cows who had a first NEDAP alert and where trimmed and did not have a lesions. **This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
+The table below shows the number of cows who had a first NEDAP alert and where trimmed **but** did not have a lesions.
+
+**This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
 
 ```{r}
 #| label: q2-trimonly-summary
@@ -798,12 +798,12 @@ q2_first_event_detail |>
   gt(rowname_col = "tx_group") |>
   fmt_number(columns = pct_trimonly, decimals = 1) |>
   cols_label(n = "N Cows with Trim", n_trimonly = "No Lesion", pct_trimonly = "% Trim-Only") |>
-  tab_header(title = "43-55% of Trims do not hav a lesion")
+  tab_header(title = "43-55% of Trims do not have a lesion")
 ```
 
-# How does the Farm staff do? 
+# How does the Farm staff do?
 
-The dairy uses a `CHKLAME` event to flag cows in the need of trimming. The tables below compares what % of cows with a NEDAP alert were flagged by farms staff in the 7 days before or the same day of the NEDAP alert.
+The dairy uses a `CHKLAME` event to flag cows in the need of trimming. The tables below compares what % of cows with a NEDAP alert were flagged by farms staff \<=7 days of the NEDAP alert.
 
 ```{r}
 #| label: q3-build
@@ -884,7 +884,7 @@ staff_id |>
 
 ## By Alert Type
 
-Staff catches a bigger % of Low and Strong Decline alerts?
+Staff catches a bigger % of Low and Strong Decline alerts
 
 ```{r}
 #| label: q3-alert-type-by-group-plot
@@ -904,14 +904,13 @@ staff_id |>
   labs(x = "Alert Type", y = "% Staff-Identified (CHKLAME)", fill = "Treatment Group") +
   theme(legend.position = "bottom")
 ```
-
 :::
 
-# What cows were missed by NEDAP?
+# What cows were missed by the system?
 
 This section looks at cows with lesion regardless of treatment group. Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report).
 
-Lame events that were in heifers, dried off cows or cows trimmed within 28 days of another trim were excluded as the system does not monitor those cows or they were automatically excluded.
+**Note** *Lame events that were in heifers, dried off cows or cows trimmed within 28 days of another trim were excluded as the system does not monitor those cows or they were automatically excluded*.
 
 ```{r}
 #| label: q4-build
@@ -1000,40 +999,21 @@ n_never_alerted_true <- q4 |>
 n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
 ```
 
-A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted regardless. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
+A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
 
-The table below shows that `r sum(!q4$caught_by_nedap)` cows out of `r nrow(q4)` total lesion cows (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) had no NEDAP alert in the `r params$q4_lookback_days` days before their lesion was diagnosed.
-
-```{r}
-#| label: q4-table
-
-q4 |>
-  group_by(tx_group) |>
-  summarize(n_lesion_events = n(), pct_missed = mean(!caught_by_nedap) * 100, .groups = "drop") |>
-  bind_rows(
-    q4 |> summarize(tx_group = "Overall", n_lesion_events = n(), pct_missed = mean(!caught_by_nedap) * 100)
-  ) |>
-  gt(rowname_col = "tx_group") |>
-  fmt_number(columns = pct_missed, decimals = 1) |>
-  cols_label(n_lesion_events = "N Lesion Cases", pct_missed = "% Not Caught by NEDAP First") |>
-  tab_header(title = paste("Lesion Cases On/After", params$history_after_date)) |>
-  tab_source_note(source_note = paste0(
-    "\"Never Alerted (Not in Pilot Cohort)\" = a lesion case with no *valid* NEDLAME alert in the analysis cohort. Of these ",
-    n_never_alerted_bucket, " cases, ", n_never_alerted_true,
-    " are cows that genuinely never received any NEDLAME alert; the other ", n_never_alerted_excluded,
-    " did receive one, but it was excluded as a likely post-trim artifact (see \"Excluded\" in the Overview). None of those ",
-    n_never_alerted_excluded, " were caught by NEDAP either way, so the overall miss rate is unaffected - but the TX/Control-vs-Never-Alerted *split* is."))
-```
+Of the of `r nrow(q4)` cows with lesions, `r sum(!q4$caught_by_nedap)` (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) cows out had no NEDAP alert entered in DairyComp in the `r params$q4_lookback_days` days before their lesion was diagnosed.
 
 ## What Lesions are being missed?
 
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
-- **Never Alerted** — this cow has no *valid* NEDLAME alert in the analysis cohort. Usually that means she was never alerted at all (`r n_never_alerted_true` of `r n_never_alerted_bucket` cases); for the remaining `r n_never_alerted_excluded`, an alert did fire but was excluded as it occurred after trimming.
-- **Alerted, Missed** — this cow did get a NEDLAME alert at some point (she's in the TX or Control cohort), but not within the lookback window before *this* lesion was found. NEDAP was watching her, just not in time for this case.
-- **Alerted, Caught in Time** — a NEDLAME alert fired within the lookback window before this lesion was diagnosed; NEDAP flagged it first.
+- **Never Alerted** — this cow has no *valid* NEDLAME alert in the analysis cohort. Usually that means she was never alerted at all (`r n_never_alerted_true` of `r n_never_alerted_bucket` cases); for the remaining `r n_never_alerted_excluded`, an alert did get entered but was excluded as it occurred after trimming.
+- **Alerted, Missed** — this cow did get a NEDLAME alert at some point (she's in the TX or Control cohort), but not within the lookback window before *this* lesion was found. NEDAP was watching her, just not in time for this case. Some of these were after the cows first lesion.
+- **Alerted, Caught in Time** — a NEDLAME alert created within the lookback window before this lesion was diagnosed; NEDAP flagged it first.
 
 If a cow had more than one distinct lesion type diagnosed on the same day (e.g. white line disease *and* digital dermatitis at the same exam), each distinct type is counted separately here; the same lesion type coded more than once on one day only counts once.
+
+From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
 
 ```{r}
 #| label: q4-lesion-types
@@ -1069,9 +1049,9 @@ ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, 
 
 ## Alert Check: True Misses vs. Pipeline Losses
 
-The table above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cows was flagged but the flag never reached DC. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
+The figure above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cows was flagged but the flag never reached DairyComp. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
 
-The figure below compares among lesions what the reasons for not being flagged where.
+The figure below compares among lesions what the reasons for not being flagged where. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
 
 ```{r}
 #| label: q4-sensor-build
@@ -1145,16 +1125,20 @@ q4_sensor |>
   theme(legend.position = "bottom")
 ```
 
-I stopped here...
+Further investigation of the missed cows revealed that
 
-Of the `r nrow(misses_in_coverage)` DC-recorded misses that fall within the raw sensor's coverage window (the other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, where the current export can't see, and are left unclassified rather than assumed), `r n_pipeline_loss` (`r pct_pipeline_loss`%) actually had the sensor fire within the lookback window — the flag simply never reached DairyComp as a `NEDLAME` event — and the remaining `r n_true_miss` had no sensor firing at all in that window, a true miss at the sensor level. **Within this coverage window, the technology-level miss rate is measurably lower than the DC-recorded miss rate above suggests**, though this gap shouldn't be extrapolated to cases outside the coverage window without a fresher sensor export — see the plan doc for how big the currently-checkable window is relative to the full analysis period.
+- Of the `r nrow(misses_in_coverage)` DC-recorded misses that fall within the raw sensor's coverage window, `r n_pipeline_loss` (`r pct_pipeline_loss`%) actually had an alert within the lookback window.
 
-## Platform Enrollment Check: Was the Cow Even Being Monitored?
+  - The flag never got into DairyComp as a `NEDLAME` event (potential pipeline issue)
 
-The checks above are all date-bound — they can only ask "did the sensor fire in this specific window." Separately, a cow can only ever be monitored for lameness if she's actually enrolled on Nedap's **SmartSight** platform in the first place, independent of any date. This farm runs SmartSight as a separate instance from **Activity** (the platform staff use daily), specifically to avoid confusion when checking cows on the Nedap side — but that separation means a cow can be active and current on Activity while never having been added to SmartSight at all.
+- The remaining `r n_true_miss` had no flag at all in that window, a true miss.
+
+- the other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, where the current export can't see, and are left unclassified rather than assumed).
+
+Since we are running a separate instance of NEDAP now I wanted to make sure all cows were visible on that instance. A cross check of cows between the SmartSight and activity instance of NEDAP now revealed in @tbl-platform-enrollment-build
 
 ```{r}
-#| label: platform-enrollment-build
+#| label: tbl-platform-enrollment-build
 
 q4_sensor <- q4_sensor |>
   left_join(events_all |> select(id_animal, id) |> distinct(), by = "id_animal") |>
@@ -1186,15 +1170,17 @@ misses_not_in_smartsight |>
   tab_source_note(source_note = paste0("All ", n_not_in_smartsight, " are first-lactation cows - not a random scatter. All ", n_ss_absent_but_on_activity, " are present on the Activity platform."))
 ```
 
-Cross-checking Q4's misses against the farm's platform exports directly found `r n_not_in_smartsight` of `r n_total_misses` DC-recorded misses (`r round(100 * n_not_in_smartsight / n_total_misses, 1)`%) involve a cow absent from SmartSight's animal list — while all `r n_ss_absent_but_on_activity` of them are present on the Activity platform (checked directly, not assumed). If that absence is real rather than an artifact of how the export is generated, it would mean these cows were never eligible to be caught by NEDAP at all, regardless of how lame they actually were — **see the caveat below before treating this as settled.** Because this is an enrollment check rather than a date-bound one, it applies to cases the raw attentions export couldn't reach: `r sum(misses_not_in_smartsight$detection_group_3way == "Never Flagged (True Miss)")` of these were already counted as true sensor misses above, and `r sum(misses_not_in_smartsight$detection_group_3way == "No Data (Outside Coverage)")` more had fallen into the date-bound "Not Checked" bucket.
+- `r n_not_in_smartsight` of `r n_total_misses` DC-recorded misses (`r round(100 * n_not_in_smartsight / n_total_misses, 1)`%) involve a cow absent from SmartSight's animal list
 
-::: callout-note
-Every one of these `r n_not_in_smartsight` cases is a first-lactation cow (`lact_number == 1`) — not a random scatter. That pattern points to a systematic onboarding gap (newly-freshened heifers not yet added to SmartSight) rather than isolated missing enrollments. It's also consistent with a more benign explanation, though: if SmartSight requires some minimum days-in-milk before an animal shows up in its own export, this exact lact-1-only pattern would appear even with no real monitoring gap at all. Worth confirming directly with Nedap/farm staff before treating this as a settled finding either way — flagged here, not resolved.
-:::
+  - All `r n_ss_absent_but_on_activity` of them are present on the Activity platform (checked directly, not assumed).
 
-## Of the Pipeline Losses, How Many Are By-Design Exclusions?
+    - All these were 1st lactation cows so there is likely a data transfer issue.
 
-Not every "sensor fired but the flag never reached DC" case above is necessarily a pipeline bug. Confirmed directly with the farm: DairyComp's enrollment logic for `Low`-type alerts is deliberately stricter than the raw sensor's own low-score threshold — a cow only enrolls as a `Low` cow if her score is between 1 and 30 (not just under 70, the sensor's own low-score cutoff — using the wider band directly would flood the `Low` list with alerts), **and** she has no history of upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`, or an injury-coded lesion). Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked here — **this is a floor on how many pipeline-loss cases are really by-design exclusions, not a complete answer.**
+## Pipeline Losses, How Many Are By-Design Exclusions?
+
+Due to the set up in DairyComp and NEDAP now a \<31 score criteria was placed to create a `Low` alert. Futher more cows with a history of injury were also excluded (upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`).
+
+Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked and is show in the figure below.
 
 ```{r}
 #| label: pipeline-loss-injury-build
@@ -1259,11 +1245,19 @@ pipeline_loss_cases |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases, `r n_pipeline_loss_low_only` never escalated past a mild `LOW` attention — the subset this specific exclusion actually applies to. `r n_pipeline_loss_injury_explained` of those (`r round(100 * n_pipeline_loss_injury_explained / n_pipeline_loss_low_only, 1)`%) have a prior `Leg-AboveFoot`/injury history, meaning they were very likely correctly excluded from `Low` enrollment by design, not lost to a data/integration bug. **This is a floor, not the full answer** — the score-range criterion can't be checked at all here, so the true share of "pipeline losses" that are actually by-design exclusions is likely higher than `r n_pipeline_loss_injury_explained` of `r nrow(pipeline_loss_cases)`.
+Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases
+
+- `r n_pipeline_loss_low_only` never escalated past a `LOW` flag
+
+- `r n_pipeline_loss_injury_explained` of those (`r round(100 * n_pipeline_loss_injury_explained / n_pipeline_loss_low_only, 1)`%) have a prior `Leg-AboveFoot`/injury history, meaning they were very likely correctly excluded from `Low` enrollment by design, not a pipeline issue.
+
+- The escalated past Low category are cows that were missed in pipeline but did go on to have declining alert.
+
+- **This is a floor, not the full answer** as the score-range criterion can't be checked at all here, so the true share of "pipeline losses" that are actually by-design exclusions is likely higher than `r n_pipeline_loss_injury_explained` of `r nrow(pipeline_loss_cases)`.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 
-For the cases NEDAP didn't catch, this checks for a `CHKLAME` event (farm staff independently flagging a lame cow — see Q3) in the 7 days before, or on the same day as, the lesion diagnosis. A "yes" here means staff still caught the cow on their own even though NEDAP missed her; a "no" means neither NEDAP nor staff caught her before she was formally diagnosed.
+Of the cows that were missed by the camera but had a lesion (trimmed due to routine trim or farm staff reasons) x (%) were flagged by the farm staff
 
 ```{r}
 #| label: q4-staff-catch-build
@@ -1277,24 +1271,12 @@ staff_catch <- missed_cases |>
   summarize(staff_flagged = any(staff_flagged), .groups = "drop")
 ```
 
-```{r}
-#| label: q4-staff-catch-table
-
-staff_catch |>
-  group_by(tx_group) |>
-  summarize(n_missed = n(), n_staff_flagged = sum(staff_flagged), pct_staff_flagged = mean(staff_flagged) * 100, .groups = "drop") |>
-  bind_rows(
-    staff_catch |> summarize(tx_group = "Overall", n_missed = n(), n_staff_flagged = sum(staff_flagged), pct_staff_flagged = mean(staff_flagged) * 100)
-  ) |>
-  gt(rowname_col = "tx_group") |>
-  fmt_number(columns = pct_staff_flagged, decimals = 1) |>
-  cols_label(n_missed = "N Missed by NEDAP", n_staff_flagged = "Also Staff-Flagged (CHKLAME)", pct_staff_flagged = "% Also Staff-Flagged") |>
-  tab_header(title = "Of NEDAP's Misses, How Many Did Staff Catch Independently?")
+```         
 ```
 
-## Putting Q4's Numbers Together
+## Summarizing the Misses
 
-Each check above narrows a *different* population, so a percentage from one subsection doesn't share a denominator with the next. This table reconciles the whole chain in one place — read the indented rows as splits of the row above them, and always take the "% of" column from the stated base.
+Each off the above checks narrows a *different* population, so a percentage from one subsection doesn't share a denominator with the next. This table reconciles the whole chain in one place — read the indented rows as splits of the row above them, and always take the "% of" column from the stated base.
 
 ```{r}
 #| label: q4-reconciliation
@@ -1338,14 +1320,30 @@ q4_recon |>
     " misses were independently flagged by staff, which can apply to any row."))
 ```
 
-**The bottom line of this chain**: of the `r n_total_misses` cases DairyComp records as missed, only `r nrow(misses_in_coverage)` can currently be checked against the raw sensor feed at all. Within that checkable slice, `r n_true_miss` are genuine sensor non-firings and `r n_pipeline_loss` are cases where the sensor did fire — of which at least `r n_pipeline_loss_injury_explained` were correct by-design suppressions rather than integration failures, leaving roughly `r n_true_miss_unexplained` as pipeline losses not otherwise explained. **The single most useful thing that would sharpen this section is a fresher sensor export**, which would move most of the `r n_misses_outside_coverage` unclassified misses into one of the resolved rows.
+**The bottom line of this:**
 
-# Q5: Influence of Lameness History
+- of the `r n_total_misses` cases DairyComp records as missed,
 
-Each cow's lameness-history label (`New` / `Repeat` / `Chronic`, from the same chronicity classifier `report_explore_lame_new.qmd` uses) reflects her **full lifetime record** as of her first NEDLAME alert — `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime concept. A cow with no *lesion ever diagnosed* before her alert (still about a third of the cohort even with 5 years of history to draw on) is folded into `New`, the closest existing category to "no established chronic pattern" — there's no separate "never diagnosed" bucket. **This is not the same as "no foot-care event at all"**: most cows in this bucket do have prior `LAME`/`FOOTRIM`/`TRIM` visits on record, just never one where a lesion was actually found (routine trim-only visits don't count as a diagnosis for this classifier); only a small minority have literally zero foot-care history of any kind. With only `r nrow(cohort)` cows split across 2 treatment arms x 3 history categories, cells here are thin (some under 20) — treat this section as descriptive/exploratory, not a confirmatory subgroup test. History's own distribution (all 3 categories) is shown just below; the milk-trend plot further down facets by **`New`/`Chronic` only** — `Repeat` is excluded from that plot specifically (see the note above it).
+- only `r nrow(misses_in_coverage)` can currently be checked against the raw sensor feed at all.
+
+  Within that checkable slice,
+
+- `r n_true_miss` are genuine missing alerts
+
+- `r n_pipeline_loss` are cases where the sensor did alert
+
+  - at least `r n_pipeline_loss_injury_explained` were correct by-design suppressions rather than integration failures,
+
+  - roughly `r n_true_miss_unexplained` as pipeline losses not otherwise explained.
+
+# Influence of Lameness History
+
+Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
+
+Each cow's lameness-history label (`New` / `Chronic`, reflects her **full lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity is a lifetime event.
 
 ```{r}
-#| label: q5-balance-plot
+#| label: fig_chronic
 #| fig-height: 4
 
 cohort |>
@@ -1369,13 +1367,12 @@ cohort |>
 ```
 
 ::: callout-note
-**`Repeat` is excluded from the plot below** (though it's included in the distribution chart above, for completeness). All 3 `Repeat` cows owe the label to the same coincidence: her most recent lesion diagnosis before enrollment happened to fall exactly one day after an earlier one — the classifier's own `Repeat`/`Chronic` cutoff is a 1-day gap (see Caveats). Checked all 3 directly: none tell a "just started recurring" story. One (cow 9725) has 11 lifetime lesion diagnoses and is arguably the most chronic cow in the entire cohort — mislabeled `Repeat` purely because of when her most recent diagnosis happened to land relative to her alert, not because anything about her actual pattern differs from a typical `Chronic` cow. Too small (3 cows) and too artifact-prone a category to facet on meaningfully.
 :::
 
 ## Milk Trend by History Group
 
 ```{r}
-#| label: q5-milk-plot
+#| label: fig-chronic-milk
 #| fig-height: 6
 
 milk_norm |>
@@ -1393,9 +1390,9 @@ milk_norm |>
   theme(legend.position = "bottom")
 ```
 
-# Q6: Time to Culling After NEDAP Enrollment
+# Time to Culling After NEDAP Enrollment
 
-Same culling-outcome pattern as `report_explore_lame_new.qmd`, anchored on the first NEDLAME date instead of a lesion-event date.
+To evaluate the impact of treatment group on culling a time to culling graph is show below. No real impact is seen.
 
 ```{r}
 #| label: q6-build
@@ -1457,14 +1454,4 @@ pct_trimmed_14d_tx <- km_any_tidy |> filter(tx_group_label == "TX (Trim)", time 
 pct_trimmed_14d_control <- km_any_tidy |> filter(tx_group_label == "Control", time <= 14) |> slice_max(time, n = 1) |> pull(risk_pct)
 ```
 
-# Caveats
-
-- **MNFRS coding is now confirmed from the DairyComp setup documentation**, not just inferred: the `NDTLIST` command explicitly enrolls `MNFRS = 1` cows onto the trim list ("put nedap cows on trim list"), matching the empirical pattern found here (per Q2's own KM estimate, `r round(pct_trimmed_14d_tx, 0)`% of `MNFRS = 1` cows have a subsequent LAME/FOOTRIM/TRIM event within 14 days of their alert vs `r round(pct_trimmed_14d_control, 0)`% for `MNFRS = 2`).
-- **`Chronic` here just means "not her first-ever diagnosis, and more than a day since the last one"** — the external chronicity classifier's `Repeat` vs. `Chronic` cutoff is a 1-day gap, so almost any cow with 2+ lifetime lesion diagnoses lands in `Chronic` regardless of whether those diagnoses were weeks or years apart (`r sum(cohort$history_group == "Chronic")` of `r nrow(cohort)` cows are `Chronic` here, only `r sum(cohort$history_group == "Repeat")` are `Repeat`). Don't read `Chronic` as "actively/currently recurring" — it doesn't distinguish a cow with one old resolved case 4 years ago from one with three flare-ups this year.
-- **Two data-processing bugs were found and fixed while building this report**, both of which materially changed earlier draft results:
-  1.  The externally-fetched `fxn_collapse_lesions()`/`fxn_trim_vars()`/`fxn_dz_status()` functions (pulled live from GitHub) come bundled with their *own* `fxn_code_lesions()`, whose `trimonly` logic only checks the `protocols` field for "NONE" - this farm's routine/no-lesion trims are coded "NONE" in the `remark` field instead, which that version doesn't check. The GitHub function was silently overwriting this repo's own (correctly-calibrated) `functions/fxn_code_lesions.R`, so *every* LAME/FOOTRIM/TRIM row was being misclassified as having a lesion. Fixed by sourcing the local file last so it wins. This is why Q2's "any trim" and "with a lesion" curves were identical in an earlier draft.
-  2.  Q2's time-to-next-event join was filtering candidate events to the valid post-NEDLAME window *after* joining to the cohort rather than before, which silently dropped a cow from the analysis entirely (instead of correctly counting her as censored) whenever she had trim/LAME events somewhere in her history but none inside the valid window. This was quietly excluding \~45% of cows from the "any event" curve.
-- **Short history**: `NEDLAME` only spans `r as.numeric(max(first_nedlame$first_nedlame_date) - min(first_nedlame$first_nedlame_date))` days of data (go-live `r format(nedlame_start_date)`), capping every time-to-event and milk-trend window above — results should be treated as an early read, not a mature-pilot conclusion. Q4's lookback window is rolling for this same reason (see Q4).
-- **Small sample for Q5**: `Repeat` has only `r sum(cohort$history_group == "Repeat")` cows total out of `r nrow(cohort)` — too few and too artifact-prone (see Q5's callout) to facet on, so Q5's trend plot uses `New`/`Chronic` only (`Repeat` is still shown in the distribution chart). Even at 2 categories, the two arms aren't perfectly balanced on prior lameness history at enrollment (see the Q5 balance chart), which should temper causal interpretation of any history-stratified differences.
-- **Milk join resolution**: `r round(100 * n_milk_cows / nrow(cohort), 1)`% of cohort cows had a usable milk baseline in the analysis window; the remainder lacked resolvable milk records (e.g. dried off, sold, or outside the pulled milk-file date range).
-- **Post-trim alert exclusion (Q1-Q3, Q5, Q6 only)**: `r n_excluded_post_trim` cows whose first `NEDLAME` fired 1-`r params$post_trim_exclusion_days` days after a recorded trim were excluded from the TX-vs-Control cohort as likely post-treatment gait artifacts rather than independent catches — see the "Excluded" section above for the full reasoning (tied to `NEDLAME`'s 5am batch-load schedule and trims commonly being entered a day or two late). This is a judgment call, not a certainty: it's possible a small number of these really were new, coincidentally-timed problems. Q4's overall miss rate is unaffected (it reads alerts from the full event log), but Q4's TX/Control/Never-Alerted split is — excluded cows land in the "Never Alerted" row.
+#
