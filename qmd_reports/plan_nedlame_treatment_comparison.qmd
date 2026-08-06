@@ -563,5 +563,6 @@ Applied the fix agreed in Round 17: `date_obs_end = pmax(pmin(date_lact_end, coa
 
 1. **Executive summary is now stale** — it still describes the pre-rewrite structure and quotes the old 36.6% pipeline-loss figure. Needs regenerating against the clean report.
 2. **A fresher raw Nedap export** remains the single most useful next data pull; it would move most of the 93 unclassified misses into a resolved row.
-3. **TX-vs-Control allocation is still never described** in any document — likely the first question a vet asks.
-4. The SmartSight enrollment gap is still stated as *"likely a data transfer issue"* though it remains unconfirmed; the benign alternative (export omits recently enrolled animals) produces the same lact-1-only pattern.
+3. ~~TX-vs-Control allocation is never described~~ **Corrected: it IS described**, in the Setup in DairyComp section — *"Cows were added to trim list with a command that randomizes cows by lactation group."* Gerard pointed this out. One residual nit worth a line if he wants it: the sentence says the command randomizes, but the command shown (`Enter FTDAT=1.1.1 for MNFRS=1 ...`) acts on cows *already* set to `MNFRS=1`, so where `MNFRS` gets set to 1 vs 2 isn't shown.
+4. The SmartSight enrollment gap is still stated as *"likely a data transfer issue"* (Gerard's own line, in the misses section) though it remains unconfirmed; the benign alternative — the export simply omitting recently enrolled animals — produces the same lact-1-only pattern. Raised twice, left as his call.
+5. **Executive summary regenerated** against the clean report on 2026-08-05: cohort 592, Q4 250/387 (64.6%), pipeline losses restated as 51 not 71, all numbers recomputed from the clean report's own logic rather than carried over.
