@@ -1170,9 +1170,15 @@ n_truncated_lookback <- sum(q4$lookback_days_used < params$q4_lookback_days)
 # purely "never got an alert." Split it explicitly rather than describing it
 # loosely: an earlier draft called the non-pure share "a small number" when
 # it is actually ~18% of the bucket.
-n_never_alerted_bucket <- sum(q4$tx_group == "Never Alerted (Not in Pilot Cohort)")
-n_never_alerted_true <- q4 |>
-  filter(tx_group == "Never Alerted (Not in Pilot Cohort)") |>
+# Must match the figure's "Never Alerted" band exactly, which means carrying
+# the !caught_by_nedap test too - a handful of cows are outside the cohort yet
+# were still flagged in time, and they belong in "Caught in Time", not here.
+# (detection_group itself is built later, so the rule is repeated rather than
+# referenced; if one changes, change both.)
+never_alerted_rows <- q4 |>
+  filter(!caught_by_nedap, tx_group == "Never Alerted (Not in Pilot Cohort)")
+n_never_alerted_bucket <- nrow(never_alerted_rows)
+n_never_alerted_true <- never_alerted_rows |>
   anti_join(all_nedlame_cows |> select(id_animal, lact_number), by = c("id_animal", "lact_number")) |>
   nrow()
 n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
@@ -1201,13 +1207,33 @@ lesion_type_cols <- c("dd", "footrot", "wld", "sole_ulcer", "injury", "cork",
                        "hemorrhage", "sole_fracture", "toe_ulcer", "thin", "other")
 
 q4_group <- q4 |>
-  # NB: compare against the value tx_group actually holds (set in q4-build),
-  # then emit the short display label. Comparing against the short label here
-  # silently matches nothing and dumps every never-alerted cow into
-  # "Alerted, Missed".
-  mutate(detection_group = if_else(tx_group == "Never Alerted (Not in Pilot Cohort)",
-                                    "Never Alerted",
-                                    if_else(caught_by_nedap, "Alerted, Caught in Time", "Alerted, Missed")))
+  # Order matters: test caught_by_nedap FIRST, then cohort membership.
+  #
+  # caught_by_nedap looks at ANY NEDLAME event, while cohort membership also
+  # requires a valid MNFRS and survival of the post-trim exclusion. So a cow
+  # can be flagged in time yet sit outside the cohort. Testing cohort
+  # membership first labelled those cows "Never Alerted" even though an alert
+  # did reach DairyComp inside the window - 4 cases, and it stopped the two
+  # missed categories summing to the miss total (55 + 288 = 343, not 339).
+  #
+  # NB when editing: compare tx_group against the value it actually holds (set
+  # in q4-build), not the short display label - the short label matches nothing
+  # and silently dumps every never-alerted cow into "Alerted, Missed".
+  mutate(detection_group = case_when(
+    caught_by_nedap ~ "Alerted, Caught in Time",
+    tx_group == "Never Alerted (Not in Pilot Cohort)" ~ "Never Alerted",
+    TRUE ~ "Alerted, Missed"
+  ))
+
+# The two missed categories must account for every miss. If this ever fails,
+# the labels have drifted away from caught_by_nedap again.
+stopifnot(
+  sum(q4_group$detection_group %in% c("Never Alerted", "Alerted, Missed")) ==
+    sum(!q4_group$caught_by_nedap)
+)
+
+# and the prose counters above must describe the same band as the figure
+stopifnot(sum(q4_group$detection_group == "Never Alerted") == n_never_alerted_bucket)
 
 q4_lesion_types <- lame_lesion_recent |>
   select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
