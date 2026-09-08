@@ -337,6 +337,28 @@ cows_activity <- read_csv("data/cows_activity.csv", show_col_types = FALSE) |>
 
 cows_smartsight <- read_csv("data/cows_smartsight.csv", show_col_types = FALSE) |>
   transmute(id = as.character(Animal))
+
+# Animal numbers get reused and reassigned. DairyComp records an ID change as
+# an XID event whose Remark holds the OLD number, and 150 of those old numbers
+# are still present in this extract as animals in their own right. A cow
+# renumbered after she was enrolled therefore looks ABSENT from SmartSight
+# under her current number while being present under her old one - confirmed
+# on cow 23143, renumbered from 14347 on 2026-08-06 and enrolled all along as
+# 14347. Checking the current number alone would call her unmonitored.
+id_aliases <- events_all |>
+  filter(Event == "XID") |>
+  transmute(id = as.character(id), alias = trimws(as.character(Remark))) |>
+  filter(!is.na(alias), grepl("^[0-9]+$", alias)) |>
+  distinct()
+
+smartsight_ids <- unique(cows_smartsight$id)
+# a cow counts as enrolled if her current OR any prior number is on the list
+enrolled_ids <- union(
+  smartsight_ids,
+  id_aliases$id[id_aliases$alias %in% smartsight_ids]
+)
+n_rescued_by_alias <- length(setdiff(
+  id_aliases$id[id_aliases$alias %in% smartsight_ids], smartsight_ids))
 ```
 
 # Overview
@@ -1090,10 +1112,34 @@ n_excluded_recent_trim <- sum(
     (is.na(lame_lesion_recent_all$date_dry) | lame_lesion_recent_all$date_event <= lame_lesion_recent_all$date_dry)
 )
 
+# A cow who was never enrolled in SmartSight was never monitored for
+# mobility at all, so a lesion found on her cannot be a camera miss - the
+# same reasoning that already excludes dry cows and unfreshened heifers.
+# Enrollment is judged renumber-aware via enrolled_ids (see the setup chunk).
+lame_lesion_recent_all <- lame_lesion_recent_all |>
+  left_join(events_all |> select(id_animal, id) |> distinct(), by = "id_animal") |>
+  mutate(enrolled_smartsight = as.character(id) %in% enrolled_ids)
+
+# Counted at the SAME grain as q4 (one row per cow-lactation, after the
+# first-qualifying-case slice), so that nrow(q4) + this reconciles against the
+# pre-exclusion total. Counting raw lesion rows instead double-counts a cow
+# with two qualifying events.
+excluded_not_enrolled_cases <- lame_lesion_recent_all |>
+  filter(!is.na(date_fresh),
+         is.na(date_dry) | date_event <= date_dry,
+         days_since_last_trim > params$recent_trim_suppression_days,
+         !enrolled_smartsight) |>
+  group_by(id_animal, lact_number) |>
+  slice_min(date_event, n = 1, with_ties = FALSE) |>
+  ungroup()
+n_excluded_not_enrolled <- nrow(excluded_not_enrolled_cases)
+
 lame_lesion_recent <- lame_lesion_recent_all |>
   filter(!is.na(date_fresh)) |>
   filter(is.na(date_dry) | date_event <= date_dry) |>
   filter(days_since_last_trim > params$recent_trim_suppression_days) |>
+  filter(enrolled_smartsight) |>
+  select(-enrolled_smartsight, -id) |>
   select(-date_fresh, -date_dry, -days_since_last_trim) |>
   # first qualifying lesion case per cow-lactation only
   group_by(id_animal, lact_number) |>
@@ -1457,7 +1503,7 @@ The blind spot is the combination: **digital dermatitis on a hind foot.** Neithe
 
 A likely reason, though this data cannot prove it: DD is often bilateral, and a cow sore on both hind feet walks symmetrically. A camera scoring mobility off asymmetry would be expected to under-detect exactly that. Worth putting to Nedap.
 
-Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cross-check of cows between the SmartSight and Activity instances is shown in @tbl-platform-enrollment.
+Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
 
 ```{r}
 #| label: platform-enrollment-build
@@ -1465,7 +1511,9 @@ Since we are running a separate SmartSight instance, I wanted to make sure all c
 q4_sensor <- q4_sensor |>
   left_join(events_all |> select(id_animal, id) |> distinct(), by = "id_animal") |>
   mutate(
-    not_in_smartsight = !(id %in% cows_smartsight$id),
+    # alias-aware, matching the Q4 eligibility rule exactly - a cow enrolled
+    # under a previous animal number is enrolled (see enrolled_ids in setup)
+    not_in_smartsight = !(id %in% enrolled_ids),
     # Checked, not assumed: the point of this section is that a cow can be
     # current on the Activity platform (which staff use daily) while absent
     # from SmartSight. Earlier drafts asserted "even though she's on
@@ -1474,12 +1522,11 @@ q4_sensor <- q4_sensor |>
     in_activity = id %in% cows_activity$id
   )
 
-misses_not_in_smartsight <- q4_sensor |> filter(!caught_by_nedap, not_in_smartsight)
-n_not_in_smartsight <- nrow(misses_not_in_smartsight)
-n_lact1_not_in_smartsight <- sum(misses_not_in_smartsight$lact_number == 1)
-n_ss_absent_but_on_activity <- sum(misses_not_in_smartsight$in_activity)
+# Unenrolled cows are excluded upstream in Q4, so this should now be empty.
+# Kept as an assertion rather than deleted: if it ever stops being zero, the
+# exclusion has silently stopped working.
+n_residual_not_in_smartsight <- sum(!q4_sensor$caught_by_nedap & q4_sensor$not_in_smartsight)
 n_total_misses <- sum(!q4_sensor$caught_by_nedap)
-n_lact1_share_not_in_ss <- n_lact1_not_in_smartsight
 
 # Herd-level enrollment check. The misses above are only the unenrolled cows
 # who also happened to get a lesion, so they understate the gap. This asks the
@@ -1514,33 +1561,12 @@ n_l1_after_unenrolled <- sum(!l1_after$on_smartsight)
 pct_l1_before_enrolled <- round(100 * mean(l1_before$on_smartsight), 1)
 n_l1_after_on_activity <- sum(l1_after$on_activity)
 
-# What the miss rate would be if a cow never enrolled in SmartSight were
-# treated as ineligible, the same way heifers and dry cows already are. Not
-# applied - stated, because it depends on the farm confirming the gap.
-unenrolled_cases <- q4_sensor |> filter(not_in_smartsight)
-n_q4_excl_unenrolled <- nrow(q4_sensor) - nrow(unenrolled_cases)
-n_miss_excl_unenrolled <- sum(!q4_sensor$caught_by_nedap) - sum(!unenrolled_cases$caught_by_nedap)
-pct_miss_excl_unenrolled <- round(100 * n_miss_excl_unenrolled / n_q4_excl_unenrolled, 1)
 ```
 
-```{r}
-#| label: tbl-platform-enrollment
 
-misses_not_in_smartsight |>
-  count(detection_group_3way) |>
-  gt(rowname_col = "detection_group_3way") |>
-  cols_label(n = "N Cases") |>
-  tab_header(title = "Misses Where the Cow Is Absent From the SmartSight Export") |>
-  tab_source_note(source_note = paste0(n_lact1_not_in_smartsight, " of ", n_not_in_smartsight, " are first-lactation cows - not a random scatter. All ", n_ss_absent_but_on_activity, " are present on the Activity platform."))
-```
+`r n_excluded_not_enrolled` lesion cases were excluded on this basis, and they are no longer counted as misses anywhere above.
 
-- `r n_not_in_smartsight` of `r n_total_misses` DC-recorded misses (`r round(100 * n_not_in_smartsight / n_total_misses, 1)`%) involve a cow absent from SmartSight's animal list
-
-  - All `r n_ss_absent_but_on_activity` of them are present on the Activity platform (checked directly, not assumed).
-
-    - `r n_lact1_not_in_smartsight` of the `r n_not_in_smartsight` are first-lactation cows, which is not a random scatter.
-
-These are only the unenrolled cows who also happened to get a lesion, so they understate the problem. Asking the question directly - of every first-lactation cow that freshened in the window, how many are on each platform:
+Those are only the unenrolled cows who also happened to get a lesion, so they understate the problem. Asking the question directly - of every first-lactation cow that freshened in the window, how many are on each platform:
 
 ```{r}
 #| label: tbl-enrollment-by-month
@@ -1555,7 +1581,7 @@ enroll_by_month |>
 
 - Both lists were pulled on the same day, well after the cut-off, so this is not a stale-export artifact. A drop in SmartSight with Activity unaffected points at enrollment having stopped, not at data transfer.
 
-- **This matters for the headline miss rate.** A cow never enrolled in SmartSight was never monitored, so counting her lesion as a camera miss is the same kind of error as counting a dry cow or an unfreshened heifer - both already excluded. Treating the `r n_not_in_smartsight` unenrolled cases as ineligible would give **`r n_miss_excl_unenrolled` of `r n_q4_excl_unenrolled` (`r pct_miss_excl_unenrolled`%)** instead of `r sum(!q4_sensor$caught_by_nedap)` of `r nrow(q4_sensor)` (`r round(100 * mean(!q4_sensor$caught_by_nedap), 1)`%). Not applied here, since it depends on the farm confirming the gap.
+- **Animal numbers get reassigned, and that had to be handled before this check could be trusted.** DairyComp logs an ID change as an `XID` event holding the old number, and `r nrow(id_aliases)` such changes appear in this extract. A cow renumbered after she was enrolled looks absent under her current number while being present under her old one - cow 23143, renumbered from 14347, is enrolled all along as 14347. Enrollment is therefore checked against a cow's current *and* prior numbers; `r n_rescued_by_alias` animals are only found that way.
 
 ## Pipeline Losses, How Many Are By-Design Exclusions?
 
@@ -1731,12 +1757,10 @@ q4_recon |>
     subtitle = "Indented rows split the row above them"
   ) |>
   tab_source_note(source_note = paste0(
-    "Two further checks cut ACROSS this chain rather than extending it, so they are not rows above (counting them as such would double-count): ",
-    n_not_in_smartsight, " of the ", n_total_misses, " misses involve a cow absent from the SmartSight export (",
-    sum(misses_not_in_smartsight$detection_group_3way == "Never Flagged (True Miss)"),
-    " of them sit inside the \"sensor never fired\" row, ",
-    sum(misses_not_in_smartsight$detection_group_3way == "No Data (Outside Coverage)"),
-    " inside \"outside coverage\"); and ", n_staff_caught, " of the ", n_total_misses,
+    "Cows never enrolled in SmartSight are excluded before this chain starts (",
+    n_excluded_not_enrolled, " lesion cases), on the same basis as dry cows and unfreshened heifers - ",
+    "so they are not a row here and the residual inside the chain is ", n_residual_not_in_smartsight, ". ",
+    "One check does cut ACROSS the chain rather than extending it: ", n_staff_caught, " of the ", n_total_misses,
     " misses were independently flagged by staff, which can apply to any row."))
 ```
 
