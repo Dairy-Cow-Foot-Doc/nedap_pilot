@@ -16,9 +16,11 @@ execute:
 
 The farm is testing a Nedap camera that flags cows with reduced mobility. A flag creates a `NEDLAME` event in DairyComp. Flagged cows go to one of two arms: **TX**, trimmed automatically off the alert, or **Control**, where staff decide whether to act. Cows are randomised to arm by lactation group.
 
-- 1,109 cows were flagged between 2026-06-02 and 2026-09-07, about 14 weeks
-- 170 were dropped because the alert landed 1-7 days *after* a trim (see below)
-- That leaves **939 cows: 441 TX and 498 Control**
+- 1,011 cows were flagged between 2026-06-02 and 2026-08-27, about 12 weeks
+- 162 were dropped because the alert landed 1-7 days *after* a trim (see below)
+- That leaves **849 cows: 397 TX and 452 Control**
+
+The analysis stops at 2026-08-27, the last day the raw Nedap sensor export covers. DairyComp holds alerts past that date, but they can't be checked against what the camera actually saw. Follow-up is not capped, so cows keep their later trims, culls and milk records.
 
 Alerts come in three types: **`LOW`** (absolute mobility score in the lowest band), **`LOW DECLINE`** and **`STRONG DECLINE`** (a drop against the cow's own history). These are three different triggers with different enrollment rules, not three severity levels.
 
@@ -28,27 +30,27 @@ Everything here is descriptive. No significance testing, deliberately — the po
 
 `NEDLAME`'s daily import runs at ~5am and stamps each alert with the day it was **loaded**, not the day the camera saw the cow. Trim records are often entered a day or two late. Put together, an alert dated 1-7 days after a trim is usually the camera picking up soreness from that trim, not a new problem.
 
-The 170 cows whose *first* alert fits this pattern (15.3% of all alerts) are excluded from the comparisons above and reported separately.
+The 162 cows whose *first* alert fits this pattern (16.0% of all alerts) are excluded from the comparisons above and reported separately.
 
 ## Findings
 
-1. **Milk** — no separation between arms. TX 93.8% of baseline at day 30, Control 93.6%. See the caveat below: this rests on a minority of the cohort.
+1. **Milk** — no separation worth reporting. At day 30, Control is at 94.2% of baseline and TX at 97.0%. The spread between cows is far wider than the gap between arms (SD ~30 points), so this is not evidence that trimming protects production.
 
-2. **Time to next trim** — TX reaches a follow-up trim in 90.9% of cases within 30 days vs 36.9% for Control. Expected, since TX auto-trims. But **about half of TX's first visits find nothing** (54.1% trim-only, vs 45.5% for Control).
+2. **Time to next trim** — TX reaches a follow-up trim in 90.8% of cases within 30 days vs 36.5% for Control. Expected, since TX auto-trims. But **about half of TX's first visits find nothing** (54.9% trim-only, vs 46.2% for Control).
 
-3. **Farm staff** — staff flag cows on their own at much the same rate in both arms (Control 19.3%, TX 18.1%). The camera runs alongside staff, not instead of them.
+3. **Farm staff** — staff flag cows on their own at much the same rate in both arms (Control 20.6%, TX 18.6%). The camera runs alongside staff, not instead of them.
 
-4. **Lameness history** — 359 of 939 cows (38.2%) carry a `Chronic` label. That is mostly how the classifier defines chronic (any 2nd diagnosis more than a day apart), not evidence of active recurring problems. Only 3 cows are `Repeat`, all from a one-day gap — a timing artifact.
+4. **Lameness history** — 325 of 849 cows (38.3%) carry a `Chronic` label. That is mostly how the classifier defines chronic (any 2nd diagnosis more than a day apart), not evidence of active recurring problems. Only 3 cows are `Repeat`, all from a one-day gap — a timing artifact.
 
-5. **Culling** — Control 28 of 498 (5.6%), TX 25 of 441 (5.7%). Indistinguishable.
+5. **Culling** — Control 28 of 452 (6.2%), TX 25 of 397 (6.3%). Indistinguishable.
 
-6. **What the camera missed** — of 675 cows with a lesion diagnosed since June 1, **406 (60.1%) had no NEDAP alert in DairyComp in the 21 days before diagnosis.** Cases where the system structurally could not alert (heifers, dry cows, cows trimmed in the last 28 days) are already excluded. The rate improved from 64.6% on the earlier, smaller dataset.
+6. **What the camera missed** — of 579 cows with a lesion diagnosed since June 1, **339 (58.5%) had no NEDAP alert in DairyComp in the 21 days before diagnosis.** Cases where the system could not alert are excluded first: unfreshened heifers, dry cows, cows trimmed in the last 28 days, and — new this round — 26 cows never enrolled in SmartSight at all.
 
 ## Where the misses come from
 
-Of those 406 misses, **365** fall inside the window the raw Nedap export covers (it ends 2026-08-27); the other 41 were diagnosed after it. Within the checkable slice:
+Every one of the 339 misses can now be checked against the raw sensor feed:
 
-- **221 were never flagged by the camera at all** — genuine detection misses
+- **195 were never flagged by the camera at all** — genuine detection misses
 - **144 were flagged, but the flag never reached DairyComp**
 
 That second group looked like a pipeline problem. Checking it against the enrollment rules shows part of it isn't:
@@ -57,48 +59,69 @@ That second group looked like a pipeline problem. Checking it against the enroll
 - 28 were `LOW`-only flags on cows with upper-leg lameness history, which blocks the `Low` route
 - **36 of the 144 were the system working as designed, leaving 108 as real pipeline losses**
 
-A separate check found **31 of the 406 misses involve a cow missing from the SmartSight platform entirely** — she was never being watched. Staff did not backstop these either: only **76 of 406 (18.7%)** had a staff lameness check in the week before diagnosis.
+Staff did not backstop these either: only **55 of 339 (16.2%)** had a staff lameness check in the week before diagnosis.
 
-One judgement call sits behind the pipeline figure: 1,422 flags are marked "not completed" in the raw export and are counted here as the camera having flagged the cow. 27 of the 144 pipeline losses rest only on such a flag — counting completed flags alone would give 117.
+One judgement call sits behind the pipeline figure: some flags are marked "not completed" in the raw export and are counted here as the camera having flagged the cow. 27 of the 144 pipeline losses rest only on such a flag — counting completed flags alone would give 117.
 
 ## What the camera is missing: DD on a hind foot
 
-This is the most actionable result in the report, and the fuller data sharpened it.
+This is the most actionable result in the report.
 
-Comparing the 221 detection misses against the 384 cases the camera did flag, neither lesion type nor foot alone explains the gap — but crossing them does:
+Comparing the 195 detection misses against the 384 cases the camera did flag, neither lesion type nor foot alone explains the gap — but crossing them does:
 
 | Lesion and foot | % of misses | % of flagged | Difference |
 |---|---|---|---|
-| **DD on a rear foot** | 39.4 | 24.5 | **+14.9** |
-| DD on a front foot | 8.1 | 7.6 | +0.5 |
-| Anything else on a rear foot | 32.1 | 41.7 | **−9.6** |
+| **DD on a rear foot** | 41.5 | 24.5 | **+17.0** |
+| DD on a front foot | 8.2 | 7.6 | +0.6 |
+| Anything else on a rear foot | 30.8 | 41.7 | **−10.9** |
 
 - **Front-foot DD shows no gap at all**, so this is not about digital dermatitis as such.
 - **Non-DD lesions on a hind foot are caught *better* than average**, so it is not about hind feet either.
 - The blind spot is the **combination**: digital dermatitis on a hind foot.
 
-This held as the dataset nearly doubled, and the gap widened slightly.
+This held as the dataset nearly doubled, and it strengthened again once unmonitored cows were removed — those lesions had been diluting the genuine misses.
 
 One likely reason, though this data can't prove it: DD is often bilateral, and a cow sore on both hind feet walks symmetrically. A camera scoring mobility off asymmetry would be expected to under-detect exactly that. Worth putting to Nedap directly.
 
-## Data currency — read Q1 with care
+## SmartSight enrollment of heifers has stopped
 
-The three feeds are pulled separately and don't end on the same date:
+The farm runs two Nedap instances: **Activity** (used by staff daily) and **SmartSight** (mobility monitoring, which generates `NEDLAME`). A cow absent from SmartSight is not being watched for lameness at all.
+
+First-lactation cows, by the month they freshened, on lists pulled 2026-09-08:
+
+| Freshened | Cows | On SmartSight | On Activity |
+|---|---|---|---|
+| Jan–May | 283 | **98.2%** | 84–100% |
+| June | 86 | **29.1%** | 98.8% |
+| July | 83 | **0%** | 98.8% |
+| August | 67 | **0%** | 97.0% |
+
+**The most recent freshening among enrolled first-lactation cows is 2026-06-24.** 160 have freshened since and not one is enrolled, while 156 of those are on Activity.
+
+Both lists came from the same pull on the same day, so a drop in one and not the other cannot be an export problem. This is enrollment having stopped, not data transfer. It is also the single most fixable thing in this report.
+
+**This is now applied to the headline.** A cow never enrolled was never monitored, so counting her lesion as a camera miss is the same error as counting a dry cow or an unfreshened heifer — both already excluded. Removing the 26 unenrolled cases gives **339 of 579 (58.5%)** rather than 365 of 605 (60.3%).
+
+One wrinkle worth knowing: animal numbers get reassigned, and DairyComp logs the change as an `XID` event holding the old number. A cow renumbered after enrolling looks absent under her new number — cow 23143 was enrolled all along as 14347. Enrollment is therefore checked against current *and* prior numbers; there are 406 such changes in this extract, so this is routine, not an oddity.
+
+## Data currency
+
+The feeds are pulled separately and don't end together:
 
 | Feed | Covers to |
 |---|---|
 | DairyComp events | 2026-09-07 |
-| Nedap sensor flags | 2026-08-27 |
-| **Milk** | **2026-08-04** |
+| Milk | 2026-09-08 |
+| **Nedap sensor flags** | **2026-08-27** |
 
-Milk is the problem. A cow needs 30 days of records after her alert to appear at the right-hand end of the milk curves, so **334 of the 939 cohort cows contribute no milk at all, and the day-30 figures rest on 282 cows.** Those figures describe the earlier-alerting cows, not the pilot as a whole, and will move as milk data catches up. Milk will always lag the rest of the report by about a month by construction.
+Nedap is now the constraint, which is why the analysis stops there. Milk still lags by design — a cow needs 30 days of records after her alert to reach the right-hand end of the milk curves, so the day-30 figures rest on 553 of 849 cows.
 
 ## For discussion
 
-- **The biggest single category is genuine detection misses (221 of 365 checkable), not data problems.** That is a sensitivity question for Nedap and shouldn't get lost behind the pipeline story.
+- **Fix SmartSight enrollment first.** 160 first-lactation cows have freshened since 2026-06-24 with none enrolled. It is unambiguous, it is fixable this week, and every day it continues adds cows the camera cannot see.
+- **The biggest single category is genuine detection misses (195 of 339), not data problems.** That is a sensitivity question for Nedap and shouldn't get lost behind the pipeline story.
 - **The miss has a specific shape: DD on a hind foot.** A concrete, testable question for Nedap — does an asymmetry-based mobility score under-detect bilateral hind-foot disease? Front-foot DD and non-DD hind-foot lesions both come out fine, which makes this hard to explain any other way.
 - **Pipeline losses are real: 108 after accounting for by-design suppression.** Worth taking to the integration team.
-- **The batch-load timing issue affects 170 of 1,109 alerts (15.3%).** Entering trim data the same day would remove most of it.
-- **Auto-trimming gets cows seen faster but trims a lot of sound feet** — 54.1% of TX's first visits find no lesion. That is the cost side of the protocol.
-- **Culling and staff-detection rates are now indistinguishable between arms.** With 14 weeks and ~50 culls, the honest read is that neither shows an effect rather than that a small one is hiding.
-- **Next data pull: milk.** It is the only feed materially behind, and it is the one gating a real read on production.
+- **The batch-load timing issue affects 162 of 1,011 alerts (16.0%).** Entering trim data the same day would remove most of it.
+- **Auto-trimming gets cows seen faster but trims a lot of sound feet** — 54.9% of TX's first visits find no lesion. That is the cost side of the protocol.
+- **Culling, milk and staff detection are all indistinguishable between arms.** With 12 weeks and ~53 culls, the honest read is that none shows an effect, rather than that a small one is hiding.

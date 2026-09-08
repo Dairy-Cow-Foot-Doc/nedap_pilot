@@ -764,3 +764,88 @@ Per Gerard's decision (keep counting incomplete attentions, but quantify): 1,422
 1. **Milk is the only feed materially behind and the one gating a real read on production.** Next pull.
 2. The SmartSight enrollment gap (31 of 406 misses) is still written as *"likely a data transfer issue"* while unconfirmed. Raised three times now; left as Gerard's call.
 3. `reports/qmd_reports/summary.html` remains a manually-named copy that goes stale on every render. Gerard has said to ignore it.
+
+## Round 22: analysis cut-off, SmartSight enrollment gap confirmed and excluded
+
+**Status: implemented, rendered, committed (`7ea4088`, `2cefd22`).** Milk and both platform lists were refreshed mid-round, so this covers several linked changes.
+
+### Hard analysis cut-off at 2026-08-27
+
+Gerard: *"Ignore the alerts from DC after Aug 27th... I'm only interested in alerts up to the Aug 27th."* Implemented as `params$analysis_end_date`, applied to **entry criteria only** — alerts and lesion cases. Follow-up is deliberately **not** capped, so a cow who entered on or before the cut-off keeps her later trims, culls and milk records, which is what time-to-event needs.
+
+It reconciles exactly: 406 misses minus the 41 uncheckable tail = 365, and the 144 pipeline / 221 true-miss split was unchanged, because capping removed precisely the cases that had been unclassifiable. The outside-coverage bullet was made **conditional rather than deleted** — Round 20 learned that lesson by planning to delete the coverage apparatus a day before the feeds leapfrogged and refilled it.
+
+### Milk refreshed — and Q1 was the section most at risk
+
+Milk now runs to 2026-09-08 (was 2026-08-04), so the day-30 point rests on **553 cows rather than 282**, and no cohort cow is now without milk. Day-30: Control 94.2%, TX 97.0%.
+
+**That 2.8-point TX gap is not reported as a finding.** Between-cow SD is ~30 points, so it sits well inside noise, and the report carries no significance tests by design. Worth stating the direction and stopping there. The earlier thin data showed 93.6 / 93.8, i.e. flat — the gap appeared only as the denominator grew, which is exactly the pattern you would expect from noise rather than an effect.
+
+### SmartSight enrollment has stopped — confirmed on current lists
+
+Fresh Activity and SmartSight lists (pulled 2026-09-08) settle the question the report had been hedging since Round 14. First-lactation cows by freshening month:
+
+| Freshened | Cows | On SmartSight | On Activity |
+|---|---|---|---|
+| Jan–May | 283 | **98.2%** | 84–100% |
+| June | 86 | **29.1%** | 98.8% |
+| July | 83 | **0%** | 98.8% |
+| August | 67 | **0%** | 97.0% |
+
+**The most recent freshening among enrolled first-lactation cows is 2026-06-24.** 160 have freshened since; not one is enrolled, and 156 of those are on Activity.
+
+**Activity is the control that makes this conclusive.** Both lists came from the same pull on the same day, so a drop in one and not the other cannot be an export or transfer artifact. The long-standing *"likely a data transfer issue"* line — flagged as unconfirmed in Rounds 14, 19 and 21 — is now replaced by the finding.
+
+### The exclusion is applied, not offered
+
+Gerard: *"we should not count the cows not in smartsight as a miss."* A cow never enrolled was never monitored, so a lesion on her cannot be a camera miss — the same reasoning that already excludes dry cows and unfreshened heifers. Applied at the eligibility stage: **26 cases excluded, Q4 605 → 579, misses 365 (60.3%) → 339 (58.5%), true misses 221 → 195.**
+
+**Removing them sharpened the headline rather than softening it**, which is the expected direction — those lesions had been diluting the genuine misses:
+
+| Lesion and foot | % of misses | % of flagged | Diff |
+|---|---|---|---|
+| **DD on a rear foot** | 41.5 | 24.5 | **+17.0** (was +14.9) |
+| DD on a front foot | 8.2 | 7.6 | +0.6 |
+| Anything else on a rear foot | 30.8 | 41.7 | **−10.9** |
+
+### Animal numbers get reassigned — the enrollment check had to handle it
+
+Gerard flagged that cow 23143 was renumbered from 14347. `14347` **is** on the SmartSight list, so she was enrolled all along and the check had her wrong.
+
+**This is routine, not an oddity: 406 usable `XID` records in this extract, and 150 old numbers still present as animals in their own right.** DairyComp logs an ID change as an `XID` event whose Remark holds the old number, so enrollment now tests a cow's current **and** prior numbers. `EID` cannot bridge to the platform lists — it is the USDA ID (`USA0032…`), not the transponder SmartSight carries as `Tag 1`.
+
+**Rule for any future platform or external-system join: match on the alias set, never on the current animal number alone.**
+
+### Two bugs of mine, both caught by an assertion rather than a render
+
+When the "misses absent from SmartSight" table became empty by construction, it was replaced with a **zero-assertion** (`n_residual_not_in_smartsight`) surfaced in the reconciliation note, rather than deleted. It immediately caught both:
+
+1. **Inconsistent definitions.** The Q4 exclusion was alias-aware but the downstream `not_in_smartsight` flag still tested the current number only, so cow 23143 was correctly kept upstream and flagged absent downstream. Residual was 1, not 0.
+2. **Grain mismatch.** `n_excluded_not_enrolled` counted raw lesion rows while `nrow(q4)` counts cow-lactations, so 579 + 27 came to 606 rather than 605 — a cow with two qualifying events double-counted. Now counted after the same first-qualifying-case slice.
+
+Neither would have errored. Both would have shipped a number that did not add up. **When a check becomes empty because of a fix, leave a zero-assertion in its place rather than deleting it.**
+
+### Flagged, not fixed: duplicate animals from renumbering
+
+Cow 23143 appears in the extract **twice** — as `41464500_14347_10/25/19` and `41464500_23143_10/25/19` — with 26 dates carrying duplicate events under both numbers, including her `FRESH`, her `LAME` and her `NEDLAME`. One physical cow, counted as two.
+
+Scope-checked: only **2** `XID` pairs have a `NEDLAME` under both numbers (23143/14347 and 23144/5502), so it is 2 cows in 1,011 — too small to move any headline, but a genuine double-count. This is a step-00 processing question, not a report one, so it was left alone.
+
+### Current headline numbers
+
+| | Value |
+|---|---|
+| Alerts (to 2026-08-27) | 1,011 |
+| Excluded, alert 1-7 d after a trim | 162 (16.0%) |
+| Cohort | **849** (397 TX / 452 Control) |
+| Qualifying lesion cases | 579 |
+| Missed | **339 (58.5%)** |
+| Pipeline loss / by design / real | 144 / 36 / **108** |
+| True misses | **195** |
+| Staff caught anyway | 55 of 339 (16.2%) |
+
+### Still open
+
+1. **Fix SmartSight enrollment.** 160 first-lactation cows freshened since 2026-06-24 with none enrolled; every day it continues adds cows the camera cannot see.
+2. The duplicate-animal issue above, if it matters for other analyses.
+3. Nedap is now the lagging feed (2026-08-27 vs DC 09-07 and milk 09-08), which is what sets the cut-off.
