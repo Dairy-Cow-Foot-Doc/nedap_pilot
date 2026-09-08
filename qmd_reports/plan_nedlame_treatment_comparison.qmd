@@ -849,3 +849,22 @@ Scope-checked: only **2** `XID` pairs have a `NEDLAME` under both numbers (23143
 1. **Fix SmartSight enrollment.** 160 first-lactation cows freshened since 2026-06-24 with none enrolled; every day it continues adds cows the camera cannot see.
 2. The duplicate-animal issue above, if it matters for other analyses.
 3. Nedap is now the lagging feed (2026-08-27 vs DC 09-07 and milk 09-08), which is what sets the cut-off.
+
+## Render gotcha: run from `qmd_reports/`, not the project root
+
+The root `_quarto.yml` sets `execute-dir: project`, which is what makes every `data/...` path in the report resolve (and the defaults inside `fxn_read_milk_folder()` and `fxn_read_nedap_attentions()` too). It has a sharp edge:
+
+- **Works:** `cd qmd_reports && quarto render report_nedlame_treatment_comparison_clean.qmd`
+- **Fails:** `quarto render qmd_reports/report_nedlame_treatment_comparison_clean.qmd` from the project root
+
+The failing form is misleading — it executes **all 91 chunks successfully**, writes the `.knit.md`, and only then dies in post-processing, where `partition_yaml_front_matter` tries to read the source by bare filename from the project root:
+
+```
+cannot open file 'report_nedlame_treatment_comparison_clean.qmd': No such file or directory
+```
+
+No HTML is produced and a stale `.knit.md` is left behind, which can then confuse the next run. If the error appears, delete `qmd_reports/*.knit.md` before retrying.
+
+This is also why **Positron's Preview button fails** — it previews from the workspace root, which is the broken combination.
+
+**Do not "fix" this by dropping `execute-dir: project`.** Every data path in the report and in the sourced loader functions is project-root relative; removing it breaks all of them.
