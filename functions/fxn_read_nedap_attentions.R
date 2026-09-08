@@ -9,7 +9,7 @@ library(tidyverse)
 # time_zone column confirms US/Central for effectively all rows (a
 # handful are labeled UTC, a negligible data quirk not worth branching
 # on for a date-level, not time-level, analysis).
-fxn_read_nedap_attentions <- function(file = "data/SkyView_Tioga_Attentions.csv",
+fxn_read_nedap_attentions <- function(file = "data/nedap_attentions_2026-08-27.csv",
                                        local_tz = "America/Chicago") {
   read_csv(
     file,
