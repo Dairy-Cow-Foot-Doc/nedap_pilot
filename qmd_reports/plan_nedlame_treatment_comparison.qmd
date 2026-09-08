@@ -681,3 +681,86 @@ A 10-case, ~4-point swing — not negligible, so it belongs in the report as a s
 6. Re-render, verify every headline against a standalone recompute, then update the executive summary, this plan doc and memory.
 
 **All figures in this round are against the current 387-case set and will shift once the DC extract grows — re-verify, don't copy them forward.**
+
+## Round 21: both feeds refreshed, report rebuilt, DD finding sharpened
+
+**Status: implemented, rendered, committed (`b4e5c1e`).** Gerard refreshed the DairyComp extract, so the Round 20 rebuild executed in a single pass as intended.
+
+### The pilot roughly doubled
+
+| | Round 19 | Now |
+|---|---|---|
+| Alerted cows (valid `MNFRS`) | 718 | **1,109** |
+| Cohort | 592 (262 / 330) | **939 (441 TX / 498 Control)** |
+| Alert window | ~9 weeks | **14 weeks** (2026-06-02 → 2026-09-07) |
+| Qualifying lesion cases | 387 | **675** |
+| Missed | 250 (64.6%) | **406 (60.1%)** |
+
+The post-trim artifact exclusion now removes 170 of 1,109 (15.3%), close to the earlier 17.5% — stable, so the batch-load timing problem is a persistent feature and not a start-up quirk.
+
+### Round 20's plan had one step that was wrong
+
+Round 20 said to **delete** the coverage apparatus because nothing would fall outside it. That was true of the data as it stood then, and false a day later: the refreshed DC extract runs to 2026-09-07 while Nedap ends 2026-08-27, so **41 misses now fall outside sensor coverage**. `in_coverage`, the `"No Data (Outside Coverage)"` level and `n_misses_outside_coverage` were all kept.
+
+**The general lesson: the three feeds are pulled independently and will keep leapfrogging each other, so any "this category is now empty, delete it" reasoning is only ever true of one snapshot.** Round 20 retained the coverage *computation* as a defensive guard, which is the only reason this cost nothing. Keep it that way.
+
+### Sensor-level check
+
+| | Round 19 | Now |
+|---|---|---|
+| Checkable misses | 194 | **365** |
+| Pipeline loss | 71 (36.6%) | **144 (39.5%)** |
+| By design (`FTDAT` 13 + injury 28, overlaps removed) | 20 | **36** |
+| Real pipeline losses | 51 | **108** |
+| True misses | 123 | **221** |
+
+### The DD finding sharpened — and the marginal framing had to go
+
+Round 19 reported two marginal splits: DD over-represented among misses, and rear feet over-represented. With more data the **DD split strengthened** but the **limb split kept shrinking** (gap 9pp → 5pp → 4pp: rear feet are now 62% of misses against 58% of flagged). A 4-point gap does not support the Round 19 sentence "front feet are caught *better* than average".
+
+The problem was that the two marginals could be one fact reported twice, since DD is mostly a rear-foot disease anyway. **Crossing lesion type with foot separates them and is decisive:**
+
+| Lesion and foot | % of misses | % of flagged | Diff |
+|---|---|---|---|
+| **DD on a rear foot** | 39.4 | 24.5 | **+14.9** |
+| DD on a front foot | 8.1 | 7.6 | +0.5 |
+| Anything else on a rear foot | 32.1 | 41.7 | **−9.6** |
+
+Front-foot DD shows **no gap at all**, and non-DD hind-foot lesions are caught **better** than average. So the effect is neither DD nor hind feet but the **conjunction** — and it survived the dataset nearly doubling. This is a materially stronger claim to put to Nedap than the Round 19 version, because the two obvious alternative explanations are both ruled out in the same table.
+
+**Deleted the old "Missed DD sits on the rear feet" table.** It showed only the misses with no comparison group — 87 rear against 18 front — which reads as a limb problem right up until you see that non-DD rear lesions are caught better than average. It was an invitation to the exact base-rate error the new table corrects. Same reasoning as the Round 17 decline-signal fix.
+
+### Milk is now the stale feed, and Q1 could have misled
+
+The three feeds do not end together:
+
+| Feed | Covers to |
+|---|---|
+| DairyComp events | 2026-09-07 |
+| Nedap sensor flags | 2026-08-27 |
+| **Milk** | **2026-08-04** |
+
+A cow needs 30 days of post-alert records to appear at the right-hand end of the milk curves. So **334 of 939 cohort cows contribute no milk at all, and the day-30 point rests on 282 cows** — while the section's own sentence said "664 of the 939 cohort cows had at least one milk record", which is true and gives entirely the wrong impression. Worse, the `n >= 5` filter on the per-day means **shortens the line rather than making it noisy**, so the drop-off across the x-axis is invisible unless stated. Q1 now reports the milk coverage date, the day-30 count, and that the figures describe the earlier-alerting cows. Day-30 values themselves did not move (TX 93.8% / Control 93.6%).
+
+Checked the shared drive directly (`G:\Shared drives\Cramer Lab\...\Skyview`): it holds the identical 1,120 files ending 2026-08-04, so **this needs a fresh VAS download, not a sync.** Milk will always lag the rest of the report by ~30 days by construction.
+
+### `is_completed` sensitivity, now in the report
+
+Per Gerard's decision (keep counting incomplete attentions, but quantify): 1,422 resolved flags are marked not completed and are counted as the camera having flagged the cow. **27 of the 144 pipeline losses rest only on such a flag** — counting completed flags alone would give 117. Stated in the report rather than left as a silent default.
+
+### Smaller fixes
+
+- De-hardcoded "All 3 `Repeat` cows" to inline code. It is still 3, but it was one dataset away from being silently wrong.
+- Rebuilt `scratchpad/check_forward_refs.R` (it did not survive the session gap). Still worth running before every render.
+
+### Other movement worth noting
+
+- **Culling is now indistinguishable**: Control 28/498 (5.6%) vs TX 25/441 (5.7%). With 14 weeks and ~53 culls the honest read is "no effect visible", not "a small effect is hiding".
+- **Q3 reversed sign but stayed flat**: Control 19.3% vs TX 18.1% (was TX 20.2% vs Control 18.8%). The gap was never meaningful in either direction; do not narrate the flip.
+- **Q2 widened**: TX 90.9% vs Control 36.9% at 30 days. Still mostly mechanical, and TX still finds nothing at 54.1% of first visits.
+
+### Still open
+
+1. **Milk is the only feed materially behind and the one gating a real read on production.** Next pull.
+2. The SmartSight enrollment gap (31 of 406 misses) is still written as *"likely a data transfer issue"* while unconfirmed. Raised three times now; left as Gerard's call.
+3. `reports/qmd_reports/summary.html` remains a manually-named copy that goes stale on every render. Gerard has said to ignore it.
