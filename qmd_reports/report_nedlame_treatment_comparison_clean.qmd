@@ -19,6 +19,7 @@ params:
   history_after_date: "2026-06-01"
   recent_trim_suppression_days: 28
   post_trim_exclusion_days: 7
+  analysis_end_date: "2026-08-27"
 ---
 
 ```{r}
@@ -85,8 +86,17 @@ nedlame_start_date <- min(events_all$date_event[events_all$Event == "NEDLAME"], 
 # group is read off the MNFRS value on the FIRST NEDLAME event for that cow
 # - MNFRS is stable across a cow's NEDLAME rows even though it drifts over
 # her broader event history (0 before enrollment, 1/2 once enrolled).
+# Hard analysis cut-off. The raw Nedap sensor export ends on
+# params$analysis_end_date, so alerts and lesion cases after it cannot be
+# checked against what the camera actually saw. Rather than carry a partly
+# checkable tail, entry into the analysis stops there for BOTH alerts (here)
+# and lesion cases (Q4). Follow-up events are deliberately NOT capped - a
+# cow who entered on/before the cut-off keeps every trim, cull and milk
+# record recorded after it, which is what time-to-event needs.
+analysis_end <- ymd(params$analysis_end_date)
+
 first_nedlame_raw <- events_all |>
-  filter(Event == "NEDLAME") |>
+  filter(Event == "NEDLAME", date_event <= analysis_end) |>
   group_by(id_animal) |>
   slice_min(date_event, n = 1, with_ties = FALSE) |>
   ungroup() |>
@@ -360,6 +370,8 @@ Above commands were all run daily around 5 am after NEDAP file in occurred.
 ## Results
 
 - `r nrow(first_nedlame)` cows received a `NEDLAME` alert between `r format(min(first_nedlame$first_nedlame_date))` and `r format(max(first_nedlame$first_nedlame_date))`
+
+- The analysis stops at `r format(analysis_end)`, the last day the raw Nedap sensor export covers. DairyComp holds alerts past that date, but they cannot be checked against what the camera actually saw, so they are left out of every section rather than being partly checkable. Follow-up is not capped: a cow who entered on or before the cut-off keeps her later trims, culls and milk records.
 
 - `r n_excluded_post_trim` were excluded as alerts occurred after a recent hoof trimming. These were still coded in DairyComp as the farm imports hoof trimming data a few days after the actual hoof trimming date. See @tbl-post-trim-exclusion-table.
 
@@ -1044,7 +1056,9 @@ trims_for_suppression <- events_formatted |>
   distinct()
 
 lame_lesion_recent_all <- lame_data |>
-  filter(event == "LAME", lesion == 1, date_event >= ymd(params$history_after_date)) |>
+  filter(event == "LAME", lesion == 1,
+         date_event >= ymd(params$history_after_date),
+         date_event <= analysis_end) |>
   left_join(animal_lactations |> select(id_animal, lact_number, date_fresh, date_dry), by = c("id_animal", "lact_number"))
 
 # Days since this cow's most recent PRIOR trim, for each lesion case - computed
@@ -1323,7 +1337,7 @@ Further investigation of the missed cows showed:
 
 - The remaining `r n_true_miss` had no flag at all in that window, a true miss.
 
-- The other `r n_misses_outside_coverage` misses were diagnosed after `r format(nedap_coverage_end)`, which the current export can't see. These are left unclassified rather than assumed.
+`r if (n_misses_outside_coverage > 0) paste0("- The other ", n_misses_outside_coverage, " misses were diagnosed after ", format(nedap_coverage_end), ", which the current export can't see. These are left unclassified rather than assumed.") else paste0("Every miss here is checkable against the raw sensor feed: the analysis stops at ", format(analysis_end), ", the last day the Nedap export covers.")`
 
 One judgement call sits behind these numbers. `r n_attentions_incomplete` of the resolved flags are marked not completed in the raw export, and they are counted here as the camera having flagged the cow. `r n_pipeline_loss_incomplete_only` of the `r n_pipeline_loss` pipeline losses rest only on such a flag; counting completed flags alone would give `r n_pipeline_loss_completed_only` instead. The choice matters at the margin, so it is stated rather than assumed.
 
@@ -1465,6 +1479,48 @@ n_not_in_smartsight <- nrow(misses_not_in_smartsight)
 n_lact1_not_in_smartsight <- sum(misses_not_in_smartsight$lact_number == 1)
 n_ss_absent_but_on_activity <- sum(misses_not_in_smartsight$in_activity)
 n_total_misses <- sum(!q4_sensor$caught_by_nedap)
+n_lact1_share_not_in_ss <- n_lact1_not_in_smartsight
+
+# Herd-level enrollment check. The misses above are only the unenrolled cows
+# who also happened to get a lesion, so they understate the gap. This asks the
+# direct question instead: of every first-lactation cow that freshened in the
+# study window, what share is on the SmartSight list at all? Compared against
+# the Activity list, which is the control - if both dropped together it would
+# point at the export; if only SmartSight drops it points at enrollment.
+ss_ids  <- unique(cows_smartsight$id)
+act_ids <- unique(cows_activity$id)
+
+l1_fresh <- animal_lactations |>
+  filter(lact_number == 1, !is.na(date_fresh), date_fresh >= ymd(params$history_after_date) - 150,
+         date_fresh <= analysis_end) |>
+  distinct(id_animal, id, date_fresh) |>
+  mutate(id = as.character(id),
+         on_smartsight = id %in% ss_ids,
+         on_activity   = id %in% act_ids,
+         fresh_month   = format(date_fresh, "%Y-%m"))
+
+enroll_by_month <- l1_fresh |>
+  group_by(`Freshened` = fresh_month) |>
+  summarize(`Cows` = n(),
+            `% on SmartSight` = round(100 * mean(on_smartsight), 1),
+            `% on Activity`   = round(100 * mean(on_activity), 1),
+            .groups = "drop")
+
+# the hard break: the most recent freshening among enrolled first-lactation cows
+last_enrolled_fresh <- max(l1_fresh$date_fresh[l1_fresh$on_smartsight], na.rm = TRUE)
+l1_after  <- l1_fresh |> filter(date_fresh > last_enrolled_fresh)
+l1_before <- l1_fresh |> filter(date_fresh <= last_enrolled_fresh)
+n_l1_after_unenrolled <- sum(!l1_after$on_smartsight)
+pct_l1_before_enrolled <- round(100 * mean(l1_before$on_smartsight), 1)
+n_l1_after_on_activity <- sum(l1_after$on_activity)
+
+# What the miss rate would be if a cow never enrolled in SmartSight were
+# treated as ineligible, the same way heifers and dry cows already are. Not
+# applied - stated, because it depends on the farm confirming the gap.
+unenrolled_cases <- q4_sensor |> filter(not_in_smartsight)
+n_q4_excl_unenrolled <- nrow(q4_sensor) - nrow(unenrolled_cases)
+n_miss_excl_unenrolled <- sum(!q4_sensor$caught_by_nedap) - sum(!unenrolled_cases$caught_by_nedap)
+pct_miss_excl_unenrolled <- round(100 * n_miss_excl_unenrolled / n_q4_excl_unenrolled, 1)
 ```
 
 ```{r}
@@ -1475,14 +1531,31 @@ misses_not_in_smartsight |>
   gt(rowname_col = "detection_group_3way") |>
   cols_label(n = "N Cases") |>
   tab_header(title = "Misses Where the Cow Is Absent From the SmartSight Export") |>
-  tab_source_note(source_note = paste0("All ", n_not_in_smartsight, " are first-lactation cows - not a random scatter. All ", n_ss_absent_but_on_activity, " are present on the Activity platform."))
+  tab_source_note(source_note = paste0(n_lact1_not_in_smartsight, " of ", n_not_in_smartsight, " are first-lactation cows - not a random scatter. All ", n_ss_absent_but_on_activity, " are present on the Activity platform."))
 ```
 
 - `r n_not_in_smartsight` of `r n_total_misses` DC-recorded misses (`r round(100 * n_not_in_smartsight / n_total_misses, 1)`%) involve a cow absent from SmartSight's animal list
 
   - All `r n_ss_absent_but_on_activity` of them are present on the Activity platform (checked directly, not assumed).
 
-    - All these were 1st lactation cows so there is likely a data transfer issue.
+    - `r n_lact1_not_in_smartsight` of the `r n_not_in_smartsight` are first-lactation cows, which is not a random scatter.
+
+These are only the unenrolled cows who also happened to get a lesion, so they understate the problem. Asking the question directly - of every first-lactation cow that freshened in the window, how many are on each platform:
+
+```{r}
+#| label: tbl-enrollment-by-month
+
+enroll_by_month |>
+  gt() |>
+  tab_header(title = "SmartSight enrollment of first-lactation cows stops; Activity does not") |>
+  tab_source_note("Activity is the control here. Both lists were pulled on the same day, so a drop in one and not the other cannot be an export problem.")
+```
+
+- The most recent freshening among first-lactation cows who *are* on SmartSight is **`r format(last_enrolled_fresh)`**. Before that date `r pct_l1_before_enrolled`% were enrolled; after it, **`r n_l1_after_unenrolled` first-lactation cows are absent**, and `r n_l1_after_on_activity` of them are on Activity.
+
+- Both lists were pulled on the same day, well after the cut-off, so this is not a stale-export artifact. A drop in SmartSight with Activity unaffected points at enrollment having stopped, not at data transfer.
+
+- **This matters for the headline miss rate.** A cow never enrolled in SmartSight was never monitored, so counting her lesion as a camera miss is the same kind of error as counting a dry cow or an unfreshened heifer - both already excluded. Treating the `r n_not_in_smartsight` unenrolled cases as ineligible would give **`r n_miss_excl_unenrolled` of `r n_q4_excl_unenrolled` (`r pct_miss_excl_unenrolled`%)** instead of `r sum(!q4_sensor$caught_by_nedap)` of `r nrow(q4_sensor)` (`r round(100 * mean(!q4_sensor$caught_by_nedap), 1)`%). Not applied here, since it depends on the farm confirming the gap.
 
 ## Pipeline Losses, How Many Are By-Design Exclusions?
 
