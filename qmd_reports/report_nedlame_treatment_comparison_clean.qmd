@@ -1215,14 +1215,30 @@ q4_lesion_types <- lame_lesion_recent |>
              by = c("id_animal", "lact_number", "date_event")) |>
   pivot_longer(cols = all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
   filter(has_lesion == 1) |>
-  count(detection_group, lesion_type)
+  count(detection_group, lesion_type) |>
+  # Shown as a share within each lesion type, not as counts. On a count axis a
+  # common lesion looks like a detection problem simply because it is common -
+  # the same base-rate trap the DD-by-foot table further down was built to
+  # avoid. The case count is printed beside each bar so a lesion with only a
+  # handful of cases can be discounted rather than read as a real rate.
+  group_by(lesion_type) |>
+  mutate(total_cases = sum(n), pct = 100 * n / total_cases) |>
+  ungroup() |>
+  mutate(lesion_type = fct_reorder(lesion_type, total_cases))
 
-ggplot(q4_lesion_types, aes(x = fct_reorder(lesion_type, n, .fun = sum), y = n, fill = detection_group)) +
-  geom_col() +
-  coord_flip() +
+lesion_totals <- q4_lesion_types |> distinct(lesion_type, total_cases)
+
+ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group)) +
+  geom_col(width = 0.7) +
+  geom_text(data = lesion_totals, inherit.aes = FALSE,
+            aes(x = lesion_type, y = 101, label = paste0("n=", total_cases)),
+            hjust = 0, size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
+  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
+                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
   scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
+  labs(x = NULL, y = "% of cases with that lesion", fill = "NEDAP Detection Status") +
   theme(legend.position = "bottom")
 ```
 
@@ -1257,17 +1273,31 @@ leg_long <- events_formatted |>
 q4_legs <- leg_long |>
   inner_join(q4_group |> select(id_animal, lact_number, date_event, detection_group),
              by = c("id_animal", "lact_number", "date_event")) |>
-  count(detection_group, leg)
+  count(detection_group, leg) |>
+  # Same reasoning as the lesion-type figure above: a share within each foot,
+  # so the four feet are comparable regardless of how many lesions each carries.
+  group_by(leg) |>
+  mutate(total_cases = sum(n), pct = 100 * n / total_cases) |>
+  ungroup() |>
+  mutate(leg = fct_reorder(leg, total_cases))
 
-n_legs_rear <- sum(q4_legs$n[str_detect(q4_legs$leg, "Rear")])
-n_legs_front <- sum(q4_legs$n[str_detect(q4_legs$leg, "Front")])
+leg_totals <- q4_legs |> distinct(leg, total_cases)
 
-ggplot(q4_legs, aes(x = fct_reorder(leg, n, .fun = sum), y = n, fill = detection_group)) +
-  geom_col() +
-  coord_flip() +
+# leg is a factor now (ordered for the plot), and str_detect() rejects factors
+n_legs_rear <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Rear")])
+n_legs_front <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Front")])
+
+ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group)) +
+  geom_col(width = 0.7) +
+  geom_text(data = leg_totals, inherit.aes = FALSE,
+            aes(x = leg, y = 101, label = paste0("n=", total_cases)),
+            hjust = 0, size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
+  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
+                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
   scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = NULL, y = "Number of Lesion Cases", fill = "NEDAP Detection Status") +
+  labs(x = NULL, y = "% of cases on that foot", fill = "NEDAP Detection Status") +
   theme(legend.position = "bottom")
 ```
 
