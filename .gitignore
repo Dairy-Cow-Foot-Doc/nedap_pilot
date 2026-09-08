@@ -83,6 +83,7 @@ data/milk/*.parquet
 # raw Nedap sensor exports - same privacy/size reasoning as the other
 # data/ subfolders above, just not dropped into a subfolder this time
 data/*.csv
+data/*.xlsx
 
 *.html
 

@@ -610,3 +610,74 @@ Front/rear counts in the "What is the camera actually missing?" section are **pe
 1. `summary.html` is a manually-named copy of the report and drifts out of date on every render; the qmd has no `output-file` set. Gerard has said to ignore it.
 2. A fresher raw Nedap export remains the most useful next data pull — it would move most of the 93 unclassified misses into a resolved row.
 3. The SmartSight enrollment gap is still written as *"likely a data transfer issue"* while unconfirmed. Raised twice, left as his call.
+
+## Round 20: refreshed Nedap export staged — QUEUED, awaiting a matching DairyComp pull
+
+**Status: data staged and verified; the report is deliberately NOT yet rebuilt.** Gerard supplied a refreshed Nedap attentions export (`data/updated_nedap_data.xlsx`, 2026-09-08) and chose to pull matching DairyComp data first so the report is rebuilt **once** rather than twice. Everything below is verified against the current data and ready to execute in a single pass when the DC refresh lands.
+
+### What the new export is
+
+A clean forward extension, confirmed rather than assumed:
+
+| | Old (`SkyView_Tioga_Attentions.csv`) | New |
+|---|---|---|
+| Rows | 31,479 | 40,193 (+8,714) |
+| Coverage | 2025-08-25 → **2026-07-16** | 2025-08-25 → **2026-08-27** |
+| Schema | 9 columns | identical, one sheet |
+
+**Zero old `issue_uuid`s are absent from the new file**, and all 8,714 new rows fall in July/August 2026. Nothing was revised, withdrawn or backfilled — so no previously published number can shift underneath us from the sensor side. `issue_type` mix is stable (74.6% `LOW`, 18.2% `LOW DECLINE`, 7.1% `STRONG DECLINE`).
+
+### The binding constraint has flipped — this is the strategic point
+
+Sensor coverage now runs **24 days past** the DairyComp extract (2026-08-27 vs 2026-08-03). For the first time since Round 10, Nedap is *not* the limiting factor — **DairyComp is**. The Round 11/14 open follow-up ("a fresher sensor export would close the gap") is now satisfied, and the most useful next pull is a DC extract to 2026-08-27, which would also extend the pilot from ~9 weeks to ~13 and give time-to-event and culling materially more to work with. That is why this round is queued rather than executed.
+
+### Verified impact on the sensor-level check (against the current 387-case set)
+
+| | In the report now | With new export |
+|---|---|---|
+| Checkable misses | 194 of 250 | **250 of 250** |
+| No Data (Outside Coverage) | 93 | **0** |
+| Pipeline loss | 71 (36.6%) | **91 (36.4%)** |
+| True miss | 123 (63.4%) | **159 (63.6%)** |
+
+**No case is reclassified.** 294 of 387 are unchanged and all 93 movements are out of "No Data" into a real bucket (37 → caught, 20 → pipeline loss, 36 → true miss). The pipeline-loss *rate* barely moves, 36.6% → 36.4% — worth stating in the report, because it retro-validates the earlier estimate: the coverage gap was not biasing the number, the unseen cases behaved like the seen ones.
+
+### The rear-foot DD finding survives — checked before planning anything
+
+36 extra true misses could have overturned Round 19's headline. It holds, and DD strengthens:
+
+| | Old (123 vs 171) | New (159 vs 228) |
+|---|---|---|
+| DD over-representation | +13.9pp | **+14.6pp** |
+| White line under-representation | −21.6pp | −17.5pp |
+| Rear feet, miss vs flagged | 64% vs 55% | 60% vs 55% |
+| DD × foot among misses | 51 rear / 8 front | **60 rear / 16 front** |
+
+Same conclusions throughout. The **front/rear gap narrows** (64%→60%, and the DD foot ratio falls from 6.4:1 to 3.75:1), so the rebuilt write-up must say the limb effect is *smaller* than the partial data implied while the DD effect is unchanged or stronger. Non-DD misses stay roughly even (51 rear / 58 front).
+
+### `is_completed` — decision made, sensitivity quantified
+
+1,452 of 40,193 raw rows (1,410 of 38,954 resolved) have `is_completed = FALSE`. The loader does **not** filter on it, so an incomplete attention episode currently counts as "the camera flagged her". Gerard's call: **keep counting them, but report the sensitivity.** Measured:
+
+- including incomplete (current): **91 pipeline losses (36.4%)**, 159 true misses
+- excluding incomplete: **81 pipeline losses (32.4%)**, 169 true misses
+
+A 10-case, ~4-point swing — not negligible, so it belongs in the report as a stated sensitivity rather than a silent choice.
+
+### Data plumbing — done this round
+
+- **`.gitignore` gap closed.** `data/*.csv` was covered but `data/*.xlsx` was not, so the raw export was one `git add -A` away from being committed. Added `data/*.xlsx`; verified the xlsx is now ignored.
+- **Staged `data/nedap_attentions_2026-08-27.csv`** (dated for provenance, inherits the `data/*.csv` ignore). Verified the existing loader reads it with zero `NA`s in `attention_date`, `alert_type` or `is_completed`.
+- **Gotcha for anyone repeating this:** xlsx returns `is_completed` as the strings `"True"`/`"False"`, and the loader's `col_logical()` turns those into `NA` silently. The conversion normalises them to `TRUE`/`FALSE` and asserts no `NA`s survive.
+- **The loader's default `file =` was deliberately left pointing at the old CSV.** Repointing it now would give the next render new coverage numbers sitting next to prose about "93 not checked" — an internally inconsistent report. It is a one-line change, to be made as step 1 of the single rebuild.
+
+### Execution checklist for the rebuild (when DC data lands)
+
+1. Repoint `fxn_read_nedap_attentions()`'s default to the refreshed CSV.
+2. **Delete the coverage apparatus rather than update it** — with nothing outside coverage, `in_coverage`, the `"No Data (Outside Coverage)"` factor level, `n_misses_outside_coverage`, the "other 56 misses" bullet and the legend entry are all dead weight. Keep the coverage *computation* as a defensive guard, since the next DC pull will overtake Nedap again.
+3. Re-run the four downstream blocks that sit on the miss set: the `FTDAT`/injury by-design check (now ~91 candidates, not 71), the DD/leg profile, the reconciliation table, and the SmartSight check — that last one currently splits 18 into "8 true-miss + 10 outside-coverage" and the second half collapses.
+4. Add the `is_completed` sensitivity sentence.
+5. Add the "rate barely moved" robustness sentence.
+6. Re-render, verify every headline against a standalone recompute, then update the executive summary, this plan doc and memory.
+
+**All figures in this round are against the current 387-case set and will shift once the DC extract grows — re-verify, don't copy them forward.**
