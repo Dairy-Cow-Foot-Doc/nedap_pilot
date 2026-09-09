@@ -241,7 +241,7 @@ cohort |>
   mutate(Total = rowSums(across(where(is.numeric)))) |>
   gt(rowname_col = "tx_group") |>
   tab_header(
-    title = "Most cows enrolled were Lact 3+",
+    title = "Lact 3+ was the largest group enrolled",
     ) |>
   tab_stubhead(label = "Treatment Group") |>
   cols_label(`3+` = "3+")
@@ -299,7 +299,7 @@ cohort_excluded_post_trim |>
   ) |>
   gt(rowname_col = "tx_group") |>
   cols_label(n = "N Excluded", mean_days_after_trim = "Mean Days After Trim") |>
-  tab_header(title = "Systems flags cows recenlty trimmed quickly")
+  tab_header(title = "System flags recently trimmed cows quickly")
 ```
 
 ```{r}
@@ -572,7 +572,7 @@ control_trims |>
 
 ## How many trims with no lesions?
 
-The table below shows the number of cows who had a first NEDAP alert and where trimmed **but** did not have a lesions.
+The table below shows the number of cows who had a first NEDAP alert and were trimmed **but** did not have a lesion.
 
 **This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
 

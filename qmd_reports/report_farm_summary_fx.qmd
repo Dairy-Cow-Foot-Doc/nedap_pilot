@@ -186,7 +186,7 @@ For this study the follow things were created in DairyComp to handle the file da
 
     - ENTER EC=70\\P215 FOR LFTYP=30102 LMFLG=1 LMSV=1-30 DSNLM=90-1 FTDAT\<-90 UPLAM\<\>1
 
-  - Low Declining (less than 30 score, declining score and and no alarm in last 7 days and not trimmed in last 28 days)
+  - Low Declining (less than 30 score, declining score and no alarm in last 7 days and not trimmed in last 28 days)
 
     - ENTER EC=70\\P214 FOR LFTYP=30101 LMFLG=1 DSNLM=7-1 FTDAT\<-28
 
@@ -251,7 +251,7 @@ cohort |>
   mutate(Total = rowSums(across(where(is.numeric)))) |>
   gt(rowname_col = "tx_group") |>
   tab_header(
-    title = "Most cows enrolled were Lact 3+",
+    title = "Lact 3+ was the largest group enrolled",
     ) |>
   tab_stubhead(label = "Treatment Group") |>
   cols_label(`3+` = "3+")
@@ -300,7 +300,7 @@ These curves are about **protocol compliance**, not whether the alert was right.
 
 The figures below show the time to the next trimming event split by treatment group and alerts types.
 
-- It is clear that most of the TRIM treatment cows got trimmed within 7-10 days and about 20% of the cows in the Control group get trimmed withing that same time period.
+- It is clear that most of the TRIM treatment cows got trimmed within 7-10 days and about 20% of the cows in the Control group get trimmed within that same time period.
 
 ```{r}
 #| label: q2-build
@@ -423,7 +423,7 @@ control_trims |>
 
 ## How many trims with no lesions?
 
-The table below shows the number of cows who had a first NEDAP alert and where trimmed **but** did not have a lesions.
+The table below shows the number of cows who had a first NEDAP alert and were trimmed **but** did not have a lesion.
 
 **This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
 
@@ -531,7 +531,7 @@ The figures below compare milk production between the treatment groups. Cows wer
 
 - `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline. Not all cows have made it to the 30 day mark so there is more variability at those time points and the true impact is not certain yet.
 
-Overall numerically there is an advantage to the trimmed group in milk production after an alert but there is a lot of variation (the shaded part aroudn the solid line) so this not something to put a lot of trust in.
+Overall numerically there is an advantage to the trimmed group in milk production after an alert but there is a lot of variation (the shaded part around the solid line) so this is not something to put a lot of trust in.
 
 **NOTE:** *Due to the fact that cows were at very different lactation stages when flagged milk production is not directly comparable across cows. Each cow's production is normalized to **% of her own pre-alert baseline** (mean production over the `r params$milk_baseline_days` days before the alert) before averaging by day and treatment group. This allow us to isolates the shape of the trend/recovery from each cow's absolute production level.*
 
