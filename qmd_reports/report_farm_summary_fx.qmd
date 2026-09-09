@@ -529,7 +529,7 @@ invisible(list2env(fxn_build_q1(cohort, milk_resolved, params), environment()))
 
 The figures below compare milk production between the treatment groups. Cows were assigned to TX or Control at enrollment, so this is a like-for-like comparison rather than a descriptive one - and because the groups were randomised, seeing no difference here is itself evidence against a large effect, not just a lack of adjustment.
 
-- `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline. Not all cows have made it to the 30 day mark so there is more variability at those time points and the true impact is not certain yet.
+- `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline. Fewer cows sit behind the right-hand end of these curves than the left: a cow needs `r params$milk_window_post` days of milk records after her alert to appear at day `r params$milk_window_post`, and only `r n_milk_day30` have that so far. So the day-`r params$milk_window_post` end is not the same cows as the day-0 end - it is the ones alerted earliest in the study. That end of the curve can still move as the rest catch up, rather than just firm up around where it sits now.
 
 Overall numerically there is an advantage to the trimmed group in milk production after an alert but there is a lot of variation (the shaded part around the solid line) so this is not something to put a lot of trust in.
 
