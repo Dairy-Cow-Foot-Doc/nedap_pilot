@@ -625,7 +625,7 @@ sensor_hits <- q4_sensor |>
   select(id_animal, lact_number, date_event, lookback_days_used) |>
   left_join(attentions_resolved |> select(id_animal, lact_number, attention_date),
             by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-  mutate(sensor_hit = !is.na(attention_date) & attention_date <= date_event &
+  mutate(sensor_hit = !is.na(attention_date) & attention_date < date_event &
            attention_date >= date_event - lookback_days_used) |>
   group_by(id_animal, lact_number, date_event) |>
   summarize(sensor_fired_in_window = any(sensor_hit), .groups = "drop")

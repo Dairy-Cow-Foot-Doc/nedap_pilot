@@ -793,7 +793,13 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     select(id_animal, lact_number, date_event, lookback_days_used) |>
     left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+# A flag on the lesion DAY ITSELF is not advance warning. The trim happens
+# during that day, so a same-day attention is as likely to be the camera
+# reading her post-trim gait as anything that preceded the diagnosis - the
+# same reasoning behind the post-trim exclusion in the cohort. Only a flag
+# STRICTLY BEFORE the lesion date counts as the camera having seen a problem
+# in time, so the window is [lesion - lookback, lesion).
+    filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
     group_by(id_animal, lact_number, date_event) |>
     summarize(low_only = all(alert_type == "LOW"), .groups = "drop")
   
@@ -821,7 +827,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     select(id_animal, lact_number, date_event, lookback_days_used) |>
     left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+    filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
     left_join(trims_gate, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
     mutate(days_since_trim = if_else(!is.na(gate_trim_date) & gate_trim_date < attention_date,
                                       as.numeric(attention_date - gate_trim_date), Inf)) |>
@@ -871,7 +877,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     select(id_animal, lact_number, date_event, lookback_days_used) |>
     left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+    filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
     left_join(nedlame_any |> select(id_animal, lact_number, ned_date),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
     mutate(dsnlm_days = if_else(alert_type == "LOW", 90, 7),
