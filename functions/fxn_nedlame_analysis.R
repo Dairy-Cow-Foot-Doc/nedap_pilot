@@ -964,3 +964,57 @@ n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE
   list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late)
 }
 
+
+# What actually drove a Control cow's trim: a staff CHKLAME between her alert and
+# her trim, or the routine schedule coming round. The distinction matters because
+# the Control arm is otherwise described as 'staff discretion', and most of it is
+# not - it is the routine round catching up. Both reports need these numbers: the
+# full one for the driver table, the farm one so its trim-only commentary does not
+# call the whole Control arm staff-identified.
+fxn_build_control_trim_drivers <- function(next_events, cohort, events_formatted, lame_data) {
+  # Same pre-filter-before-join pattern used throughout: restrict the CHKLAME
+  # candidates to the window FIRST, then join, so a cow with no qualifying
+  # CHKLAME is correctly labelled "routine" rather than dropped from the table.
+  chklame_events <- events_formatted |>
+    filter(event == "CHKLAME") |>
+    select(id_animal, lact_number, chk_date = date_event) |>
+    distinct()
+  
+  first_post_alert_trim <- next_events |>
+    inner_join(cohort |> select(id_animal, lact_number, first_nedlame_date, date_obs_end, tx_group),
+               by = c("id_animal", "lact_number")) |>
+    filter(date_event > first_nedlame_date, date_event <= date_obs_end) |>
+    group_by(id_animal, lact_number) |>
+    slice_min(date_event, n = 1, with_ties = FALSE) |>
+    ungroup() |>
+    rename(trim_date = date_event)
+  
+  chk_before_trim <- first_post_alert_trim |>
+    select(id_animal, lact_number, first_nedlame_date, trim_date) |>
+    inner_join(chklame_events, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(chk_date >= first_nedlame_date, chk_date <= trim_date) |>
+    distinct(id_animal, lact_number) |>
+    mutate(staff_flagged = TRUE)
+  
+  trim_driver <- first_post_alert_trim |>
+    left_join(chk_before_trim, by = c("id_animal", "lact_number")) |>
+    left_join(lame_data |> select(id_animal, lact_number, date_event, trimonly) |> distinct(),
+              by = c("id_animal", "lact_number", "trim_date" = "date_event")) |>
+    mutate(staff_flagged = coalesce(staff_flagged, FALSE),
+           Driver = if_else(staff_flagged, "Staff flagged her (CHKLAME)", "Routine trim, no CHKLAME"),
+           days_to_trim = as.numeric(trim_date - first_nedlame_date),
+           found_lesion = coalesce(trimonly, 1) == 0)
+  
+  control_trims <- trim_driver |> filter(tx_group == "Control")
+  n_ctl_trimmed <- nrow(control_trims)
+  n_ctl_staff   <- sum(control_trims$staff_flagged)
+  n_ctl_routine <- n_ctl_trimmed - n_ctl_staff
+  pct_ctl_staff <- round(100 * n_ctl_staff / n_ctl_trimmed, 1)
+  pct_lesion_staff   <- round(100 * mean(control_trims$found_lesion[control_trims$staff_flagged]), 0)
+  pct_lesion_routine <- round(100 * mean(control_trims$found_lesion[!control_trims$staff_flagged]), 0)
+  med_days_staff   <- median(control_trims$days_to_trim[control_trims$staff_flagged])
+  med_days_routine <- median(control_trims$days_to_trim[!control_trims$staff_flagged])
+
+  list(chklame_events = chklame_events, first_post_alert_trim = first_post_alert_trim, chk_before_trim = chk_before_trim, trim_driver = trim_driver, control_trims = control_trims, n_ctl_trimmed = n_ctl_trimmed, n_ctl_staff = n_ctl_staff, n_ctl_routine = n_ctl_routine, pct_ctl_staff = pct_ctl_staff, pct_lesion_staff = pct_lesion_staff, pct_lesion_routine = pct_lesion_routine, med_days_staff = med_days_staff, med_days_routine = med_days_routine)
+}
+

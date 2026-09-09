@@ -355,9 +355,9 @@ pct_decline_cohort <- round(100 * mean(cohort$alert_type %in% c("LOW DECLINE", "
 invisible(list2env(fxn_build_q1(cohort, milk_resolved, params), environment()))
 ```
 
-The figures below show the impact of the treatment group on milk production.
+The figures below compare milk production between the treatment groups. Cows were assigned to TX or Control at enrollment, so this is a like-for-like comparison rather than a descriptive one - and because the groups were randomised, seeing no difference here is itself evidence against a large effect, not just a lack of adjustment.
 
-- `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record post trimming and a usable pre-alert baseline.
+- `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline.
 
 - The milk extract runs to `r format(milk_coverage_end)`, behind the event data. A cow needs `r params$milk_window_post` days of records after her alert to appear at the right-hand end of the curves, so the number of cows contributing falls across the x-axis: **`r n_milk_day30` cows sit behind the day-`r params$milk_window_post` point, not `r n_milk_cows`.** `r n_no_milk_at_all` cohort cows were alerted after the milk data ends and contribute nothing. The day-`r params$milk_window_post` figures therefore describe the earlier-alerting cows, and will change as milk data catches up.
 
@@ -412,7 +412,7 @@ milk_norm |>
 
 ## Time to next trimming after alert
 
-To determine the accuracy of the alert for each cow, we looked for the first trimming event after her first NEDLAME alert. Cows were censored at the end of their lactation or culling.
+These curves measure **protocol compliance rather than alert accuracy**. For each cow we took the first trimming event after her first NEDLAME alert, censoring at end of lactation or culling. In the TX arm the trim is caused by the alert by protocol, so time-to-trim is a measure of how faithfully the protocol was executed, not of whether the alert was correct. The Control curve is doing a different job: with no protocol acting on the alert, it shows when those cows were trimmed anyway, by staff decision or by the routine schedule - the split between those two is in @tbl-trim-driver. Whether the alerts were *right* is addressed by the lesion-found table below and by the miss analysis later on.
 
 The figures below show the time to the next trimming event split by treatment group and for various lesion or alerts types.
 
@@ -543,48 +543,8 @@ In the Control arm a cow is only trimmed if someone decides to act, so the trims
 ```{r}
 #| label: q2-chklame-build
 
-# Same pre-filter-before-join pattern used throughout: restrict the CHKLAME
-# candidates to the window FIRST, then join, so a cow with no qualifying
-# CHKLAME is correctly labelled "routine" rather than dropped from the table.
-chklame_events <- events_formatted |>
-  filter(event == "CHKLAME") |>
-  select(id_animal, lact_number, chk_date = date_event) |>
-  distinct()
-
-first_post_alert_trim <- next_events |>
-  inner_join(cohort |> select(id_animal, lact_number, first_nedlame_date, date_obs_end, tx_group),
-             by = c("id_animal", "lact_number")) |>
-  filter(date_event > first_nedlame_date, date_event <= date_obs_end) |>
-  group_by(id_animal, lact_number) |>
-  slice_min(date_event, n = 1, with_ties = FALSE) |>
-  ungroup() |>
-  rename(trim_date = date_event)
-
-chk_before_trim <- first_post_alert_trim |>
-  select(id_animal, lact_number, first_nedlame_date, trim_date) |>
-  inner_join(chklame_events, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-  filter(chk_date >= first_nedlame_date, chk_date <= trim_date) |>
-  distinct(id_animal, lact_number) |>
-  mutate(staff_flagged = TRUE)
-
-trim_driver <- first_post_alert_trim |>
-  left_join(chk_before_trim, by = c("id_animal", "lact_number")) |>
-  left_join(lame_data |> select(id_animal, lact_number, date_event, trimonly) |> distinct(),
-            by = c("id_animal", "lact_number", "trim_date" = "date_event")) |>
-  mutate(staff_flagged = coalesce(staff_flagged, FALSE),
-         Driver = if_else(staff_flagged, "Staff flagged her (CHKLAME)", "Routine trim, no CHKLAME"),
-         days_to_trim = as.numeric(trim_date - first_nedlame_date),
-         found_lesion = coalesce(trimonly, 1) == 0)
-
-control_trims <- trim_driver |> filter(tx_group == "Control")
-n_ctl_trimmed <- nrow(control_trims)
-n_ctl_staff   <- sum(control_trims$staff_flagged)
-n_ctl_routine <- n_ctl_trimmed - n_ctl_staff
-pct_ctl_staff <- round(100 * n_ctl_staff / n_ctl_trimmed, 1)
-pct_lesion_staff   <- round(100 * mean(control_trims$found_lesion[control_trims$staff_flagged]), 0)
-pct_lesion_routine <- round(100 * mean(control_trims$found_lesion[!control_trims$staff_flagged]), 0)
-med_days_staff   <- median(control_trims$days_to_trim[control_trims$staff_flagged])
-med_days_routine <- median(control_trims$days_to_trim[!control_trims$staff_flagged])
+invisible(list2env(fxn_build_control_trim_drivers(
+  next_events, cohort, events_formatted, lame_data), environment()))
 ```
 
 ```{r}
@@ -624,16 +584,28 @@ q2_first_event_detail <- q2_any |>
   left_join(lame_data |> select(id_animal, lact_number, date_event, event, trimonly),
             by = c("id_animal", "lact_number", "date_event"))
 
-q2_first_event_detail |>
+q2_trimonly_tab <- q2_first_event_detail |>
   group_by(tx_group) |>
-  summarize(n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100, .groups = "drop") |>
+  summarize(n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100, .groups = 'drop') |>
   bind_rows(
-    q2_first_event_detail |> summarize(tx_group = "Overall", n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100)
-  ) |>
-  gt(rowname_col = "tx_group") |>
+    q2_first_event_detail |> summarize(tx_group = 'Overall', n = n(), n_trimonly = sum(trimonly, na.rm = TRUE), pct_trimonly = mean(trimonly, na.rm = TRUE) * 100)
+  )
+
+# Title built from the cells beneath it. It used to be typed by hand and had
+# already gone stale against a rebuild, quoting a range the table contradicted.
+# level is 'TX (Trim)', not 'TX' - matching on 'TX' silently gave numeric(0)
+tx_lvl <- setdiff(q2_trimonly_tab$tx_group, c('Control', 'Overall'))
+stopifnot(length(tx_lvl) == 1)
+pct_trimonly_tx  <- round(q2_trimonly_tab$pct_trimonly[q2_trimonly_tab$tx_group == tx_lvl], 1)
+pct_trimonly_ctl <- round(q2_trimonly_tab$pct_trimonly[q2_trimonly_tab$tx_group == 'Control'], 1)
+trimonly_title <- sprintf('%d-%d%% of Trims do not have a lesion',
+                          floor(min(q2_trimonly_tab$pct_trimonly)), ceiling(max(q2_trimonly_tab$pct_trimonly)))
+
+q2_trimonly_tab |>
+  gt(rowname_col = 'tx_group') |>
   fmt_number(columns = pct_trimonly, decimals = 1) |>
-  cols_label(n = "N Cows with Trim", n_trimonly = "No Lesion", pct_trimonly = "% Trim-Only") |>
-  tab_header(title = "43-55% of Trims do not have a lesion")
+  cols_label(n = 'N Cows with Trim', n_trimonly = 'No Lesion', pct_trimonly = '% Trim-Only') |>
+  tab_header(title = trimonly_title)
 ```
 
 # How does the Farm staff do?
@@ -692,7 +664,7 @@ staff_id |>
 
 # Influence of Lameness History
 
-Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk shows the impact on milk production between the lesion history types.
+Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk compares milk production across the lesion history types. Unlike the treatment groups, these are not randomised - a cow's history is a property she arrived with, along with her age, yield and everything else that goes with it - so read these curves as describing the groups, not as what a lesion history does to a cow.
 
 Each cow's lameness-history label (`New` / `Chronic`) reflects her **lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity for lameness should be considered a lifetime event.
 
@@ -747,12 +719,17 @@ milk_norm |>
 
 # Time to Culling After NEDAP Enrollment
 
-To evaluate the impact of treatment group on culling a time to culling graph is show below. No real impact is seen.
-
 ```{r}
 #| label: q6-build
 
 invisible(list2env(fxn_build_q6(cohort, date_max_pull), environment()))
+
+# Quoted in the caveat below. The curves used to be summarised as 'no real
+# impact', which claims a demonstrated absence of effect - with this few
+# events the honest statement is that the study cannot tell either way.
+n_culls <- sum(q6$culled_ever)
+n_culls_tx  <- sum(q6$culled_ever[q6$tx_group != 'Control'])
+n_culls_ctl <- sum(q6$culled_ever[q6$tx_group == 'Control'])
 ```
 
 ```{r}
@@ -778,6 +755,8 @@ km_cull |>
   as_gt() |>
   tab_header(title = "% Culled After First NEDLAME Alert")
 ```
+
+Time to culling is compared between the treatment groups below. The curves sit close together, but only `r n_culls` cows were culled in total (`r n_culls_tx` TX, `r n_culls_ctl` Control). That is far too few to tell whether trimming off the alert changes culling - this is not evidence that it makes no difference, it is a question the study is too small and too short to answer.
 
 # What cows were missed by the system?
 
@@ -1014,7 +993,7 @@ ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group_3way)) +
   theme(legend.position = "bottom")
 ```
 
-Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. The never-alerted share is the largest block on every foot, so the misses are not concentrated on one limb.
+Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. That is where lesions occur, not where the camera fails - which segment of a stacked bar is tallest says nothing about detection, because every segment scales with how common lesions are on that foot. Whether the camera misses front feet more than hind feet is asked directly below.
 
 ## What is the camera actually missing?
 
@@ -1059,37 +1038,8 @@ leg_by_camera <- leg_end |>
 
 pct_rear_miss <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera never flagged" & leg_by_camera$end == "Rear"], 0)
 pct_rear_flag <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera flagged her"   & leg_by_camera$end == "Rear"], 0)
-
-# The marginal splits above (DD vs not, rear vs front) each hint at the answer
-# but neither isolates it, because DD is mostly a rear-foot disease to begin
-# with - so "DD is over-represented" and "rear feet are over-represented"
-# could be one fact reported twice. Crossing the two is what separates them:
-# a case is scored on whether it had DD on a REAR foot specifically, and the
-# same share is computed for the cases the camera did flag.
-dd_cases_all <- lame_lesion_recent |> filter(dd == 1) |> distinct(id_animal, lact_number, date_event)
-case_key <- function(d) paste(d$id_animal, d$lact_number, d$date_event)
-
-dd_rear_keys  <- case_key(leg_end |> filter(end == "Rear")  |> semi_join(dd_cases_all, by = c("id_animal","lact_number","date_event")))
-dd_front_keys <- case_key(leg_end |> filter(end == "Front") |> semi_join(dd_cases_all, by = c("id_animal","lact_number","date_event")))
-nodd_rear_keys <- case_key(leg_end |> filter(end == "Rear") |> anti_join(dd_cases_all, by = c("id_animal","lact_number","date_event")))
-
-conj_share <- function(keys) {
-  k <- case_key(checkable)
-  c(miss    = round(100 * mean(k[checkable$camera == "Camera never flagged"] %in% keys), 1),
-    flagged = round(100 * mean(k[checkable$camera == "Camera flagged her"]   %in% keys), 1))
-}
-s_ddrear  <- conj_share(dd_rear_keys)
-s_ddfront <- conj_share(dd_front_keys)
-s_noddrear <- conj_share(nodd_rear_keys)
-
-conj_tbl <- tibble::tribble(
-  ~`Lesion and foot`,            ~`% of misses`,      ~`% of flagged`,
-  "DD on a rear foot",           s_ddrear[["miss"]],   s_ddrear[["flagged"]],
-  "DD on a front foot",          s_ddfront[["miss"]],  s_ddfront[["flagged"]],
-  "Anything else on a rear foot", s_noddrear[["miss"]], s_noddrear[["flagged"]]
-) |>
-  mutate(Difference = round(`% of misses` - `% of flagged`, 1))
 ```
+
 
 The `r n_cam_miss` cases the camera never flagged are compared below against the `r n_cam_flag` it did flag. Both sit inside the sensor coverage window, so both have raw flag data behind them. Percentages are within each group, and a cow can have more than one lesion type and more than one affected foot, so they add to more than 100%.
 
@@ -1111,26 +1061,9 @@ lesion_by_camera |>
 - **White line is the opposite**: `r pct_wld_miss`% of misses vs `r pct_wld_flag`% of flagged cases. The camera picks white line up well.
 
 
-- Rear feet are `r pct_rear_miss`% of the missed cases against `r pct_rear_flag`% of the flagged ones. That gap is small, and on its own it does not say much.
+- **Front versus hind is not where the difference is.** Rear feet are `r pct_rear_miss`% of the missed cases against `r pct_rear_flag`% of the ones the camera did flag. Hind-foot lesions dominate both groups in much the same proportion, so there is no sign the camera is specifically blind to front feet.
 
-Those two splits look like two findings but may be one, since DD is mostly a rear-foot disease anyway. Crossing them separates the two:
-
-```{r}
-#| label: tbl-dd-by-foot
-
-conj_tbl |>
-  gt() |>
-  tab_header(title = "The gap is DD on a rear foot specifically") |>
-  tab_source_note("A case counts in a row if it had that lesion on that foot; a cow with several lesions or feet can count in more than one row, so the rows do not sum to 100%.")
-```
-
-- **DD on a rear foot is `r s_ddrear[["miss"]]`% of misses against `r s_ddrear[["flagged"]]`% of flagged cases** — a `r round(s_ddrear[["miss"]] - s_ddrear[["flagged"]], 1)` point gap, and the whole effect.
-- **DD on a front foot is `r s_ddfront[["miss"]]`% against `r s_ddfront[["flagged"]]`%** — no difference. So it is not DD as such.
-- **Anything other than DD on a rear foot is `r s_noddrear[["miss"]]`% against `r s_noddrear[["flagged"]]`%**, meaning those are caught *better* than average. So it is not rear feet as such either.
-
-The blind spot is the combination: **digital dermatitis on a hind foot.** Neither DD anywhere nor a hind foot with anything else shows the same gap.
-
-A likely reason, though this data cannot prove it: DD is often bilateral, and a cow sore on both hind feet walks symmetrically. A camera scoring mobility off asymmetry would be expected to under-detect exactly that. Worth putting to Nedap.
+So the difference is in the lesion, not the limb. That is not really a surprise: locomotion scoring is known to pick digital dermatitis up poorly, and the camera is scoring locomotion, so a lesion that produces little gait change is exactly the lesion it will tend to miss. What this analysis adds is the size of the gap on this farm, and that it is specific rather than general - white line, which does change how a cow walks, is caught well.
 
 Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
 
