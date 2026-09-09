@@ -848,8 +848,35 @@ leg_names <- c(LF = "Left Front", RF = "Right Front", LR = "Left Rear", RR = "Ri
 # all are even length and every chunk is one of LF/RF/LR/RR.
 leg_long <- events_formatted |>
   filter(event %in% c("LAME", "FOOTRIM", "TRIM"), !is.na(locate_lesion), locate_lesion != "") |>
-  select(id_animal, lact_number, date_event, locate_lesion) |>
-  mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
+  select(id_animal, lact_number, date_event, locate_lesion,
+         remark_letters1) |>
+  # locate_lesion carries a PHANTOM left front on XNLF* remarks. XNLFRF is
+  # XNL (treatment) + F (foot rot) + RF (leg) - one foot, not two - but a
+  # two-character scan finds an "LF" spanning the treatment's trailing L and
+  # the lesion's F. 559 of 605 XNLF* rows across the record are affected.
+  #
+  # Only this family is wrong. Other codes are 4-letter treatments followed by
+  # real feet, so BLKWLFRF genuinely is two feet and LATDLRRR genuinely is two.
+  # The farm also writes LH/RH for hind and locate_lesion correctly normalises
+  # those to LR/RR - that mapping is fine and must not be "fixed".
+  #
+  # For XNLF* the feet are whatever follows XNLF, so drop that prefix from the
+  # remark and read the feet from there instead of trusting locate_lesion.
+  # Checked against the awkward cases: XNLFRHRF -> RR+RF, XNLFLHRH -> LR+RR,
+  # XNLFLF -> LF.
+  mutate(
+    rem = trimws(as.character(remark_letters1)),
+    # for XNLF* read the feet from what follows XNLF; otherwise trust
+    # locate_lesion, which is already normalised
+    feet_src = if_else(str_starts(coalesce(rem, ""), "XNLF"),
+                       str_sub(rem, 5),
+                       locate_lesion),
+    # the remark spells hind feet LH/RH; locate_lesion already uses LR/RR
+    feet_src = str_replace_all(feet_src, c("LH" = "LR", "RH" = "RR")),
+    # whitelist scan, so trailing codes like the II in XNLFRHII cannot be
+    # mistaken for a foot
+    leg = str_extract_all(feet_src, "LF|RF|LR|RR")
+  ) |>
   unnest(leg) |>
   distinct(id_animal, lact_number, date_event, leg) |>
   # Map to readable names HERE, once, so everything downstream sees
@@ -1269,19 +1296,48 @@ attention_gate_check <- pipeline_loss_cases |>
   # one was eligible, DairyComp should have enrolled her.
   summarize(all_attentions_blocked = all(attention_blocked), .groups = "drop")
 
+# THIRD by-design mechanism: the flag was not lost at all, it simply landed a
+# day late. The daily batch runs at ~5am and stamps an alert with the day it
+# was LOADED, so an attention after ~5am on day D is logged as D+1. The
+# lookback only looks BACKWARD from the lesion, so a NEDLAME dated the day
+# after the lesion falls outside it and the case is scored a pipeline loss -
+# even though the alert demonstrably reached DairyComp.
+#
+# Per the farm, these late arrivals are usually the camera reacting to the
+# trim itself rather than the pre-lesion flag arriving late. Either way the
+# cow was genuinely MISSED - an alert after the diagnosis helps nobody, so
+# caught_by_nedap is deliberately left alone. What is wrong is only the
+# "lost in pipeline" label: nothing was lost.
+#
+# Found via cow 7207: flagged 06-11, lesion 06-11, NEDLAME 06-12.
+nedlame_any <- events_all |>
+  filter(Event == "NEDLAME") |>
+  select(id_animal, lact_number, ned_date = date_event) |>
+  distinct()
+
+late_arrival_check <- pipeline_loss_cases |>
+  select(id_animal, lact_number, date_event) |>
+  left_join(nedlame_any, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  mutate(days_late = as.numeric(ned_date - date_event)) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(alert_arrived_late = any(days_late == 1, na.rm = TRUE), .groups = "drop")
+
 pipeline_loss_cases <- pipeline_loss_cases |>
+  left_join(late_arrival_check, by = c("id_animal", "lact_number", "date_event")) |>
   left_join(pipeline_loss_fired_types, by = c("id_animal", "lact_number", "date_event")) |>
   left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event")) |>
   left_join(attention_gate_check, by = c("id_animal", "lact_number", "date_event")) |>
   mutate(
     all_attentions_blocked = coalesce(all_attentions_blocked, FALSE),
+    alert_arrived_late = coalesce(alert_arrived_late, FALSE),
     injury_explained = low_only & has_injury_leg_history,
-    by_design = all_attentions_blocked | injury_explained
+    by_design = all_attentions_blocked | injury_explained | alert_arrived_late
   )
 
 n_pipeline_loss_low_only <- sum(pipeline_loss_cases$low_only, na.rm = TRUE)
 n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$injury_explained, na.rm = TRUE)
 n_pipeline_loss_ftdat_blocked <- sum(pipeline_loss_cases$all_attentions_blocked, na.rm = TRUE)
+n_pipeline_loss_late <- sum(pipeline_loss_cases$alert_arrived_late, na.rm = TRUE)
 n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design, na.rm = TRUE)
 n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_design
 ```
@@ -1293,6 +1349,7 @@ n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_de
 pipeline_loss_cases |>
   mutate(category = case_when(
     all_attentions_blocked ~ "By design: every flag inside its FTDAT window",
+    alert_arrived_late     ~ "Not lost: the alert reached DC a day later",
     injury_explained       ~ "By design: injury/upper-leg history blocks Low",
     !low_only              ~ "Unexplained: escalated past LOW",
     TRUE                   ~ "Unexplained: LOW-only, no injury history"
@@ -1314,6 +1371,8 @@ Two of the enrollment rules can be checked. Of the `r nrow(pipeline_loss_cases)`
 - `r n_pipeline_loss_ftdat_blocked` had every flag land inside its own `FTDAT` window (90 days for `Low`, 28 for the declines). DairyComp was right to skip them.
 
 - `r n_pipeline_loss_injury_explained` were `LOW`-only flags on cows with upper-leg lameness history, which blocks the `Low` route.
+
+- `r n_pipeline_loss_late` were not lost at all: a `NEDLAME` reached DairyComp the day after the lesion. The daily batch runs at ~5am and stamps an alert with the day it was loaded, so an attention after ~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. These are usually the camera reacting to the trim itself. The cow was still missed — an alert after the diagnosis helps nobody — but nothing was lost in the pipeline.
 
 - That is **`r n_pipeline_loss_by_design` of `r nrow(pipeline_loss_cases)` working as designed**, leaving **`r n_pipeline_loss_unexplained` as the real pipeline losses**.
 
