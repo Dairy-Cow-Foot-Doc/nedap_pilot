@@ -149,7 +149,7 @@ byte-identical for both reports.
 
 ## B. Text — genuine errors
 
-### ☐ T1. Farm report claims the camera beats a competitor, with no supporting data ✅ verified
+### ☑ ~~T1. Farm report claims the camera beats a competitor, with no supporting data ✅ verified~~ — DONE 2026-09-09
 **`report_farm_summary.qmd:1164`** — *"NEDAP camera preforms better than CattleEye"*
 
 Neither report contains a single CattleEye number. Nothing in the pipeline touches
@@ -440,7 +440,7 @@ withing, suprising, recenlty, where trimmed, is show below*.
 
 ## F. Found by Gerard's cowcard checks, 2026-09-09 — both real, both unfixed
 
-### ☐ T20. The batch-load lag is applied in one place but not the other ✅ verified
+### ☑ ~~T20. The batch-load lag is applied in one place but not the other ✅ verified~~ — DONE 2026-09-09
 
 **Found via cow 7207.** Her sensor flagged on 2026-06-11 (`LOW DECLINE` + `STRONG DECLINE`), her white-line lesion was diagnosed 2026-06-11, and her `NEDLAME` landed in DairyComp on **2026-06-12** — one day later.
 
@@ -467,7 +467,7 @@ Treating +1 day as caught moves the miss rate from **58.5% to 56.0%** (339 → 3
 
 ---
 
-### ☐ T21. `locate_lesion` invents a phantom left-front on `XNLF*` remarks ✅ verified
+### ☑ ~~T21. `locate_lesion` invents a phantom left-front on `XNLF*` remarks ✅ verified~~ — DONE 2026-09-09
 
 **Found via cow 10214.** Gerard: *"the xnlfrf is not 2 legs. it means xnl for the treatment F for foot rot and then RF for leg — lf is not another leg."*
 
@@ -485,3 +485,23 @@ Confirmed it is specific to this family. Other codes are 4-letter treatments fol
 **The headline is safe, and slightly strengthened.** The phantom is *always* a left front, so it can only inflate front-foot counts. DD-on-rear and non-DD-on-rear are untouched; the DD-on-**front** share (8.2% vs 7.6%, already no gap) shrinks further, which reinforces *"it is not DD as such."* Front/rear in the window goes 529/755 → 487/755.
 
 **Suggested fix:** for remarks starting `XNLF`, parse the feet from what follows `XNLF` rather than scanning the whole `locate_lesion` string. Verified against the awkward cases: `XNLFRHRF` → RR+RF, `XNLFLHRH` → LR+RR, `XNLFLF` → LF. The proper fix is upstream in step 0, since `locate_lesion` is built there and every downstream analysis inherits it.
+
+---
+
+### ☐ T22. NEW — the report and the workbook disagree about `DSNLM`
+
+**Introduced by me, found while applying T20/T21.** `DSNLM` is implemented as a by-design suppression in `pipeline_losses.xlsx` but **not** in the report, where it appears only as text inside the DairyComp command listing. The report's `by_design` is `all_attentions_blocked | injury_explained | alert_arrived_late` — no `DSNLM` term.
+
+Since Gerard confirmed on 2026-09-09 that `DSNLM` genuinely is an exclusion (a cow already alerted in the last N days is not re-flagged), the report is **understating** by-design suppression by roughly 10 cases and overstating real pipeline losses by the same.
+
+The two artefacts therefore give different answers for the same question, which is exactly the drift the shared-functions refactor was meant to prevent — except this rule lives in neither place, it is duplicated between a report chunk and a standalone script.
+
+**Fix:** add the `DSNLM` term to the report's `by_design`, and ideally move the whole by-design block into `functions/fxn_nedlame_analysis.R` so the report and the workbook compute it once.
+
+---
+
+### ⚠ ACTION REQUIRED: step 0 must be re-run
+
+T21 was fixed at source in `functions/fxn_location.R`, and the report-level workaround has been removed. **The intermediate parquet files still contain the old `locate_lesion` with the phantom left front.** Until step 0 is re-run, the foot figures revert to the inflated numbers (front 309 rather than 299).
+
+Nothing else is affected — the phantom is always a left front, so rear counts and the DD-on-rear headline are unchanged either way.

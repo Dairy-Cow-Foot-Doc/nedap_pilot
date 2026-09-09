@@ -848,36 +848,20 @@ leg_names <- c(LF = "Left Front", RF = "Right Front", LR = "Left Rear", RR = "Ri
 # all are even length and every chunk is one of LF/RF/LR/RR.
 leg_long <- events_formatted |>
   filter(event %in% c("LAME", "FOOTRIM", "TRIM"), !is.na(locate_lesion), locate_lesion != "") |>
-  select(id_animal, lact_number, date_event, locate_lesion,
-         remark_letters1) |>
-  # locate_lesion carries a PHANTOM left front on XNLF* remarks. XNLFRF is
-  # XNL (treatment) + F (foot rot) + RF (leg) - one foot, not two - but a
-  # two-character scan finds an "LF" spanning the treatment's trailing L and
-  # the lesion's F. 559 of 605 XNLF* rows across the record are affected.
+  select(id_animal, lact_number, date_event, locate_lesion) |>
+  # locate_lesion packs one or more two-character foot codes into one string
+  # ("RRLR" = right rear + left rear, "RRLRRFLF" = all four), so it must be
+  # read in 2-character chunks, never by substring matching: str_detect("LRRF",
+  # "RR") is TRUE but "LRRF" is LR + RF.
   #
-  # Only this family is wrong. Other codes are 4-letter treatments followed by
-  # real feet, so BLKWLFRF genuinely is two feet and LATDLRRR genuinely is two.
-  # The farm also writes LH/RH for hind and locate_lesion correctly normalises
-  # those to LR/RR - that mapping is fine and must not be "fixed".
-  #
-  # For XNLF* the feet are whatever follows XNLF, so drop that prefix from the
-  # remark and read the feet from there instead of trusting locate_lesion.
-  # Checked against the awkward cases: XNLFRHRF -> RR+RF, XNLFLHRH -> LR+RR,
-  # XNLFLF -> LF.
-  mutate(
-    rem = trimws(as.character(remark_letters1)),
-    # for XNLF* read the feet from what follows XNLF; otherwise trust
-    # locate_lesion, which is already normalised
-    feet_src = if_else(str_starts(coalesce(rem, ""), "XNLF"),
-                       str_sub(rem, 5),
-                       locate_lesion),
-    # the remark spells hind feet LH/RH; locate_lesion already uses LR/RR
-    feet_src = str_replace_all(feet_src, c("LH" = "LR", "RH" = "RR")),
-    # whitelist scan, so trailing codes like the II in XNLFRHII cannot be
-    # mistaken for a foot
-    leg = str_extract_all(feet_src, "LF|RF|LR|RR")
-  ) |>
+  # It is built in functions/fxn_location.R, which used to search the whole
+  # remark and so invented a phantom left front on XNLF* codes - XNL
+  # (treatment) + F (foot rot) + RF (leg) is ONE foot, but "LF" spans the
+  # treatment's trailing L and the lesion's F. Fixed at source, so nothing is
+  # needed here.
+  mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
   unnest(leg) |>
+  filter(leg %in% names(leg_names)) |>
   distinct(id_animal, lact_number, date_event, leg) |>
   # Map to readable names HERE, once, so everything downstream sees
   # "Left Rear" rather than "LR". Leaving the raw codes in place and
