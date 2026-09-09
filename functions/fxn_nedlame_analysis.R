@@ -799,6 +799,19 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
 # same reasoning behind the post-trim exclusion in the cohort. Only a flag
 # STRICTLY BEFORE the lesion date counts as the camera having seen a problem
 # in time, so the window is [lesion - lookback, lesion).
+#
+# Confirmed in the data rather than assumed. No attention in the whole export
+# occurs before 05:00 local - 84% fall between 18:00 and midnight - so an
+# attention on day D is always picked up by the NEXT morning's batch. Matching
+# attentions to the NEDLAME they produced, on the same alert type, 61% land at
+# exactly +1 day. An attention ON the lesion day could therefore only ever have
+# produced an alert the day AFTER the diagnosis - never in time.
+#
+# The mirror of this is why caught_by_nedap DOES count a NEDLAME dated on the
+# lesion day: that alert came out of the 5am batch from the PREVIOUS day's
+# attention, and the batch runs before trimming. It is genuine advance warning.
+# The two rules look inconsistent and are not: one is about the attention, the
+# other about the alert, and they sit a day apart by construction.
     filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
     group_by(id_animal, lact_number, date_event) |>
     summarize(low_only = all(alert_type == "LOW"), .groups = "drop")
