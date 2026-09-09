@@ -824,6 +824,80 @@ ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = t
 `r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
 :::
 
+## What actually brought the Control cows in?
+
+In the Control arm a cow is only trimmed if someone decides to act, so the trims above are a mixture of two different things: staff spotting her and putting her on the list, or her simply coming up on the routine schedule. A `CHKLAME` recorded between her alert and her trim marks the first.
+
+```{r}
+#| label: q2-chklame-build
+
+# Same pre-filter-before-join pattern used throughout: restrict the CHKLAME
+# candidates to the window FIRST, then join, so a cow with no qualifying
+# CHKLAME is correctly labelled "routine" rather than dropped from the table.
+chklame_events <- events_formatted |>
+  filter(event == "CHKLAME") |>
+  select(id_animal, lact_number, chk_date = date_event) |>
+  distinct()
+
+first_post_alert_trim <- next_events |>
+  inner_join(cohort |> select(id_animal, lact_number, first_nedlame_date, date_obs_end, tx_group),
+             by = c("id_animal", "lact_number")) |>
+  filter(date_event > first_nedlame_date, date_event <= date_obs_end) |>
+  group_by(id_animal, lact_number) |>
+  slice_min(date_event, n = 1, with_ties = FALSE) |>
+  ungroup() |>
+  rename(trim_date = date_event)
+
+chk_before_trim <- first_post_alert_trim |>
+  select(id_animal, lact_number, first_nedlame_date, trim_date) |>
+  inner_join(chklame_events, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  filter(chk_date >= first_nedlame_date, chk_date <= trim_date) |>
+  distinct(id_animal, lact_number) |>
+  mutate(staff_flagged = TRUE)
+
+trim_driver <- first_post_alert_trim |>
+  left_join(chk_before_trim, by = c("id_animal", "lact_number")) |>
+  left_join(lame_data |> select(id_animal, lact_number, date_event, trimonly) |> distinct(),
+            by = c("id_animal", "lact_number", "trim_date" = "date_event")) |>
+  mutate(staff_flagged = coalesce(staff_flagged, FALSE),
+         Driver = if_else(staff_flagged, "Staff flagged her (CHKLAME)", "Routine trim, no CHKLAME"),
+         days_to_trim = as.numeric(trim_date - first_nedlame_date),
+         found_lesion = coalesce(trimonly, 1) == 0)
+
+control_trims <- trim_driver |> filter(tx_group == "Control")
+n_ctl_trimmed <- nrow(control_trims)
+n_ctl_staff   <- sum(control_trims$staff_flagged)
+n_ctl_routine <- n_ctl_trimmed - n_ctl_staff
+pct_ctl_staff <- round(100 * n_ctl_staff / n_ctl_trimmed, 1)
+pct_lesion_staff   <- round(100 * mean(control_trims$found_lesion[control_trims$staff_flagged]), 0)
+pct_lesion_routine <- round(100 * mean(control_trims$found_lesion[!control_trims$staff_flagged]), 0)
+med_days_staff   <- median(control_trims$days_to_trim[control_trims$staff_flagged])
+med_days_routine <- median(control_trims$days_to_trim[!control_trims$staff_flagged])
+```
+
+```{r}
+#| label: tbl-trim-driver
+
+control_trims |>
+  group_by(Driver) |>
+  summarize(`Cows` = n(),
+            `% of trims` = round(100 * n() / n_ctl_trimmed, 1),
+            `% finding a lesion` = round(100 * mean(found_lesion), 0),
+            `Median days alert to trim` = median(days_to_trim),
+            .groups = "drop") |>
+  gt() |>
+  tab_header(title = "Most Control trims were routine, and most of those found nothing") |>
+  tab_source_note("Control cows only, counting each cow once at her first trim after the alert.")
+```
+
+- Of the `r n_ctl_trimmed` Control cows trimmed after their alert, **`r n_ctl_staff` (`r pct_ctl_staff`%) had a `CHKLAME` first**; the other `r n_ctl_routine` were trimmed with no staff check recorded.
+
+- **The two groups are not doing the same job.** Staff-flagged trims found a lesion `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and happened at a median `r med_days_staff` days after the alert rather than `r med_days_routine`.
+
+- So the Control curve above is mostly the routine trim schedule catching up with these cows, not staff responding to them. That is worth holding onto when comparing the arms: TX is being compared against a mixture, and only about a third of it is an active decision.
+
+*This is a description of the trims that happened, not a third survival curve. Whether a cow gets a `CHKLAME` is decided after her alert, during follow-up, so splitting the earlier curves on it would compare groups defined by something that happens after the clock starts and would overstate the difference.*
+
 ## How many trims with no lesions?
 
 The table below shows the number of cows who had a first NEDAP alert and where trimmed **but** did not have a lesions.
