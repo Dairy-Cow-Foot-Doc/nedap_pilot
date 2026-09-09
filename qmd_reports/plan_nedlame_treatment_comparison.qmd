@@ -39,6 +39,18 @@ This document records the analysis plan as approved, and notes where implementat
 7. **`gtsummary`** was added to the report's package list after the first render failed — `tbl_survfit()`/`as_gt()` depend on it and it was missed in the initial plan's package list.
 8. **Q5 KM plot** needed a workaround: `ggsurvfit` only exposes a single combined `strata` column, not separate covariates, so a plot faceted by lameness-history group can't be built directly off a multi-term survival formula. The report fits one `survfit2()` per history level instead and stacks the `broom::tidy()` output before plotting.
 
+9. **Q4's 21-day lookback (`q4_lookback_days: 21`).** The number was carried unexamined from the first build until Gerard asked, 2026-09-09, why 21 — it had never been argued anywhere. Checked after the fact against the data, and it holds up. Taking every lesion case in the pilot window that had *any* prior `NEDLAME` (n = 444) and measuring days from the most recent prior alert to the lesion:
+
+   | gap (days) | 0–7 | 8–14 | 15–21 | 22–28 | 29–45 | 46–60 | 61–90 |
+   |---|---|---|---|---|---|---|---|
+   | cases | **247** | 54 | 18 | 15 | **63** | 23 | 24 |
+
+   The detection signal decays steeply through day 21 (247 → 54 → 18) and then **rises again at 29–45 days**. That second bump is a different process — the routine trim cycle and re-alerting, not the camera anticipating a lesion — so a window wide enough to capture it would start scoring unrelated alerts as successful detections. 21 days sits in the trough between the two, capturing 71.8% of alerted cases; widening to 28 adds only 15 cases (+3.4pp).
+
+   So the window is defensible, but treat it as a **choice with a trade-off, not a natural constant**: anything from ~14 to ~28 days is arguable on this evidence, and the miss rate moves with it. The `lookback_days_used` rolling cap (Round 2) is separate and still applies — it shortens the window for lesions early in the pilot so it cannot reach back before NEDLAME existed.
+
+   **Known edge effect:** the window is measured backward from the lesion only, so a cow alerted *earlier* than the window opens is scored as never alerted in DairyComp. See Round 25 for a case (10581) where this mislabelled an enrolled cow as a pipeline loss.
+
 ## Caveats carried into the final report
 
 - MNFRS's meaning was validated empirically, not from vendor documentation — worth double-checking against the DairyComp/NEDLAME PDF if/when available.
@@ -530,6 +542,8 @@ Q4 applied the `FTDAT` suppression test **only at the lesion date**, never at th
 
 Also established while investigating: **`DSNLM` in those commands is an inclusion criterion** ("alarm in last N days"), **not** a re-alert cooldown — do not model it as suppression. And of the 71, 52 never reached DairyComp at all while 19 had an alert outside the 21-day window.
 
+> **⚠️ SUPERSEDED (2026-09-09) — do not act on the `DSNLM` sentence above.** The farm confirmed the opposite: `DSNLM` **is** an exclusion. A cow already alerted within the last N days is *not* re-flagged, so the cowcard does not fill with duplicate alarms — `DSNLM=90-1` on the `Low` route, `DSNLM=7-1` on both decline routes. The code models it as suppression accordingly (`fxn_build_pipeline_by_design()`, the `dsnlm_check` block), and it is the single largest by-design mechanism: 9 of the 144 pipeline-loss cases. The reading recorded here was inferred from the command syntax before the farm was asked; it was wrong. Left in place because the paragraph it sits in is the origin of the FTDAT-at-attention-date check, which is unaffected.
+
 ### Bugs found in the hand-edited version
 
 Renaming a label string in one place but not its consumers was the recurring theme; most of these fail silently rather than erroring.
@@ -948,3 +962,70 @@ Why lameness history is deliberately **not** lactation-scoped; why `detection_gr
 ### The residual risk this does not remove
 
 The extraction was mechanical, so a function could still read something from the global environment that was never passed as an argument. In a Quarto report every chunk shares one environment, so such a function still *works* — the render succeeds — while not actually being self-contained. A successful render is therefore **not** evidence of correctness here; that needs static checking. Two review agents were commissioned specifically for this, with findings written up in `design/` for review.
+
+## Round 25: the 13 genuine pipeline losses checked cow by cow; the file-in staleness hypothesis tested and ruled out
+
+Gerard sent cowcards for all 13 cows in the "genuine pipeline loss" bucket (Round 24's three-way split), plus their `MNFRS` and `UPLAM` values pulled straight from DairyComp. The 13 IDs matched the workbook's priority-1 `CHECK FIRST` cases exactly: **7784, 8416, 8512, 9254, 9352, 10033, 10204, 10214, 10379, 10581, 10763, 11139, 23069**.
+
+**Reconciliation first.** All 12 supplied cowcards match the parquet event-for-event (lesion dates, feet, protocols, `CHKLAME`, `NEDLAME`, `FOOTRIM`). All 43 flag rows in `pipeline_losses.xlsx` match the raw Nedap export on date, route and `is_completed`. No data-loading defects surfaced.
+
+### `MNFRS` cannot be used to check cohort membership
+
+Nine of the 13 are labelled "not in pilot cohort" while carrying `MNFRS` = 1 or 2 in DairyComp, which looked like a contradiction. It isn't. Per the farm's own setup note, `MNFRS` is "an existing item left over from Luciano's work that randomizes cows by lactation group" — it is **pre-assigned herd-wide, ahead of any alert**. In the data, **6,141 cows carry `MNFRS` 1 or 2 and never received a `NEDLAME`**. Cohort membership requires an actual `NEDLAME` event; the standing `MNFRS` value says nothing about it. This is why the code reads `MNFRS` off the *first NEDLAME event* rather than currently (a rule already recorded under "Data facts established before building" — this round is the confirmation at cow level). Only 4 of the 13 ever received a `NEDLAME` (8512, 10033, 10581, 11139) and all four arms are consistent.
+
+### `UPLAM = 1` does not excuse the three cows that carry it
+
+8416, 8512 and 23069 have `UPLAM = 1`. Two findings:
+
+- **It validates the code's proxy.** `UPLAM = 1` corresponds exactly to a `Leg-AboveFoot` record in the events data in all three cases (8416: 2025-07-08 and 2025-11-13; 23069: 2025-05-22; 8512: 2026-06-25). The `leg_abovefoot_injury_history` build reproduces the DairyComp field faithfully.
+- **It does not apply to these cases.** `UPLAM<>1` appears **only on the `Low` route (P215)**. Neither `Low Declining` (P214) nor `Strong Decline` (P213) carries it. Every one of the 13 had a *decline* flag fire, so `UPLAM` is not the gate. The `low_only &` restriction on the injury exclusion in `fxn_build_pipeline_by_design()` is therefore **correct** and survives this check.
+
+Note on 8512: her `Leg-AboveFoot` was recorded 2026-06-25, three days *after* her 2026-06-22 flag — so `UPLAM` was not yet set at flag time and would not have gated her even on the `Low` route.
+
+**Open question for the farm, not a code change:** should the decline routes also carry `UPLAM<>1`? A chronic upper-leg cow has a persistently abnormal gait and will keep generating decline flags; the farm excluded her from the `Low` route for exactly that reason but not from the other two.
+
+### One case comes out of the 13: cow 10581
+
+She received a `NEDLAME` on **2026-07-10**, twenty-five days before her 2026-08-04 lesion — four days outside the 21-day lookback. She was enrolled and in the **Control** arm. Nothing was lost in the pipeline; the window simply did not reach back far enough to see her alert.
+
+Checked across all 144 pipeline-loss cases: 13 have a `NEDLAME` before the lesion but outside the lookback, of which 11 already sit in a by-design bucket (9 of them `DSNLM`-blocked, which is the same mechanism by construction) and 1 in "cannot adjudicate". **10581 is the only one in `CHECK FIRST`.** So the genuine count should read **12, not 13** — a narrow correction, and the mechanism deserves naming explicitly: *"alert arrived before the lookback opened"*, the mirror image of the existing `alert_arrived_late` check. Raised as a review finding rather than applied.
+
+### Two hypotheses tested and dropped — both died on their base rate
+
+Recorded because both looked convincing and would have been wrong:
+
+1. **`CHKLAME` as proof the flag reached the farm.** Five of the 13 (9254, 9352, 10033, 10581, 8512) have a staff `CHKLAME` on the *matching foot* 0–4 days after the last camera flag, with the lesion the following day. Compelling until measured against the herd: **30.4% of all lesions** in the same window are preceded by a `CHKLAME` within 0–4 days, against 38.5% here. No signal — that is simply how lesions get found on this farm.
+2. **June startup teething.** `NEDLAME` volume was 116 in the first week and steady thereafter, with no ramp.
+
+### The file-in staleness hypothesis — Gerard's, tested three ways, does not hold
+
+Gerard's hypothesis: the Nedap data enters DairyComp such that **the alert data only changes if the alert changes**, and file-in only began 2026-06-02 — so a cow already sitting in an alert state that began before go-live would never produce a state change, and therefore never an event.
+
+The setup is real. The attentions export reaches back to 2025-08-25, episodes carry genuine durations (median 1 day, max 299), and **1,307 episodes straddle go-live**. Six of the 12 were inside a continuously open `LOW` episode that started before June 2 — 11139 for 133 days, 8512 for 134 and still `is_completed = FALSE`. So the hypothesis picked out a real feature of the data.
+
+It still fails, three independent ways:
+
+| Test | Result |
+|---|---|
+| Decline episodes where a pre-go-live episode was still open when the flag fired | **37.2%** reached DC (n = 698) vs **38.2%** otherwise (n = 2,781) |
+| Cow had any episode straddling go-live | **38.2%** (n = 1,535) vs **37.9%** (n = 1,944) |
+| Reach rate by week — staleness predicts an early-June deficit | Early June was the **best** fortnight: 44.5% and 46.8%, against a 30–40% run rate after |
+
+And the decisive one, **within cow**: 11139's `LOW` episode ran unbroken 2026-04-12 → 2026-08-23. *Inside that window* she received **five `NEDLAME` events**, including `LOW DECLINE` on 08-09 and 08-19 — the very route that went silent for her on 06-04. Same for 8512: her never-closed `LOW` ran 2026-04-15 → 2026-08-27 and she received a `STRONG DECLINE` `NEDLAME` on 06-29 inside it. A stale, open, pre-go-live alert state demonstrably did not stop those cows getting alerts.
+
+**What this does and does not settle.** The export gives episode start, end and completion. It does **not** show the daily file-in payload — what Nedap actually wrote into `LFTYP`/`LMFLG`/`LMSV` each morning. If that daily file carries only changed rows, this export would not reveal it directly. What can be said is that the *observable consequence* the hypothesis predicts is absent: cows in exactly that state behaved like every other cow. Confirming or refuting it at source needs the file-in log, which is not in the repo — worth asking Nedap for if the question stays open.
+
+### Ruled out as the mechanism for the remaining 12
+
+- **Flag delivery.** Every decline flag for all 13 is `is_completed = TRUE`; the 13 carry *fewer* incomplete flags than the herd (4.3% vs 6.9%).
+- **`FTDAT` lactation-scoping.** `trims_gate` joins on `lact_number` while DairyComp's `FTDAT` is a cow-level date item — the floor already flagged in Round 18. Quantified here for the first time: recomputing cow-level changes **0 of 43 flags**. Still worth fixing for correctness; it is not load-bearing for these cases.
+- **Pen.** Split across two barn groups (pens 5–8 and 72–78), not localised.
+- **Timezone.** `fxn_read_nedap_attentions()` converts UTC to `America/Chicago` before taking the date. Correct. Lag validation confirms the ~5am batch behaviour: matched alert-to-episode lags are 431 at 0 days and 901 at 1 day, with 2–5 day lags rare.
+
+### The case to lead with at Nedap: cow 11139
+
+Flag 2026-06-04 `LOW DECLINE` gave a toe ulcer on 06-09 with no `NEDLAME`. Yet she received five `NEDLAME` events from 07-05 through 08-20, **including `LOW DECLINE` on 08-09 and 08-19**. Same cow, same route, working four weeks later. That rules out a cow-level configuration problem and isolates the failure to the daily file-in / `ENTER` step on specific days — the sharpest single demonstration case in the set.
+
+### Also noted
+
+Overall, only **38.0%** of decline episodes in the pilot window (1,323 of 3,479) produced a matching `NEDLAME` within 0–1 days. Most of the shortfall is legitimate `DSNLM`/`FTDAT` gating, but the DairyComp-side filtering is doing far more work than the pipeline-loss framing alone suggests, and it has never been characterised end to end. Candidate for its own round.

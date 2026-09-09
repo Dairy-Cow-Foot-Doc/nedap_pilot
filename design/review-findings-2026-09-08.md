@@ -505,3 +505,43 @@ The two artefacts therefore give different answers for the same question, which 
 T21 was fixed at source in `functions/fxn_location.R`, and the report-level workaround has been removed. **The intermediate parquet files still contain the old `locate_lesion` with the phantom left front.** Until step 0 is re-run, the foot figures revert to the inflated numbers (front 309 rather than 299).
 
 Nothing else is affected — the phantom is always a left front, so rear counts and the DD-on-rear headline are unchanged either way.
+
+---
+
+## G. Found checking the 13 genuine pipeline losses against Gerard's cowcards, 2026-09-09
+
+Gerard supplied cowcards for all 13 `CHECK FIRST` cases plus their `MNFRS` and `UPLAM` values from DairyComp. Full write-up in the plan doc, Round 25. Most of what the cowcards tested came back **clean** — the `low_only` restriction on the injury exclusion is correct (`UPLAM<>1` is only on the `Low` route, and all 13 had a decline flag fire), `MNFRS` is pre-assigned herd-wide so it cannot contradict "not in pilot cohort", and `leg_abovefoot_injury_history` reproduces the `UPLAM` field exactly. Two things did not.
+
+---
+
+### ☐ T23. A cow alerted *before* the lookback opens is scored as a genuine pipeline loss ✅ verified
+
+**`functions/fxn_nedlame_analysis.R`, `fxn_build_pipeline_by_design()`**
+
+`by_design` has four terms — `all_attentions_blocked | injury_explained | alert_arrived_late | all_dsnlm_blocked`. The `alert_arrived_late` term catches an alert that reached DairyComp the day *after* the lesion. There is no mirror term for an alert that reached DairyComp *before the lookback window opened*, so such a cow is scored as though the camera flagged her and the flag vanished — when in fact the alert arrived, was recorded, and enrolled her.
+
+**Cow 10581 is the case.** `NEDLAME` on 2026-07-10, lesion on 2026-08-04 — 25 days, four days outside the 21-day lookback. She was enrolled and in the **Control** arm. Her 08-02 `LOW DECLINE` flag genuinely produced no second alert, so at *flag* level something was lost; but the claim the bucket makes is a **cow-level** one — "the camera flagged her and the alert never reached DairyComp, so she was missed" — and that is false for her.
+
+Checked across all 144 pipeline-loss cases: 13 have a `NEDLAME` before the lesion but outside the lookback. Eleven already sit in a by-design bucket (nine of them `DSNLM`-blocked, which is the same mechanism by construction) and one in "cannot adjudicate". **10581 is the only one in `CHECK FIRST`,** so the blast radius is exactly one case.
+
+Why it matters: these 13 are the cases being taken to Nedap. One of them is a cow who was alerted, enrolled and monitored. That is the single weakest item in the set, and it is the kind of thing that costs credibility in the room.
+
+**Fix:** add a fifth term, `alert_arrived_before_window` — any `NEDLAME` for that cow-lactation strictly before `date_event - lookback_days_used`. **Genuine drops 13 → 12** and the three-way split becomes 59 / 73 / 12. The `stopifnot` on the three-way sum already guards the arithmetic. Note this is a *labelling* fix, not a `caught_by_nedap` change — as with `alert_arrived_late`, an alert 25 days out did not prevent the lesion, so her detection status should not move.
+
+---
+
+### ☐ T24. The `FTDAT` trim gate is lactation-scoped; DairyComp's `FTDAT` is cow-level ✅ verified — impact quantified as zero here
+
+**`functions/fxn_nedlame_analysis.R`, `fxn_build_pipeline_by_design()`, the `trims_gate` join**
+
+```r
+left_join(trims_gate, by = c("id_animal", "lact_number"), ...)
+```
+
+`FTDAT` in DairyComp is a **cow-level date item** — it does not reset at freshening. Scoping the lookup to the current lactation makes any trim in a prior lactation invisible, so a cow who freshened recently shows `days_since_last_trim = NA` and passes a gate that DairyComp itself would have applied. This was already noted as a floor in Round 18 (*"the trim lookup is lactation-scoped while real `FTDAT` likely looks back further"*), never quantified, and never fixed.
+
+**Quantified now: it changes 0 of 43 flags for the 13 cases.** Recomputing cow-level, seven cows go from `NA` to a real interval (10204: 147 d, 10214: 189, 10379: 164, 10581: 124, 23069: 175, 7784: 205, 9254: 108) and **none** falls inside its gate — every one of the 13 had a *decline* flag, whose window is only 28 days.
+
+So this is a correctness fix, not a numbers fix. It is worth doing anyway because the gate width varies by route (90 days for `Low`, 28 for the declines) and the 90-day `Low` window is wide enough that a prior-lactation trim *will* land inside it for some cow eventually — at which point the bug starts silently moving counts with nothing to warn you.
+
+**Fix:** join `trims_gate` on `id_animal` alone and keep the existing `gate_trim_date < attention_date` filter, which already does the temporal work. Same change applies to the `trims_gate` build itself, which currently carries `lact_number` only to support this join.
