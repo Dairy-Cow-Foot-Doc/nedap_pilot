@@ -899,3 +899,52 @@ It is also the first clearly *positive* result about staff judgement in this rep
 **The maintenance hazard is worth stating plainly: there are now two reports duplicating the same computation chunks.** Every bug fixed in one has to be fixed in the other, and nothing enforces that. Every silent-failure class this project has hit — renamed labels matching nothing, filter-after-join, grain mismatches, the `LAME`+`FOOTRIM`+`TRIM` house rule — now has two places to hide instead of one. If the farm version is going to be maintained rather than published once and abandoned, the shared setup and Q1-Q4 build chunks should be factored into a single included file (`{{< include >}}`) or moved into `functions/`, so the two documents differ only in what they *display*.
 
 `report_farm_summary.qmd` is tracked, committed by Gerard as `a2d7398` "added farm summary report".
+
+## Round 24: shared analysis extracted into functions
+
+**Status: committed (`56a217a`). The original reports are untouched and still render — Gerard will decide what to do with them.**
+
+Two reports duplicated ~730 lines of computation with nothing enforcing that a fix in one reached the other. An include-based attempt was tried first and rejected: it forced both documents to declare identical params and to run everything, and it did nothing for the real goal, which is that each report keeps its own tone while the *rules* live in one place. Functions fit the repo's existing `functions/fxn_*.R` convention and let each report call only what it needs.
+
+### `functions/fxn_nedlame_analysis.R` — 10 functions
+
+`fxn_build_cohort()`, `fxn_build_lame_history()`, `fxn_build_enrolled_ids()`, `fxn_build_q1()`, `fxn_build_q2()`, `fxn_build_q3()`, `fxn_build_q4()`, `fxn_build_q4_groups()`, `fxn_build_q6()`, `fxn_build_staff_catch()`.
+
+Bodies were lifted **verbatim** from the working chunks and wrapped with explicit arguments — not retyped, so transcription cannot introduce drift. Each returns a **named list using the object names the reports already use**, so a report does:
+
+```r
+invisible(list2env(fxn_build_q4(...), environment()))
+```
+
+and every existing display chunk and inline `` `r ...` `` keeps working untouched. That is why the rendered output came out identical rather than approximately right.
+
+**The functions hold only the rules.** All prose, headings, tone and choice of what to display stay in each report, so the farm version can go as plain and short as it likes while remaining numerically identical to the full report.
+
+### Verified lossless
+
+Comparing the full **ordered sequence** of every number and word in the rendered pages, not a summary that could match by coincidence:
+
+| Report | Lines | Verification |
+|---|---|---|
+| Farm | 1,172 → 643 | 159 numbers, 1,389 words, 9 figures — identical |
+| Full | 1,911 → 1,382 | 371 numbers, 3,258 words, 17 figures — identical |
+
+**Checked first that the two reports had not already drifted**, since the functions were extracted from the farm report: all 13 shared blocks were byte-identical, so swapping them in could not change behaviour. Had even one differed, this refactor would have silently altered the full report's numbers. Worth verifying rather than assuming even on a fork only hours old.
+
+### What deliberately stayed inline
+
+The six computation chunks unique to the full report — `q4-sensor-build`, `true-miss-build`, `pipeline-loss-injury-build`, `platform-enrollment-build`, `q2-chklame-build`, `post-trim-followup-check`. They exist in one place, so there is no duplication to remove and moving them would add indirection without reducing risk.
+
+### Gotchas now recorded in the function docs, where they will be read
+
+Why lameness history is deliberately **not** lactation-scoped; why `detection_group` must test `caught_by_nedap` **first**; why `EID` cannot bridge to the Nedap platform lists (it is the USDA ID, not the transponder); and the filter-before-join rule.
+
+### Caught while building
+
+- **`list2env()` returns the environment VISIBLY** — unwrapped calls would have printed `<environment: R_GlobalEnv>` into both reports ten times each. All wrapped in `invisible()`.
+- **An HTML comment containing a Quarto include shortcode gets expanded and leaks into the rendered page.** Found in the abandoned include attempt; documentation headers belong in an `include: false` chunk.
+- **Two concurrent renders of the same document collide** over intermediates in `qmd_reports/` and produce the same "cannot open file" error as the wrong-directory problem. One render at a time per document.
+
+### The residual risk this does not remove
+
+The extraction was mechanical, so a function could still read something from the global environment that was never passed as an argument. In a Quarto report every chunk shares one environment, so such a function still *works* — the render succeeds — while not actually being self-contained. A successful render is therefore **not** evidence of correctness here; that needs static checking. Two review agents were commissioned specifically for this, with findings written up in `design/` for review.
