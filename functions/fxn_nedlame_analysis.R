@@ -900,6 +900,22 @@ n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE
   n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design, na.rm = TRUE)
   n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_design
 
-  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained)
+  # Of what is left, most cannot be adjudicated at all. The Low route requires a
+  # score of 1-30 and score-at-flag is not in the data, so a LOW-only case is
+  # indistinguishable from a cow correctly declined for scoring 31-69. Only the
+  # cases where a DECLINE route fired have no score gate left to hide behind -
+  # those are the ones that are genuinely unexplained.
+  pipeline_loss_cases <- pipeline_loss_cases |>
+    mutate(verdict = case_when(
+      by_design ~ "Working as designed",
+      low_only  ~ "Cannot tell - LOW only, no score at flag",
+      TRUE      ~ "Genuine pipeline loss"
+    ))
+  n_pipeline_loss_unknowable <- sum(pipeline_loss_cases$verdict == "Cannot tell - LOW only, no score at flag")
+  n_pipeline_loss_genuine    <- sum(pipeline_loss_cases$verdict == "Genuine pipeline loss")
+  stopifnot(n_pipeline_loss_by_design + n_pipeline_loss_unknowable + n_pipeline_loss_genuine ==
+              nrow(pipeline_loss_cases))
+
+  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine)
 }
 

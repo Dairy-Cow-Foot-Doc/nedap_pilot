@@ -1238,11 +1238,12 @@ invisible(list2env(
 
 pipeline_loss_cases |>
   mutate(category = case_when(
-    all_attentions_blocked ~ "By design: every flag inside its FTDAT window",
+    all_attentions_blocked ~ "Working as designed: flag inside its FTDAT window",
+    all_dsnlm_blocked      ~ "Working as designed: already alerted (DSNLM)",
+    injury_explained       ~ "Working as designed: upper-leg history blocks Low",
     alert_arrived_late     ~ "Not lost: the alert reached DC a day later",
-    injury_explained       ~ "By design: injury/upper-leg history blocks Low",
-    !low_only              ~ "Unexplained: escalated past LOW",
-    TRUE                   ~ "Unexplained: LOW-only, no injury history"
+    low_only               ~ "Cannot tell: LOW only, no score at flag",
+    TRUE                   ~ "Genuine pipeline loss: a decline flag vanished"
   )) |>
   count(category) |>
   ggplot(aes(x = fct_reorder(category, n), y = n, fill = category)) +
@@ -1256,7 +1257,7 @@ pipeline_loss_cases |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-Two of the enrollment rules can be checked. Of the `r nrow(pipeline_loss_cases)` pipeline-loss cases:
+Four rules can explain an apparent pipeline loss without anything having gone missing. Of the `r nrow(pipeline_loss_cases)` cases where the camera flagged her but no alert reached DairyComp in the window:
 
 - `r n_pipeline_loss_ftdat_blocked` had every flag land inside its own `FTDAT` window (90 days for `Low`, 28 for the declines). DairyComp was right to skip them.
 
@@ -1266,9 +1267,15 @@ Two of the enrollment rules can be checked. Of the `r nrow(pipeline_loss_cases)`
 
 - `r n_pipeline_loss_late` were not lost at all: a `NEDLAME` reached DairyComp the day after the lesion. The daily batch runs at ~5am and stamps an alert with the day it was loaded, so an attention after ~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. These are usually the camera reacting to the trim itself. The cow was still missed — an alert after the diagnosis helps nobody — but nothing was lost in the pipeline.
 
-- That is **`r n_pipeline_loss_by_design` of `r nrow(pipeline_loss_cases)` working as designed**, leaving **`r n_pipeline_loss_unexplained` as the real pipeline losses**.
+That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_cases)`**. The remaining `r n_pipeline_loss_unexplained` are not all failures either, and it matters to separate them:
 
-- This is a floor. We can't check score at flag, and the trim lookup only covers the current lactation while `FTDAT` likely looks back further. Both push the by-design count down.
+- **`r n_pipeline_loss_unknowable` cannot be judged at all.** Only a `LOW` flag fired, and the `Low` route requires a score of 1-30. Score-at-flag is not in this data, so a cow scoring 31-69 who was correctly declined looks exactly like a lost flag. These are unresolved, not unexplained.
+
+- **`r n_pipeline_loss_genuine` are genuine pipeline losses.** A decline route fired, and the decline routes carry no score gate — so there is no rule left that would explain the silence. These are the cases worth taking to Nedap, and cow-level detail for them is in `pipeline_losses.xlsx`.
+
+So the integration problem is **`r n_pipeline_loss_genuine` confirmed cases, not `r nrow(pipeline_loss_cases)`** — with an upper bound of `r n_pipeline_loss_unexplained` if every unjudgeable case turned out to be a failure, which is unlikely.
+
+The by-design count is still a floor: the trim lookup only covers the current lactation while the real `FTDAT` probably looks back further, so some of the `r n_pipeline_loss_unknowable` will be correct suppressions too.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 
@@ -1304,7 +1311,8 @@ q4_recon <- tibble::tribble(
   "    Of candidates: blocked by its own FTDAT window", n_pipeline_loss_ftdat_blocked, "candidates", n_pipeline_loss,
   "    Of candidates: LOW-only + injury/upper-leg history", n_pipeline_loss_injury_explained, "candidates", n_pipeline_loss,
   "    Of candidates: by design overall (either rule)", n_pipeline_loss_by_design, "candidates", n_pipeline_loss,
-  "    Of candidates: UNEXPLAINED — real pipeline losses", n_pipeline_loss_unexplained, "candidates", n_pipeline_loss
+  "    Of candidates: cannot tell (LOW only, no score)", n_pipeline_loss_unknowable, "candidates", n_pipeline_loss,
+  "    Of candidates: GENUINE pipeline loss", n_pipeline_loss_genuine, "candidates", n_pipeline_loss
 ) |>
   mutate(pct = if_else(is.na(base_n), NA_real_, 100 * n / base_n))
 
@@ -1341,4 +1349,6 @@ q4_recon |>
 
   - `r n_pipeline_loss_by_design` were correct by-design suppressions (`FTDAT` window or injury/upper-leg rule), not integration failures,
 
-  - leaving `r n_pipeline_loss_unexplained` as genuine pipeline losses — `r round(100 * n_pipeline_loss_unexplained / nrow(misses_in_coverage), 1)`% of the checkable misses.
+  - `r n_pipeline_loss_unknowable` cannot be judged, because only a `LOW` flag fired and score-at-flag is not in the data,
+
+  - leaving **`r n_pipeline_loss_genuine` genuine pipeline losses** — `r round(100 * n_pipeline_loss_genuine / nrow(misses_in_coverage), 1)`% of the checkable misses. That, not the headline miss rate, is the size of the integration problem.
