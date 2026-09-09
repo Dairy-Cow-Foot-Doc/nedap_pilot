@@ -19,7 +19,7 @@ things the full report explicitly contradicts.
 
 ## A. Code — the refactor
 
-### ☐ C1. `cows_smartsight` argument is dead — silently overwritten by a disk read ✅ verified
+### ☑ ~~C1. `cows_smartsight` argument is dead — silently overwritten by a disk read ✅ verified~~ — FIXED 2026-09-09 (`624e2cf`)
 **`functions/fxn_nedlame_analysis.R`, `fxn_build_enrolled_ids()`**
 
 The signature takes `cows_smartsight`, then the body's third line overwrites it:
@@ -44,7 +44,7 @@ built inside but never returned — drop it from the function entirely.
 
 ---
 
-### ☐ C2. `n_never_alerted_bucket` is read from the global environment ✅ verified
+### ☑ ~~C2. `n_never_alerted_bucket` is read from the global environment ✅ verified~~ — FIXED 2026-09-09 (`624e2cf`)
 **`functions/fxn_nedlame_analysis.R`, `fxn_build_q4_groups()`**
 
 ```r
@@ -68,7 +68,7 @@ resolves C3. **Fix (minimal):** add it as a third argument.
 
 ---
 
-### ☐ C3. The "Never Alerted" rule is written twice, in two different functions ✅ verified
+### ☑ ~~C3. The "Never Alerted" rule is written twice, in two different functions ✅ verified~~ — FIXED 2026-09-09 (`624e2cf`)
 **`fxn_build_q4()` and `fxn_build_q4_groups()`**
 
 The rule that decides whether a cow counts as "Never Alerted" appears in both. In the
@@ -81,7 +81,7 @@ the 288-vs-284 mismatch earlier today.
 
 ---
 
-### ☐ C4. Uses `survival` and `ggsurvfit` without declaring them ✅ verified
+### ☑ ~~C4. Uses `survival` and `ggsurvfit` without declaring them ✅ verified~~ — FIXED 2026-09-09 (`624e2cf`)
 **`fxn_build_q6()`** calls `survfit2()` and `Surv()`; the file declares only
 `library(tidyverse)`. It works because both callers load them via `pacman::p_load()`.
 
@@ -93,7 +93,7 @@ function has worked fine.
 
 ---
 
-### ☐ C5. `fxn_build_q4()`'s signature is transposition-prone
+### ☑ ~~C5. `fxn_build_q4()`'s signature is transposition-prone~~ — FIXED 2026-09-09 (`624e2cf`)
 **10 positional arguments, including two adjacent bare Dates** (`analysis_end`,
 `nedlame_start_date`) and two adjacent same-shaped frames (`cohort`, `all_nedlame_cows`).
 
@@ -112,7 +112,7 @@ named arguments at both call sites.
 
 ---
 
-### ☐ C6. Silent dependency on the *local* lesion-coding overrides
+### ☑ ~~C6. Silent dependency on the *local* lesion-coding overrides~~ — FIXED 2026-09-09 (`624e2cf`)
 **`fxn_build_lame_history()`** calls `fxn_code_lesions()`, `fxn_collapse_lesions()`,
 `fxn_trim_vars()`, `fxn_dz_status()`. Two come from a live GitHub fetch; two **must** be
 the local overrides sourced *after* that fetch.
@@ -127,7 +127,7 @@ number moves; nothing warns.
 
 ---
 
-### ☐ C7. `fxn_build_staff_catch()` hard-codes a 7-day window
+### ☑ ~~C7. `fxn_build_staff_catch()` hard-codes a 7-day window~~ — FIXED 2026-09-09 (`624e2cf`)
 Every other window in the project is a `params` entry; this one is a literal `7`, and the
 function does not take `params`. It also relies on `.x`/`.y` join suffixes, which shift if
 either input gains a shared column name. Verbatim from the original, so not a regression.
