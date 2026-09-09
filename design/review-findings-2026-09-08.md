@@ -522,7 +522,7 @@ Gerard supplied cowcards for all 13 `CHECK FIRST` cases plus their `MNFRS` and `
 
 **Cow 10581 is the case.** `NEDLAME` on 2026-07-10, lesion on 2026-08-04 — 25 days, four days outside the 21-day lookback. She was enrolled and in the **Control** arm. Her 08-02 `LOW DECLINE` flag genuinely produced no second alert, so at *flag* level something was lost; but the claim the bucket makes is a **cow-level** one — "the camera flagged her and the alert never reached DairyComp, so she was missed" — and that is false for her.
 
-Checked across all 144 pipeline-loss cases: 13 have a `NEDLAME` before the lesion but outside the lookback. Eleven already sit in a by-design bucket (nine of them `DSNLM`-blocked, which is the same mechanism by construction) and one in "cannot adjudicate". **10581 is the only one in `CHECK FIRST`,** so the blast radius is exactly one case.
+Checked across all 144 pipeline-loss cases: 13 have a `NEDLAME` before the lesion but outside the lookback. Eleven already sit in a by-design bucket (most of them `DSNLM`-blocked, which is the same mechanism by construction) and one in "cannot adjudicate". **10581 is the only one in `CHECK FIRST`,** so the blast radius is exactly one case.
 
 Why it matters: these 13 are the cases being taken to Nedap. One of them is a cow who was alerted, enrolled and monitored. That is the single weakest item in the set, and it is the kind of thing that costs credibility in the room.
 
