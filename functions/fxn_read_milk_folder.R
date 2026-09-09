@@ -1,10 +1,28 @@
 library(tidyverse)
 
-# Reads all UMN_milk_SV_*.csv files in a folder and stacks them into one
-# long tibble. The record date lives only in the filename (MM-DD-YYYY),
-# not reliably in any in-file column, so it's parsed from the file name.
+# Reads UMN_milk_SV_*.csv files in a folder and stacks them into one long
+# tibble. The record date lives only in the filename (MM-DD-YYYY), not
+# reliably in any in-file column, so it's parsed from the file name.
+#
+# `from`/`to` restrict which files are READ, not just which rows are kept.
+# The folder holds every milk day back to 2023 while an analysis normally
+# needs only a window around the events it studies - reading the lot cost
+# ~26 s, and then handed ~3.5M rows to fxn_resolve_milk_to_lactation(),
+# whose many-to-many join took a further ~138 s. Passing a window cuts both:
+# on the NEDLAME pilot it took the pair from ~164 s to ~15 s per render.
+#
+# Because the date is parsed from the filename BEFORE anything is opened,
+# filtering is essentially free. Both default to NULL, which reads
+# everything - existing callers are unaffected.
+#
+# Only restrict to a window the downstream work actually needs.
+# fxn_resolve_milk_to_lactation() matches on nearest-preceding date_fresh
+# from animal_lactations, not from older milk rows, so a window that covers
+# the analysis period is safe - verified by comparing the resolved output
+# against a full read.
 fxn_read_milk_folder <- function(folder = "data/milk",
-                                  pattern = "UMN_milk_SV_.*\\.csv$") {
+                                  pattern = "UMN_milk_SV_.*\\.csv$",
+                                  from = NULL, to = NULL) {
   files <- list.files(folder, pattern = pattern, full.names = TRUE)
 
   if (length(files) == 0) {
@@ -15,6 +33,20 @@ fxn_read_milk_folder <- function(folder = "data/milk",
     basename() |>
     str_extract("\\d{2}-\\d{2}-\\d{4}") |>
     mdy()
+
+  n_all <- length(files)
+  keep <- rep(TRUE, n_all)
+  if (!is.null(from)) keep <- keep & file_dates >= as.Date(from)
+  if (!is.null(to))   keep <- keep & file_dates <= as.Date(to)
+  files <- files[keep]
+  file_dates <- file_dates[keep]
+
+  if (length(files) == 0) {
+    cli::cli_abort(c(
+      "No milk files fall between {from} and {to}.",
+      i = "The folder holds {n_all} file{?s} spanning a different range - check the window."
+    ))
+  }
 
   map2(files, file_dates, \(.file, .date) {
     read_csv(

@@ -105,7 +105,16 @@ invisible(list2env(fxn_build_lame_history(events_formatted, cohort), environment
 # only carry a raw `id` (not the composite id_animal), so they're resolved
 # to a specific animal-lactation by nearest-preceding date_fresh (see
 # fxn_read_milk_folder.R for why a naive date_dry window isn't safe here).
-milk_long <- fxn_read_milk_folder()
+# Only the window Q1 actually uses is read. The folder holds every milk day
+# back to 2023, but the curves only span milk_window_pre days before an alert
+# to milk_window_post days after, so reading the lot wastes ~26 s and then
+# hands ~10x more rows than needed to the resolver, whose join costs far more
+# than the read. Derived from the data rather than hard-coded, so it follows
+# the alert window and the params automatically.
+milk_from <- min(cohort$first_nedlame_date, na.rm = TRUE) - params$milk_window_pre
+milk_to   <- max(cohort$first_nedlame_date, na.rm = TRUE) + params$milk_window_post
+
+milk_long <- fxn_read_milk_folder(from = milk_from, to = milk_to)
 milk_resolved <- fxn_resolve_milk_to_lactation(milk_long, animal_lactations)
 ```
 
