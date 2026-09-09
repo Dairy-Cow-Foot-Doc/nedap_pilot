@@ -898,4 +898,4 @@ It is also the first clearly *positive* result about staff judgement in this rep
 
 **The maintenance hazard is worth stating plainly: there are now two reports duplicating the same computation chunks.** Every bug fixed in one has to be fixed in the other, and nothing enforces that. Every silent-failure class this project has hit — renamed labels matching nothing, filter-after-join, grain mismatches, the `LAME`+`FOOTRIM`+`TRIM` house rule — now has two places to hide instead of one. If the farm version is going to be maintained rather than published once and abandoned, the shared setup and Q1-Q4 build chunks should be factored into a single included file (`{{< include >}}`) or moved into `functions/`, so the two documents differ only in what they *display*.
 
-`report_farm_summary.qmd` is currently **untracked**. It contains no raw data, so it is safe to commit, and it should be committed so the two versions can be diffed.
+`report_farm_summary.qmd` is tracked, committed by Gerard as `a2d7398` "added farm summary report".
