@@ -613,9 +613,36 @@ From the figure below it is clear that DD and other are the main categories bein
 ```{r}
 #| label: q4-lesion-types
 
-invisible(list2env(fxn_build_q4_groups(q4_group, lame_lesion_recent), environment()))
+# The same detection split the full report uses: did the camera flag her, and
+# did that flag reach DairyComp. This replaces an earlier labelling that split
+# on whether she was ever in the pilot at all, which answered a different
+# question and made the figure hard to read.
+q4_sensor <- q4_group |>
+  mutate(in_coverage = date_event <= nedap_coverage_end)
 
-ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group)) +
+sensor_hits <- q4_sensor |>
+  filter(in_coverage) |>
+  select(id_animal, lact_number, date_event, lookback_days_used) |>
+  left_join(attentions_resolved |> select(id_animal, lact_number, attention_date),
+            by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+  mutate(sensor_hit = !is.na(attention_date) & attention_date <= date_event &
+           attention_date >= date_event - lookback_days_used) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(sensor_fired_in_window = any(sensor_hit), .groups = "drop")
+
+q4_sensor <- q4_sensor |>
+  left_join(sensor_hits, by = c("id_animal", "lact_number", "date_event")) |>
+  mutate(detection_group_3way = factor(case_when(
+    !in_coverage           ~ "No Data (Outside Coverage)",
+    caught_by_nedap        ~ "Flagged, Caught in Time",
+    sensor_fired_in_window ~ "Flagged, Lost in Pipeline",
+    TRUE                   ~ "Never Flagged (True Miss)"
+  ), levels = c("Flagged, Caught in Time", "Flagged, Lost in Pipeline",
+                "Never Flagged (True Miss)", "No Data (Outside Coverage)")))
+
+invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
+
+ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group_3way)) +
   geom_col(width = 0.7) +
   geom_text(data = lesion_totals, inherit.aes = FALSE,
             aes(x = lesion_type, y = 101, label = paste0("n=", total_cases)),
@@ -625,7 +652,7 @@ ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group)) +
                      limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
   scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = NULL, y = "% of cases with that lesion", fill = "NEDAP Detection Status") +
+  labs(x = NULL, y = "% of cases with that lesion", fill = NULL) +
   theme(legend.position = "bottom")
 ```
 
@@ -643,7 +670,7 @@ Of the `r nrow(staff_catch)` cows that were missed by the camera but had a lesio
 
 # **The bottom line**
 
-- NEDAP camera preforms better than CattleEye
+- NEDAP camera seems to perform better than CattleEye did in the past.
 
 - Cows with DD are being missed by the camera
 

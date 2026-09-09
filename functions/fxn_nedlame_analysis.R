@@ -689,7 +689,7 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
 # 
 # Shares are within each lesion type, not counts: on a count axis a common lesion
 # looks like a detection problem simply because it is common.
-fxn_build_q4_groups <- function(q4_group, lame_lesion_recent) {
+fxn_build_q4_groups <- function(q4_sensor, lame_lesion_recent) {
   # Computation half of what used to be the q4-lesion-types chunk. The plot
   # half stays in each report, so they can present it differently.
   #
@@ -698,18 +698,24 @@ fxn_build_q4_groups <- function(q4_group, lame_lesion_recent) {
   # against n_never_alerted_bucket read from the GLOBAL ENVIRONMENT - the only
   # unbound global in this file. Consuming q4_group removes the duplicated rule
   # and the global together, so the rule now lives in exactly one place.
-  stopifnot("detection_group" %in% names(q4_group))
+  # Takes q4_sensor, which carries detection_group_3way - the sensor-side
+  # taxonomy (caught / lost in pipeline / never flagged). The report used to
+  # split these figures by a DairyComp-side label instead (caught / alerted
+  # but missed / never alerted), which answered a different question - whether
+  # she was ever in the pilot - and cut across the detection story. One
+  # taxonomy now, and it is the one that says whether the camera saw her.
+  stopifnot("detection_group_3way" %in% names(q4_sensor))
 
   lesion_type_cols <- c("dd", "footrot", "wld", "sole_ulcer", "injury", "cork",
                          "hemorrhage", "sole_fracture", "toe_ulcer", "thin", "other")
   
   q4_lesion_types <- lame_lesion_recent |>
     select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
-    inner_join(q4_group |> select(id_animal, lact_number, date_event, detection_group),
+    inner_join(q4_sensor |> select(id_animal, lact_number, date_event, detection_group_3way),
                by = c("id_animal", "lact_number", "date_event")) |>
     pivot_longer(cols = all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
     filter(has_lesion == 1) |>
-    count(detection_group, lesion_type) |>
+    count(detection_group_3way, lesion_type) |>
     # Shown as a share within each lesion type, not as counts. On a count axis a
     # common lesion looks like a detection problem simply because it is common -
     # the same base-rate trap the DD-by-foot table further down was built to
@@ -722,7 +728,7 @@ fxn_build_q4_groups <- function(q4_group, lame_lesion_recent) {
   
   lesion_totals <- q4_lesion_types |> distinct(lesion_type, total_cases)
 
-  list(lesion_type_cols = lesion_type_cols, q4_group = q4_group, q4_lesion_types = q4_lesion_types, lesion_totals = lesion_totals)
+  list(lesion_type_cols = lesion_type_cols, q4_lesion_types = q4_lesion_types, lesion_totals = lesion_totals)
 }
 
 # Of the cows the camera missed, how many did staff flag anyway?

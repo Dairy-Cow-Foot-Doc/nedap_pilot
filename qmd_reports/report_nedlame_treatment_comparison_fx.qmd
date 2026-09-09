@@ -799,109 +799,6 @@ A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date
 
 Of those `r nrow(q4)` cows, `r sum(!q4$caught_by_nedap)` (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) had no NEDAP alert entered in DairyComp in the `r params$q4_lookback_days` days before their lesion was diagnosed.
 
-## What Lesions are being missed?
-
-The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
-
-- **Never Alerted** — no usable NEDLAME alert. Most were never alerted at all (`r n_never_alerted_true` of `r n_never_alerted_bucket`); the other `r n_never_alerted_excluded` had an alert that was excluded because it came after trimming.
-- **Alerted, Missed** — she was alerted at some point, but not in the lookback window before *this* lesion. Some of these came after her first lesion.
-- **Alerted, Caught in Time** — an alert landed in the window before the lesion. NEDAP flagged her first.
-
-Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
-
-From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
-
-```{r}
-#| label: q4-lesion-types
-
-invisible(list2env(fxn_build_q4_groups(q4_group, lame_lesion_recent), environment()))
-
-ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group)) +
-  geom_col(width = 0.7) +
-  geom_text(data = lesion_totals, inherit.aes = FALSE,
-            aes(x = lesion_type, y = 101, label = paste0("n=", total_cases)),
-            hjust = 0, size = 3, colour = "grey30") +
-  coord_flip(clip = "off") +
-  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
-                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
-  scale_fill_viridis_d() +
-  theme_minimal() +
-  labs(x = NULL, y = "% of cases with that lesion", fill = "NEDAP Detection Status") +
-  theme(legend.position = "bottom")
-```
-
-## Which leg is being missed?
-
-The same cases split by which foot the lesion was found on. A cow can have lesions on more than one foot, so the bars add to more than `r nrow(q4_group)` cases.
-
-```{r}
-#| label: fig-missed-by-leg
-#| fig-height: 4
-
-leg_names <- c(LF = "Left Front", RF = "Right Front", LR = "Left Rear", RR = "Right Rear")
-
-# locate_lesion packs one or more two-character foot codes into one string
-# ("RRLR" = right rear + left rear, "RRLRRFLF" = all four). It must be parsed
-# in 2-character chunks, NOT with substring matching: str_detect("LRRF", "RR")
-# is TRUE, but "LRRF" is LR + RF, so substring matching would invent a
-# right-rear lesion that was never recorded. Checked every value in the data -
-# all are even length and every chunk is one of LF/RF/LR/RR.
-leg_long <- events_formatted |>
-  filter(event %in% c("LAME", "FOOTRIM", "TRIM"), !is.na(locate_lesion), locate_lesion != "") |>
-  select(id_animal, lact_number, date_event, locate_lesion) |>
-  # locate_lesion packs one or more two-character foot codes into one string
-  # ("RRLR" = right rear + left rear, "RRLRRFLF" = all four), so it must be
-  # read in 2-character chunks, never by substring matching: str_detect("LRRF",
-  # "RR") is TRUE but "LRRF" is LR + RF.
-  #
-  # It is built in functions/fxn_location.R, which used to search the whole
-  # remark and so invented a phantom left front on XNLF* codes - XNL
-  # (treatment) + F (foot rot) + RF (leg) is ONE foot, but "LF" spans the
-  # treatment's trailing L and the lesion's F. Fixed at source, so nothing is
-  # needed here.
-  mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
-  unnest(leg) |>
-  filter(leg %in% names(leg_names)) |>
-  distinct(id_animal, lact_number, date_event, leg) |>
-  # Map to readable names HERE, once, so everything downstream sees
-  # "Left Rear" rather than "LR". Leaving the raw codes in place and
-  # renaming later silently broke a front/rear split that tested
-  # str_detect(leg, "Rear") - it matched nothing and called every foot Front.
-  mutate(leg = unname(leg_names[leg]))
-
-q4_legs <- leg_long |>
-  inner_join(q4_group |> select(id_animal, lact_number, date_event, detection_group),
-             by = c("id_animal", "lact_number", "date_event")) |>
-  count(detection_group, leg) |>
-  # Same reasoning as the lesion-type figure above: a share within each foot,
-  # so the four feet are comparable regardless of how many lesions each carries.
-  group_by(leg) |>
-  mutate(total_cases = sum(n), pct = 100 * n / total_cases) |>
-  ungroup() |>
-  mutate(leg = fct_reorder(leg, total_cases))
-
-leg_totals <- q4_legs |> distinct(leg, total_cases)
-
-# leg is a factor now (ordered for the plot), and str_detect() rejects factors
-n_legs_rear <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Rear")])
-n_legs_front <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Front")])
-
-ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group)) +
-  geom_col(width = 0.7) +
-  geom_text(data = leg_totals, inherit.aes = FALSE,
-            aes(x = leg, y = 101, label = paste0("n=", total_cases)),
-            hjust = 0, size = 3, colour = "grey30") +
-  coord_flip(clip = "off") +
-  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
-                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
-  scale_fill_viridis_d() +
-  theme_minimal() +
-  labs(x = NULL, y = "% of cases on that foot", fill = "NEDAP Detection Status") +
-  theme(legend.position = "bottom")
-```
-
-Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. The never-alerted share is the largest block on every foot, so the misses are not concentrated on one limb.
-
 ## Alert Check: True Misses vs. Pipeline Losses
 
 The figure above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cow was flagged but the flag never reached DairyComp. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
@@ -1015,6 +912,109 @@ Further investigation of the missed cows showed:
 `r if (n_misses_outside_coverage > 0) paste0("- The other ", n_misses_outside_coverage, " misses were diagnosed after ", format(nedap_coverage_end), ", which the current export can't see. These are left unclassified rather than assumed.") else paste0("Every miss here is checkable against the raw sensor feed: the analysis stops at ", format(analysis_end), ", the last day the Nedap export covers.")`
 
 One judgement call sits behind these numbers. `r n_attentions_incomplete` of the resolved flags are marked not completed in the raw export, and they are counted here as the camera having flagged the cow. `r n_pipeline_loss_incomplete_only` of the `r n_pipeline_loss` pipeline losses rest only on such a flag; counting completed flags alone would give `r n_pipeline_loss_completed_only` instead. The choice matters at the margin, so it is stated rather than assumed.
+
+## What Lesions are being missed?
+
+The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
+
+- **Flagged, Caught in Time** — an alert landed in DairyComp inside the window before the lesion.
+- **Flagged, Lost in Pipeline** — the camera did flag her, but no alert reached DairyComp in time.
+- **Never Flagged (True Miss)** — the camera never saw a problem at all.
+
+Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
+
+From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
+
+```{r}
+#| label: q4-lesion-types
+
+invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
+
+ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group_3way)) +
+  geom_col(width = 0.7) +
+  geom_text(data = lesion_totals, inherit.aes = FALSE,
+            aes(x = lesion_type, y = 101, label = paste0("n=", total_cases)),
+            hjust = 0, size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
+  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
+                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = NULL, y = "% of cases with that lesion", fill = NULL) +
+  theme(legend.position = "bottom")
+```
+
+## Which leg is being missed?
+
+The same cases split by which foot the lesion was found on. A cow can have lesions on more than one foot, so the bars add to more than `r nrow(q4_group)` cases.
+
+```{r}
+#| label: fig-missed-by-leg
+#| fig-height: 4
+
+leg_names <- c(LF = "Left Front", RF = "Right Front", LR = "Left Rear", RR = "Right Rear")
+
+# locate_lesion packs one or more two-character foot codes into one string
+# ("RRLR" = right rear + left rear, "RRLRRFLF" = all four). It must be parsed
+# in 2-character chunks, NOT with substring matching: str_detect("LRRF", "RR")
+# is TRUE, but "LRRF" is LR + RF, so substring matching would invent a
+# right-rear lesion that was never recorded. Checked every value in the data -
+# all are even length and every chunk is one of LF/RF/LR/RR.
+leg_long <- events_formatted |>
+  filter(event %in% c("LAME", "FOOTRIM", "TRIM"), !is.na(locate_lesion), locate_lesion != "") |>
+  select(id_animal, lact_number, date_event, locate_lesion) |>
+  # locate_lesion packs one or more two-character foot codes into one string
+  # ("RRLR" = right rear + left rear, "RRLRRFLF" = all four), so it must be
+  # read in 2-character chunks, never by substring matching: str_detect("LRRF",
+  # "RR") is TRUE but "LRRF" is LR + RF.
+  #
+  # It is built in functions/fxn_location.R, which used to search the whole
+  # remark and so invented a phantom left front on XNLF* codes - XNL
+  # (treatment) + F (foot rot) + RF (leg) is ONE foot, but "LF" spans the
+  # treatment's trailing L and the lesion's F. Fixed at source, so nothing is
+  # needed here.
+  mutate(leg = str_extract_all(locate_lesion, ".{2}")) |>
+  unnest(leg) |>
+  filter(leg %in% names(leg_names)) |>
+  distinct(id_animal, lact_number, date_event, leg) |>
+  # Map to readable names HERE, once, so everything downstream sees
+  # "Left Rear" rather than "LR". Leaving the raw codes in place and
+  # renaming later silently broke a front/rear split that tested
+  # str_detect(leg, "Rear") - it matched nothing and called every foot Front.
+  mutate(leg = unname(leg_names[leg]))
+
+q4_legs <- leg_long |>
+  inner_join(q4_sensor |> select(id_animal, lact_number, date_event, detection_group_3way),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  count(detection_group_3way, leg) |>
+  # Same reasoning as the lesion-type figure above: a share within each foot,
+  # so the four feet are comparable regardless of how many lesions each carries.
+  group_by(leg) |>
+  mutate(total_cases = sum(n), pct = 100 * n / total_cases) |>
+  ungroup() |>
+  mutate(leg = fct_reorder(leg, total_cases))
+
+leg_totals <- q4_legs |> distinct(leg, total_cases)
+
+# leg is a factor now (ordered for the plot), and str_detect() rejects factors
+n_legs_rear <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Rear")])
+n_legs_front <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Front")])
+
+ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group_3way)) +
+  geom_col(width = 0.7) +
+  geom_text(data = leg_totals, inherit.aes = FALSE,
+            aes(x = leg, y = 101, label = paste0("n=", total_cases)),
+            hjust = 0, size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
+  scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
+                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = NULL, y = "% of cases on that foot", fill = NULL) +
+  theme(legend.position = "bottom")
+```
+
+Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. The never-alerted share is the largest block on every foot, so the misses are not concentrated on one limb.
 
 ## What is the camera actually missing?
 
