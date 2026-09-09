@@ -984,11 +984,11 @@ Note on 8512: her `Leg-AboveFoot` was recorded 2026-06-25, three days *after* he
 
 **Open question for the farm, not a code change:** should the decline routes also carry `UPLAM<>1`? A chronic upper-leg cow has a persistently abnormal gait and will keep generating decline flags; the farm excluded her from the `Low` route for exactly that reason but not from the other two.
 
-### One case comes out of the 13: cow 10581
+### One case still comes out: cow 10581 (re-derived after the window change)
 
 She received a `NEDLAME` on **2026-07-10**, twenty-five days before her 2026-08-04 lesion — four days outside the 21-day lookback. She was enrolled and in the **Control** arm. Nothing was lost in the pipeline; the window simply did not reach back far enough to see her alert.
 
-Checked across all 144 pipeline-loss cases: 13 have a `NEDLAME` before the lesion but outside the lookback, of which 11 already sit in a by-design bucket (most of them `DSNLM`-blocked, which is the same mechanism by construction) and 1 in "cannot adjudicate". **10581 is the only one in `CHECK FIRST`.** So the genuine count should read **12, not 13** — a narrow correction, and the mechanism deserves naming explicitly: *"alert arrived before the lookback opened"*, the mirror image of the existing `alert_arrived_late` check. Raised as a review finding rather than applied.
+**Re-derived 2026-09-09 against the current code (`f3a6031`), after the concurrent session's window change (`d40cca3`, `c86825b`) moved every count in this section.** The set I originally checked was the 13 genuine cases under the old window; making the attention window strictly before the lesion date dropped **10379** out of it (her only decline flag fired *on* the lesion day, which can no longer count as advance warning), so the baseline is now **50 by design / 69 cannot tell / 12 genuine = 131**. Re-running the check against those 131: **12 cases have a `NEDLAME` before the lookback opened — 10 already `DSNLM`-blocked, 1 `FTDAT`-blocked, and exactly one genuine: 10581.** So the finding survives the recount unchanged in substance, and applying it gives **51 / 69 / 11**. The mechanism still deserves naming explicitly — *"an alert did arrive, before the window opened"*, the mirror of the existing *"an alert did arrive, one day too late"*. Raised as T23, not applied; the by-design terms now live in `fxn_build_pipeline_by_design()`, so the fix belongs there and `pipeline_losses.xlsx` inherits it.
 
 ### Two hypotheses tested and dropped — both died on their base rate
 
@@ -1018,7 +1018,7 @@ And the decisive one, **within cow**: 11139's `LOW` episode ran unbroken 2026-04
 ### Ruled out as the mechanism for the remaining 12
 
 - **Flag delivery.** Every decline flag for all 13 is `is_completed = TRUE`; the 13 carry *fewer* incomplete flags than the herd (4.3% vs 6.9%).
-- **`FTDAT` lactation-scoping.** `trims_gate` joins on `lact_number` while DairyComp's `FTDAT` is a cow-level date item — the floor already flagged in Round 18. Quantified here for the first time: recomputing cow-level changes **0 of 43 flags**. Still worth fixing for correctness; it is not load-bearing for these cases.
+- **`FTDAT` lactation-scoping.** `trims_gate` joins on `lact_number` while DairyComp's `FTDAT` is a cow-level date item — the floor already flagged in Round 18. Quantified here for the first time: recomputing cow-level changes **0 of 43 flags** (enumerated under the pre-`d40cca3` window; narrowing it only removes flags, so the zero holds a fortiori). Still worth fixing for correctness; it is not load-bearing for these cases.
 - **Pen.** Split across two barn groups (pens 5–8 and 72–78), not localised.
 - **Timezone.** `fxn_read_nedap_attentions()` converts UTC to `America/Chicago` before taking the date. Correct. Lag validation confirms the ~5am batch behaviour: matched alert-to-episode lags are 431 at 0 days and 901 at 1 day, with 2–5 day lags rare.
 
