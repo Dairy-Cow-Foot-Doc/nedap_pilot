@@ -236,13 +236,15 @@ schedule catching up, not staff picking cows out — when staff did flag a cow t
 
 ---
 
-### ☐ T6. The two reports give contradictory logic for the same DairyComp rule ✅ verified
+### ☑ ~~T6. The two reports give contradictory logic for the same DairyComp rule~~ — FIXED 2026-09-09 (direction corrected by Gerard)
 Same command `DSNLM=7-1` in both, glossed opposite ways:
 
 - farm: *"Low Declining (… **no alarm in last 7 days** …)"*
 - full: *"Low Declining (**alarm in last 7 days** …)"*
 
-`DSNLM=7-1` is days-since-alarm between 1 and 7 — there **was** an alarm. **The full
+> **Gerard 2026-09-09: `DSNLM` is an EXCLUSION** — it excludes cows already alerted in the last N days so the cowcard is not filled with duplicate alarms. **So the FARM report was right and the FULL report was wrong** — the opposite of what this finding originally said. Both copies of the full report have been corrected, including the `Low` route, which also silently omitted the `DSNLM=90-1` condition.
+
+~~`DSNLM=7-1` is days-since-alarm between 1 and 7 — there **was** an alarm. **The full
 report is correct; the farm report inverts it.** Conversely the farm report's *Low* gloss
 is the more complete one — it accounts for `DSNLM=90-1`, which the full report's gloss
 silently drops.

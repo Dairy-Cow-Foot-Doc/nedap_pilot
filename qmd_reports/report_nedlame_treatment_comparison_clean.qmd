@@ -371,15 +371,15 @@ For this study the follow things were created in DairyComp to handle the file da
 
 - New NEDAP lame event with 3 protocols to flag cows and criteria to create them
 
-  - Low (score \<30 today, not trimmed in last 90 days not a cow with history of upper leg lameness)
+  - Low (score \<30 today, no alarm in the last 90 days, not trimmed in last 90 days, not a cow with history of upper leg lameness)
 
     - ENTER EC=70\\P215 FOR LFTYP=30102 LMFLG=1 LMSV=1-30 DSNLM=90-1 FTDAT\<-90 UPLAM\<\>1
 
-  - Low Declining (alarm in last 7 days and not trimmed in last 28 days)
+  - Low Declining (no alarm in the last 7 days, so a cow already alerted is not re-flagged, and not trimmed in last 28 days)
 
     - ENTER EC=70\\P214 FOR LFTYP=30101 LMFLG=1 DSNLM=7-1 FTDAT\<-28
 
-  - Strong Decline (alarm in last 7 days, not trimmed in last 28 days) second OR statement allows cows with a low alert already to get another alert
+  - Strong Decline (no alarm in the last 7 days, not trimmed in last 28 days); the second OR statement lets a cow who already has a Low alert still raise a Strong Decline
 
     - ENTER EC=70\\P213 FOR LFTYP=30100 LMFLG=1 (DSNLM=7-1 FTDAT\<-28)(FTDAT\<-28 %73.NDLAME.101\>LOW)
 
