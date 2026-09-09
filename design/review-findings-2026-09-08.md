@@ -339,7 +339,29 @@ tempering suggestions: "the whole effect" is too strong for a descriptive contra
 on ~81 cases; "the blind spot is" → "the clearest blind spot is"; and the table shows
 three of four cells — adding non-DD-on-front would let the reader check the 2×2 closes.
 
-### ☐ T18. Well-evidenced finding buried, and absent from the farm report entirely
+### ☑ ~~T18a. SmartSight enrollment gap buried / absent from the farm report~~ — DECLINED 2026-09-09
+
+> Gerard: *"that is a NEDAP issue and this would be solved in a real set up."* The enrollment
+> stoppage is a pilot-setup artifact, not something the farm needs to act on, so it does not
+> need promoting in either report.
+>
+> **Note this does NOT change the Q4 exclusion**, which stays. Those 26 cows genuinely were
+> not being monitored during the pilot, so counting their lesions as camera misses would be
+> wrong for this dataset. If anything, declining T18 on the grounds that enrollment failure
+> is a setup artifact *strengthens* the case for excluding them — the camera should not be
+> charged with cows it was never watching.
+
+### ☐ T18b. The 108 unexplained pipeline losses are absent from the farm report
+
+**Split out of the original T18, which bundled two separate things.** Declining the
+enrollment item above does not resolve this one, and it is entangled with **T2**: the farm
+report omits the pipeline analysis entirely while keeping the 58.5% headline, so that
+number reads as the camera's miss rate when the camera's own rate is 33.7%. Either the
+pipeline split goes into the farm report, or the 58.5% has to be relabelled. **Fixing T2
+probably resolves this too.**
+
+<details>
+<summary>Original T18 text (for reference)</summary>
 The **SmartSight enrollment stoppage** is the best-evidenced and most actionable result in
 the pack — 0% of first-lactation cows freshening in July/August enrolled, against 97-99%
 on Activity, both lists pulled the same day. It sits mid-section under a heading about
@@ -350,6 +372,7 @@ unsupported competitor comparison made the bottom line.
 **This is the item I would action first.** It is the one finding the farm can act on this
 week.
 
+</details>
 ---
 
 ## D. Nitpicks (listed only so you can skip them)
@@ -375,9 +398,9 @@ withing, suprising, recenlty, where trimmed, is show below*.
 
 ## Suggested order of work
 
-1. **T18** — get the enrollment stoppage in front of the farm.
+1. ~~**T18**~~ — declined 2026-09-09 (Nedap setup artifact). T18b split out and folded into T2.
 2. **T1, T2, T3, T4, T5, T6** — the farm report says things that are wrong or contradict
-   the full report.
+   the full report. **Start here.**
 3. **C1, C2** — the two real code defects (both mine).
 4. **T7, T8** — quick factual corrections in both reports.
 5. Everything else.
