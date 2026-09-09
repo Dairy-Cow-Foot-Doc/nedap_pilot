@@ -779,9 +779,11 @@ This section looks at cows with lesion regardless of treatment group. Among cows
 ```{r}
 #| label: q4-build
 
-invisible(list2env(fxn_build_q4(cohort, all_nedlame_cows, lame_data, events_formatted,
-                                events_all, animal_lactations, enrolled_ids,
-                                analysis_end, nedlame_start_date, params), environment()))
+invisible(list2env(fxn_build_q4(
+  cohort = cohort, all_nedlame_cows = all_nedlame_cows, lame_data = lame_data,
+  events_formatted = events_formatted, events_all = events_all,
+  animal_lactations = animal_lactations, enrolled_ids = enrolled_ids,
+  nedlame_start_date = nedlame_start_date, params = params), environment()))
 ```
 
 A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
@@ -803,7 +805,7 @@ From the figure below it is clear that DD and other are the main categories bein
 ```{r}
 #| label: q4-lesion-types
 
-invisible(list2env(fxn_build_q4_groups(q4, lame_lesion_recent), environment()))
+invisible(list2env(fxn_build_q4_groups(q4_group, lame_lesion_recent), environment()))
 
 ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group)) +
   geom_col(width = 0.7) +

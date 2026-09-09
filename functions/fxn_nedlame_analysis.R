@@ -14,6 +14,11 @@
 # rendered output was verified identical afterwards.
 
 library(tidyverse)
+# fxn_build_q6() uses survfit2() (ggsurvfit) and Surv() (survival). Declared here
+# so the file works when sourced on its own, not only inside a report that
+# happens to have loaded them.
+library(survival)
+library(ggsurvfit)
 
 # Build the pilot cohort from NEDLAME alerts.
 # 
@@ -168,6 +173,21 @@ fxn_build_cohort <- function(events_all, animal_lactations, animals, date_max_pu
 # left_join afterwards silently drops a cow from the cohort entirely instead of
 # labelling her - that bug once removed ~11% of the cohort from every section.
 fxn_build_lame_history <- function(events_formatted, cohort) {
+  # These four come from elsewhere: fxn_trim_vars/fxn_dz_status are fetched live
+  # from GitHub by fxn_load_os_fxns(), while fxn_code_lesions/fxn_collapse_lesions
+  # MUST be the LOCAL overrides, sourced AFTER that fetch. If the upstream copies
+  # win there is no error - this farm codes routine no-lesion trims as "NONE" in
+  # the REMARK field, which the upstream fxn_code_lesions() does not check, so
+  # every routine trim is silently reclassified as lesion-bearing. That flows
+  # into lame_data and therefore Q2, Q5 and the whole Q4 miss analysis. Fail
+  # loudly here instead.
+  for (.f in c("fxn_code_lesions", "fxn_collapse_lesions", "fxn_trim_vars", "fxn_dz_status")) {
+    if (!exists(.f, mode = "function")) {
+      stop("fxn_build_lame_history(): ", .f, "() not found. Source functions/fxn_load_os_fxns.R ",
+           "and THEN the local overrides functions/fxn_code_lesions.R and ",
+           "functions/fxn_collapse_lesions.R before calling this.", call. = FALSE)
+    }
+  }
   # Same lesion-coding / chronicity pipeline as report_explore_lame_new.qmd,
   # just kept at the lactation grain (lact_number carried through) so the
   # "history at enrollment" lookup below never crosses lactations.
@@ -269,11 +289,11 @@ fxn_build_enrolled_ids <- function(events_all, cows_smartsight) {
   # shows - this check is animal-level enrollment, not date-bound, so it
   # can resolve cases the date-bound attentions export above can't (see
   # the Platform Enrollment Check subsection in Q4).
-  cows_activity <- read_csv("data/cows_activity.csv", show_col_types = FALSE) |>
-    transmute(id = as.character(Animal))
-  
-  cows_smartsight <- read_csv("data/cows_smartsight.csv", show_col_types = FALSE) |>
-    transmute(id = as.character(Animal))
+  # Uses the cows_smartsight passed in. This previously re-read both CSVs from
+  # hard-coded paths right here, which silently discarded the argument - the
+  # function looked parameterised but was not, and it broke outside the project
+  # root. cows_activity was read but never used or returned, so it is gone.
+  stopifnot(is.data.frame(cows_smartsight), "id" %in% names(cows_smartsight))
   
   # Animal numbers get reused and reassigned. DairyComp records an ID change as
   # an XID event whose Remark holds the OLD number, and 150 of those old numbers
@@ -515,7 +535,16 @@ fxn_build_q6 <- function(cohort, date_max_pull) {
 # 
 # The lookback window is capped at min(N, days since alerting went live), so a
 # case found shortly after go-live is not judged against history that cannot exist.
-fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, events_all, animal_lactations, enrolled_ids, analysis_end, nedlame_start_date, params) {
+fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, events_all,
+                         animal_lactations, enrolled_ids, nedlame_start_date, params) {
+  # analysis_end is derived from params here rather than passed separately.
+  # It used to be its own argument even though params was also passed, which
+  # let the alert cut-off (set in fxn_build_cohort from the same param) and the
+  # lesion cut-off drift apart - exactly the coupling the comment below says
+  # must hold. Deriving it removes that possibility and one adjacent bare Date
+  # from a long positional signature.
+  analysis_end <- ymd(params$analysis_end_date)
+  stopifnot(nedlame_start_date <= analysis_end)
   # Confirmed directly with the farm: the DairyComp FTDAT gate tracks days
   # since the most recent LAME diagnosis OR trim - not trims alone. A cow
   # with frequent LAME diagnoses but no formal trim in between is just as
@@ -618,20 +647,35 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
   # purely "never got an alert." Split it explicitly rather than describing it
   # loosely: an earlier draft called the non-pure share "a small number" when
   # it is actually ~18% of the bucket.
-  # Must match the figure's "Never Alerted" band exactly, which means carrying
-  # the !caught_by_nedap test too - a handful of cows are outside the cohort yet
-  # were still flagged in time, and they belong in "Caught in Time", not here.
-  # (detection_group itself is built later, so the rule is repeated rather than
-  # referenced; if one changes, change both.)
-  never_alerted_rows <- q4 |>
-    filter(!caught_by_nedap, tx_group == "Never Alerted (Not in Pilot Cohort)")
+  # detection_group is defined HERE and nowhere else, and every count below is
+  # derived from it. It used to be written twice - once here as a filter and
+  # again in fxn_build_q4_groups as a case_when - which let the two drift and
+  # produced a prose figure that disagreed with the chart beside it.
+  #
+  # Order matters: caught_by_nedap is tested FIRST. It asks whether ANY alert
+  # landed in the window, while cohort membership additionally requires a valid
+  # MNFRS and surviving the post-trim exclusion, so a cow can be flagged in time
+  # yet sit outside the cohort. Testing membership first mislabels those cows
+  # "Never Alerted" and stops the missed categories summing to the miss total.
+  q4_group <- q4 |>
+    mutate(detection_group = case_when(
+      caught_by_nedap ~ "Alerted, Caught in Time",
+      tx_group == "Never Alerted (Not in Pilot Cohort)" ~ "Never Alerted",
+      TRUE ~ "Alerted, Missed"
+    ))
+  stopifnot(
+    sum(q4_group$detection_group %in% c("Never Alerted", "Alerted, Missed")) ==
+      sum(!q4_group$caught_by_nedap)
+  )
+
+  never_alerted_rows <- q4_group |> filter(detection_group == "Never Alerted")
   n_never_alerted_bucket <- nrow(never_alerted_rows)
   n_never_alerted_true <- never_alerted_rows |>
     anti_join(all_nedlame_cows |> select(id_animal, lact_number), by = c("id_animal", "lact_number")) |>
     nrow()
   n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
 
-  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded)
+  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, q4_group = q4_group, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded)
 }
 
 # Detection categories and the lesion-type breakdown.
@@ -645,40 +689,19 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
 # 
 # Shares are within each lesion type, not counts: on a count axis a common lesion
 # looks like a detection problem simply because it is common.
-fxn_build_q4_groups <- function(q4, lame_lesion_recent) {
+fxn_build_q4_groups <- function(q4_group, lame_lesion_recent) {
   # Computation half of what used to be the q4-lesion-types chunk. The plot
   # half stays in each report, so they can present it differently.
+  #
+  # Takes q4_group, which already carries detection_group from fxn_build_q4.
+  # This function used to rebuild that rule itself and then assert agreement
+  # against n_never_alerted_bucket read from the GLOBAL ENVIRONMENT - the only
+  # unbound global in this file. Consuming q4_group removes the duplicated rule
+  # and the global together, so the rule now lives in exactly one place.
+  stopifnot("detection_group" %in% names(q4_group))
+
   lesion_type_cols <- c("dd", "footrot", "wld", "sole_ulcer", "injury", "cork",
                          "hemorrhage", "sole_fracture", "toe_ulcer", "thin", "other")
-  
-  q4_group <- q4 |>
-    # Order matters: test caught_by_nedap FIRST, then cohort membership.
-    #
-    # caught_by_nedap looks at ANY NEDLAME event, while cohort membership also
-    # requires a valid MNFRS and survival of the post-trim exclusion. So a cow
-    # can be flagged in time yet sit outside the cohort. Testing cohort
-    # membership first labelled those cows "Never Alerted" even though an alert
-    # did reach DairyComp inside the window - 4 cases, and it stopped the two
-    # missed categories summing to the miss total (55 + 288 = 343, not 339).
-    #
-    # NB when editing: compare tx_group against the value it actually holds (set
-    # in q4-build), not the short display label - the short label matches nothing
-    # and silently dumps every never-alerted cow into "Alerted, Missed".
-    mutate(detection_group = case_when(
-      caught_by_nedap ~ "Alerted, Caught in Time",
-      tx_group == "Never Alerted (Not in Pilot Cohort)" ~ "Never Alerted",
-      TRUE ~ "Alerted, Missed"
-    ))
-  
-  # The two missed categories must account for every miss. If this ever fails,
-  # the labels have drifted away from caught_by_nedap again.
-  stopifnot(
-    sum(q4_group$detection_group %in% c("Never Alerted", "Alerted, Missed")) ==
-      sum(!q4_group$caught_by_nedap)
-  )
-  
-  # and the prose counters above must describe the same band as the figure
-  stopifnot(sum(q4_group$detection_group == "Never Alerted") == n_never_alerted_bucket)
   
   q4_lesion_types <- lame_lesion_recent |>
     select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
@@ -703,12 +726,14 @@ fxn_build_q4_groups <- function(q4, lame_lesion_recent) {
 }
 
 # Of the cows the camera missed, how many did staff flag anyway?
-fxn_build_staff_catch <- function(q4, chklame) {
+fxn_build_staff_catch <- function(q4, chklame, staff_window_days = 7) {
+  # The window was a hard-coded 7 in a project where every other window is a
+  # params entry. Defaulted so behaviour is unchanged.
   missed_cases <- q4 |> filter(!caught_by_nedap)
   
   staff_catch <- missed_cases |>
     left_join(chklame, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
-    mutate(staff_flagged = !is.na(date_event.y) & date_event.y <= date_event.x & date_event.y >= date_event.x - 7) |>
+    mutate(staff_flagged = !is.na(date_event.y) & date_event.y <= date_event.x & date_event.y >= date_event.x - staff_window_days) |>
     group_by(id_animal, lact_number, date_event = date_event.x, tx_group) |>
     summarize(staff_flagged = any(staff_flagged), .groups = "drop")
 
