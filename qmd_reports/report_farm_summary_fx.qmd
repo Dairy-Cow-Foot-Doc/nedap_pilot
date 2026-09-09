@@ -662,9 +662,17 @@ ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group_3wa
 #| label: q4-staff-catch-build
 
 invisible(list2env(fxn_build_staff_catch(q4, chklame), environment()))
+
+# How many of the misses the camera genuinely never saw, as opposed to flagged
+# without the alert arriving in time. Without this the miss count reads as the
+# camera's own failure rate, which it is not - a good share of those cows were
+# flagged and the alert simply did not land in the window.
+n_never_flagged_farm <- sum(q4_sensor$detection_group_3way == "Never Flagged (True Miss)")
 ```
 
-Of the `r nrow(staff_catch)` cows that were missed by the camera but had a lesion (trimmed due to routine trim or farm staff reasons),
+Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed on the routine round or because staff picked them out),
+
+Worth being precise about what that number is: it counts cows with **no alert in DairyComp in time**, which is not the same as cows the camera failed to see. For about `r round(100 * (nrow(staff_catch) - n_never_flagged_farm) / nrow(staff_catch), 0)`% of them the camera did flag the cow and the alert did not arrive in time. The camera itself missed `r n_never_flagged_farm`.
 
 - `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
 
@@ -676,6 +684,6 @@ Of the `r nrow(staff_catch)` cows that were missed by the camera but had a lesio
 
 - NEDAP camera catches more cows than just farm staff/routine trimming
 
-- Catching these extra cows does not impact short term milk production and culling in the short term
+- Trimming a flagged cow straight away, rather than leaving it to staff or the routine round, did not produce a clear difference in milk or culling over the first 30 days. The milk curves slightly favour the trimmed group, but cows vary far more than the groups do, and there were too few culls either way to read anything into.
 
 - The study was not long enough to determine if more cows being caught by camera do better long term as in less repeat lesions.

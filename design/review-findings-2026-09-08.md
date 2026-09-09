@@ -162,7 +162,7 @@ compare the two."* (Also "preforms" → "performs".)
 
 ---
 
-### ☐ T2. All 339 are attributed to the camera, when only 195 were ✅ verified
+### ☑ ~~T2. All 339 are attributed to the camera~~ — FIXED 2026-09-09
 **Both reports** — *"Of the 339 cows that were missed by the camera but had a lesion…"*
 
 The full report's own analysis shows **144 of those 339 were flagged by the camera** — the
@@ -180,7 +180,27 @@ itself genuinely missed 195."*
 
 ---
 
-### ☐ T3. Farm report states the opposite of the full report's finding, and asserts a mechanism as fact ✅ verified
+### ◐ T3 — PARTLY DECLINED 2026-09-09: the "states the opposite" claim was wrong
+
+> **Gerard 2026-09-09, and he is right:** *"I disagree with it stating the opposite. The leg
+> differentiation is extra stuff for main report but for farm the conclusion compared main
+> lesions (WLD, DD, SU) DD is missed more than the others."*
+>
+> Checked, and the farm report's claim holds at the level it makes it: **DD is 43% of the cases
+> the camera never flagged against 27% of the ones it did; white line is 17% vs 39%.** DD is
+> missed more than the others, decisively.
+>
+> The reviewer conflated two levels. *"It is not DD as such"* in the full report is about the
+> CROSSED analysis — the gap concentrates in DD **on a rear foot** — which refines the simple
+> lesion-level finding rather than contradicting it. Both are true at their own level, and the
+> foot breakdown is main-report detail the farm does not need.
+>
+> Sub-points 1 and 3 fall with it: at lesion level "other" is over-represented among misses too,
+> so that was not backwards either.
+>
+> **Still open from T3:** the farm report asserts its mechanism as fact ("the camera was trained
+> on locomotion scoring that also misses cows with DD"), and it differs from the full report's
+> hedged one (bilateral DD → symmetric gait). One should be hedged, or they should agree.
 **`report_farm_summary.qmd`** — *"DD and other are the main categories being missed… The
 missing of DD is not suprising as the camera was trained on locomotion scoring that also
 misses cows with DD."*
@@ -201,7 +221,7 @@ the agent's suggested wording, which I think is good, quoted in full in §E belo
 
 ---
 
-### ☐ T4. Farm report mis-frames the whole randomised contrast ✅ verified
+### ☑ ~~T4. Farm report mis-frames the whole randomised contrast ✅ verified~~ — FIXED 2026-09-09
 **`report_farm_summary.qmd`** — *"Catching these extra cows does not impact short term
 milk production and culling in the short term"*
 

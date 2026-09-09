@@ -1281,7 +1281,7 @@ The by-design count is still a floor: the trim lookup only covers the current la
 invisible(list2env(fxn_build_staff_catch(q4, chklame), environment()))
 ```
 
-Of the `r nrow(staff_catch)` cows that were missed by the camera but had a lesion (trimmed due to routine trim or farm staff reasons),
+Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed on the routine round or because staff picked them out),
 
 - `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
 
