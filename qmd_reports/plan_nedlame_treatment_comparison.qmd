@@ -868,3 +868,34 @@ No HTML is produced and a stale `.knit.md` is left behind, which can then confus
 This is also why **Positron's Preview button fails** — it previews from the workspace root, which is the broken combination.
 
 **Do not "fix" this by dropping `execute-dir: project`.** Every data path in the report and in the sourced loader functions is project-root relative; removing it breaks all of them.
+
+## Round 23: what actually brought the Control cows in; a second, farm-facing report
+
+### Staff-flagged vs routine trims in the Control arm
+
+Gerard asked how many Control cows are trimmed because staff flagged them versus simply coming up on the routine schedule. In the Control arm a cow is only trimmed if someone decides to act, so the Q2 curve is a mixture of two quite different processes. A `CHKLAME` recorded between the alert and the trim marks the staff-driven ones.
+
+Of the **225** Control cows trimmed after their alert:
+
+| Driver | Cows | % | Found a lesion | Median days alert → trim |
+|---|---|---|---|---|
+| Staff flagged (`CHKLAME`) | 80 | 35.6% | **81%** | **7** |
+| Routine, no `CHKLAME` | 145 | 64.4% | **39%** | **23** |
+
+**Two-thirds of Control trims had no staff check at all.** So the Control curve is largely the routine trim schedule catching up with these cows rather than staff responding to the alert — TX is being compared against a mixture, only about a third of which is an active decision. That is worth stating whenever the arms are compared.
+
+It is also the first clearly *positive* result about staff judgement in this report: when they do pick a cow out they are right about her roughly twice as often (81% vs 39%) and act three times sooner.
+
+**Robustness:** a tighter definition — `CHKLAME` within 7 days *before the trim*, rather than any time since the alert — gives 79 instead of 80, so the split does not depend on where the window is drawn.
+
+**Deliberately not a third survival curve, and the report says why.** Whether a cow gets a `CHKLAME` is decided *during* follow-up, so stratifying the KM curves on it would compare groups defined by a post-baseline event: a cow cannot join the staff-flagged group until staff flag her, so she is guaranteed to survive until that moment. That is immortal-time bias and it would inflate the apparent difference. Presented as a description of the trims that occurred instead.
+
+### A second report for the farm — and the drift risk it creates
+
+`qmd_reports/report_farm_summary.qmd` is a shorter, farm-facing version (27 chunks against the full report's 47, ~51 KB against 93 KB). It drops the lameness-history chapter, the sensor pipeline-loss detail, the by-design analysis, the reconciliation table and the DD conjunction, and closes on a "The bottom line" section. It was forked from the clean report at 17:59 and **already carries every fix from Rounds 21-22** — the 2026-08-27 cut-off, the SmartSight exclusion, alias-aware enrollment and the `detection_group` ordering fix — and it calls `fxn_read_nedap_attentions()` with no argument, so it follows the loader default.
+
+**It does not yet have the Control trim-driver section above**, which was added after the fork. Arguably it belongs there more than anywhere, since it is the one finding that says something concrete about the farm's own staff.
+
+**The maintenance hazard is worth stating plainly: there are now two reports duplicating the same computation chunks.** Every bug fixed in one has to be fixed in the other, and nothing enforces that. Every silent-failure class this project has hit — renamed labels matching nothing, filter-after-join, grain mismatches, the `LAME`+`FOOTRIM`+`TRIM` house rule — now has two places to hide instead of one. If the farm version is going to be maintained rather than published once and abandoned, the shared setup and Q1-Q4 build chunks should be factored into a single included file (`{{< include >}}`) or moved into `functions/`, so the two documents differ only in what they *display*.
+
+`report_farm_summary.qmd` is currently **untracked**. It contains no raw data, so it is safe to commit, and it should be committed so the two versions can be diffed.
