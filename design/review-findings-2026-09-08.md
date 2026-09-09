@@ -351,14 +351,16 @@ three of four cells — adding non-DD-on-front would let the reader check the 2�
 > is a setup artifact *strengthens* the case for excluding them — the camera should not be
 > charged with cows it was never watching.
 
-### ☐ T18b. The 108 unexplained pipeline losses are absent from the farm report
+### ☑ ~~T18b. The 108 unexplained pipeline losses are absent from the farm report~~ — DECLINED (farm report) 2026-09-09
 
-**Split out of the original T18, which bundled two separate things.** Declining the
-enrollment item above does not resolve this one, and it is entangled with **T2**: the farm
-report omits the pipeline analysis entirely while keeping the 58.5% headline, so that
-number reads as the camera's miss rate when the camera's own rate is 33.7%. Either the
-pipeline split goes into the farm report, or the 58.5% has to be relabelled. **Fixing T2
-probably resolves this too.**
+> Gerard: *"The other pipeline issues are not really of interest to the farm as those are
+> of interest to me and NEDAP as we need to make sure for future studies we avoid them."*
+> Pipeline detail stays OUT of the farm report.
+
+**T2 still needs fixing, but only as a relabel — no pipeline content need enter the farm
+report.** Changing *"missed by the camera"* to *"had no NEDLAME alert recorded in
+DairyComp beforehand"* makes the sentence accurate without explaining why. That keeps the
+farm report simple and stops 58.5% being read as the camera's own miss rate.
 
 <details>
 <summary>Original T18 text (for reference)</summary>
@@ -373,6 +375,33 @@ unsupported competitor comparison made the bottom line.
 week.
 
 </details>
+### ☐ T19. NEW — report the one pipeline split that is actually actionable (full report only)
+
+**Proposed 2026-09-09 in response to:** *"we don't know why they happened as we don't have
+the scores at time of flag."* True for most of them — but not all, and the report does not
+currently separate the two.
+
+The report already computes `low_only` but uses it solely for the injury check. Splitting
+the 108 unexplained pipeline losses by which route fired gives:
+
+| | Cases | Score-gated? | Resolvable without scores? |
+|---|---|---|---|
+| `LOW` flag only | **84** | Yes (`LMSV=1-30`) | **No** — a score of 31-69 is indistinguishable from a lost flag |
+| A decline flag fired | **24** | **No** | **Yes** — no by-design explanation remains |
+
+So the honest position for the Nedap conversation is not "108 unexplained" but **"24 clean
+integration failures, plus 84 we cannot adjudicate without scores at flag."** The decline
+routes carry no score gate, so for those 24 a flag fired and no `NEDLAME` appeared, full
+stop.
+
+Two of the 24 involve a `STRONG DECLINE` — the most severe trigger — and several fired
+five or six times over a fortnight with nothing reaching DairyComp. Cow IDs are already
+saved at `reports/qmd_reports/pipeline_loss_decline_only.csv`.
+
+**Fix:** add the split plus one sentence to the by-design section of the FULL report only.
+It also sharpens the existing floor caveat, which currently says the score gate cannot be
+checked without noting that for 24 cases it does not apply.
+
 ---
 
 ## D. Nitpicks (listed only so you can skip them)
