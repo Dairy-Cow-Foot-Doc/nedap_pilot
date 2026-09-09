@@ -488,7 +488,7 @@ Confirmed it is specific to this family. Other codes are 4-letter treatments fol
 
 ---
 
-### ☐ T22. NEW — the report and the workbook disagree about `DSNLM`
+### ☑ ~~T22. The report and the workbook disagree about `DSNLM`~~ — FIXED 2026-09-09
 
 **Introduced by me, found while applying T20/T21.** `DSNLM` is implemented as a by-design suppression in `pipeline_losses.xlsx` but **not** in the report, where it appears only as text inside the DairyComp command listing. The report's `by_design` is `all_attentions_blocked | injury_explained | alert_arrived_late` — no `DSNLM` term.
 
@@ -500,7 +500,7 @@ The two artefacts therefore give different answers for the same question, which 
 
 ---
 
-### ⚠ ACTION REQUIRED: step 0 must be re-run
+### ☑ ~~ACTION REQUIRED: step 0 must be re-run~~ — DONE 2026-09-09, phantoms 559 → 0
 
 T21 was fixed at source in `functions/fxn_location.R`, and the report-level workaround has been removed. **The intermediate parquet files still contain the old `locate_lesion` with the phantom left front.** Until step 0 is re-run, the foot figures revert to the inflated numbers (front 309 rather than 299).
 

@@ -740,3 +740,166 @@ fxn_build_staff_catch <- function(q4, chklame, staff_window_days = 7) {
   list(missed_cases = missed_cases, staff_catch = staff_catch)
 }
 
+
+# Why an apparent pipeline loss might not be one.
+#
+# A case reaches here because the camera flagged the cow inside the lookback
+# window and no NEDLAME landed in that window. Four rules can explain that
+# without any data being lost in transit:
+#
+#   FTDAT   she was trimmed too recently for the alert to be raised
+#           (90 days on the Low route, 28 on the declines)
+#   DSNLM   she had already been alerted recently, so a repeat is suppressed
+#           (90 days on Low, 7 on the declines) - an EXCLUSION, confirmed by
+#           the farm 2026-09-09; earlier versions of this analysis had it
+#           backwards as an inclusion
+#   injury  upper-leg/injury history blocks the Low route specifically, so it
+#           only applies where nothing but a LOW flag fired
+#   late    a NEDLAME did arrive, one day after the lesion. The ~5am batch
+#           stamps the load date, so a flag after 5am on day D appears as D+1,
+#           landing just outside a lookback that only looks backward. The cow
+#           was still missed - an alert after the diagnosis helps nobody - but
+#           nothing was lost. Found via cow 7207.
+#
+# Lives here rather than in a report chunk because the standalone pipeline-loss
+# workbook needs the identical verdict. It previously did not: DSNLM was
+# implemented in the workbook and not in the report, and they disagreed by
+# about ten cases.
+#
+# What remains unexplained is a floor, not a count of confirmed bugs: score at
+# flag is not in the data, so a LOW-only case could equally be a score of 31-69
+# that was correctly declined. Only cases where a DECLINE route fired have no
+# score gate left to hide behind.
+fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_formatted, events_all, lame_data) {
+  leg_abovefoot_injury_history <- lame_data |>
+    filter(protocols == "Leg-AboveFoot" | injury == 1) |>
+    select(id_animal, hist_date = date_event) |>
+    distinct()
+  
+  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, Lost in Pipeline")
+  
+  # Which alert type(s) actually fired within the lookback window for each
+  # pipeline-loss case - needed to restrict the injury/Leg-AboveFoot check
+  # to cases where only a LOW attention fired, since that's the specific
+  # enrollment gate this exclusion applies to (Strong/Low Decline aren't
+  # gated the same way, per the farm).
+  pipeline_loss_fired_types <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event, lookback_days_used) |>
+    left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(low_only = all(alert_type == "LOW"), .groups = "drop")
+  
+  # Same pre-filter-before-join pattern used throughout this report.
+  injury_history_check <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event) |>
+    left_join(leg_abovefoot_injury_history, by = "id_animal", relationship = "many-to-many") |>
+    mutate(has_prior_injury = !is.na(hist_date) & hist_date < date_event) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(has_injury_leg_history = any(has_prior_injury), .groups = "drop")
+  
+  # SECOND by-design mechanism: the FTDAT gate, evaluated AT THE ATTENTION
+  # DATE. Q4 already applies an FTDAT-style test, but only at the *lesion*
+  # date - which never asks whether the cow was eligible at the moment the
+  # camera actually fired. A trim falling between the attention and the lesion
+  # leaves the lesion-date test clean while making the attention itself
+  # un-enrollable. Gate widths come straight from the farm's DairyComp
+  # commands: FTDAT<-90 for the Low route, FTDAT<-28 for both decline routes.
+  trims_gate <- events_formatted |>
+    filter(event %in% c("LAME", "FOOTRIM", "TRIM")) |>
+    select(id_animal, lact_number, gate_trim_date = date_event) |>
+    distinct()
+  
+  attention_gate_check <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event, lookback_days_used) |>
+    left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+    left_join(trims_gate, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    mutate(days_since_trim = if_else(!is.na(gate_trim_date) & gate_trim_date < attention_date,
+                                      as.numeric(attention_date - gate_trim_date), Inf)) |>
+    group_by(id_animal, lact_number, date_event, attention_date, alert_type) |>
+    summarize(days_since_trim = min(days_since_trim), .groups = "drop") |>
+    mutate(gate_days = if_else(alert_type == "LOW", 90, 28),
+           attention_blocked = days_since_trim <= gate_days) |>
+    group_by(id_animal, lact_number, date_event) |>
+    # only "by design" if EVERY attention in the window was gated out; if even
+    # one was eligible, DairyComp should have enrolled her.
+    summarize(all_attentions_blocked = all(attention_blocked), .groups = "drop")
+  
+  # THIRD by-design mechanism: the flag was not lost at all, it simply landed a
+  # day late. The daily batch runs at ~5am and stamps an alert with the day it
+  # was LOADED, so an attention after ~5am on day D is logged as D+1. The
+  # lookback only looks BACKWARD from the lesion, so a NEDLAME dated the day
+  # after the lesion falls outside it and the case is scored a pipeline loss -
+  # even though the alert demonstrably reached DairyComp.
+  #
+  # Per the farm, these late arrivals are usually the camera reacting to the
+  # trim itself rather than the pre-lesion flag arriving late. Either way the
+  # cow was genuinely MISSED - an alert after the diagnosis helps nobody, so
+  # caught_by_nedap is deliberately left alone. What is wrong is only the
+  # "lost in pipeline" label: nothing was lost.
+  #
+  # Found via cow 7207: flagged 06-11, lesion 06-11, NEDLAME 06-12.
+  nedlame_any <- events_all |>
+    filter(Event == "NEDLAME") |>
+    select(id_animal, lact_number, ned_date = date_event) |>
+    distinct()
+  
+  late_arrival_check <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event) |>
+    left_join(nedlame_any, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    mutate(days_late = as.numeric(ned_date - date_event)) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(alert_arrived_late = any(days_late == 1, na.rm = TRUE), .groups = "drop")
+  
+  # FOURTH by-design mechanism: DSNLM. Confirmed by the farm 2026-09-09 - it is
+  # an EXCLUSION, not an inclusion: a cow already alerted in the last N days is
+  # not re-flagged, so the cowcard does not fill with duplicate alarms.
+  # DSNLM=90-1 on the Low route, DSNLM=7-1 on both decline routes.
+  #
+  # This was implemented in the standalone pipeline-loss workbook but never in
+  # the report, so the two disagreed by ~10 cases. Living here, both get it.
+  dsnlm_check <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event, lookback_days_used) |>
+    left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(attention_date <= date_event, attention_date >= date_event - lookback_days_used) |>
+    left_join(nedlame_any |> select(id_animal, lact_number, ned_date),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    mutate(dsnlm_days = if_else(alert_type == "LOW", 90, 7),
+           prior_alert = !is.na(ned_date) & ned_date < attention_date &
+                         ned_date >= attention_date - dsnlm_days) |>
+    group_by(id_animal, lact_number, date_event, attention_date) |>
+    summarize(flag_dsnlm_blocked = any(prior_alert), .groups = "drop") |>
+    group_by(id_animal, lact_number, date_event) |>
+    # by design only if EVERY flag in the window was suppressed; one eligible
+    # flag means DairyComp should have raised an alert
+    summarize(all_dsnlm_blocked = all(flag_dsnlm_blocked), .groups = "drop")
+  
+  pipeline_loss_cases <- pipeline_loss_cases |>
+    left_join(late_arrival_check, by = c("id_animal", "lact_number", "date_event")) |>
+  left_join(dsnlm_check, by = c("id_animal", "lact_number", "date_event")) |>
+    left_join(pipeline_loss_fired_types, by = c("id_animal", "lact_number", "date_event")) |>
+    left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event")) |>
+    left_join(attention_gate_check, by = c("id_animal", "lact_number", "date_event")) |>
+    mutate(
+      all_attentions_blocked = coalesce(all_attentions_blocked, FALSE),
+      alert_arrived_late = coalesce(alert_arrived_late, FALSE),
+    all_dsnlm_blocked = coalesce(all_dsnlm_blocked, FALSE),
+      injury_explained = low_only & has_injury_leg_history,
+      by_design = all_attentions_blocked | injury_explained | alert_arrived_late | all_dsnlm_blocked
+    )
+  
+  n_pipeline_loss_low_only <- sum(pipeline_loss_cases$low_only, na.rm = TRUE)
+  n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$injury_explained, na.rm = TRUE)
+  n_pipeline_loss_ftdat_blocked <- sum(pipeline_loss_cases$all_attentions_blocked, na.rm = TRUE)
+  n_pipeline_loss_late <- sum(pipeline_loss_cases$alert_arrived_late, na.rm = TRUE)
+n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE)
+  n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design, na.rm = TRUE)
+  n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_design
+
+  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained)
+}
+
