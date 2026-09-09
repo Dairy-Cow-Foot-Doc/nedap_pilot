@@ -435,3 +435,53 @@ withing, suprising, recenlty, where trimmed, is show below*.
 3. **C1, C2** — the two real code defects (both mine).
 4. **T7, T8** — quick factual corrections in both reports.
 5. Everything else.
+
+---
+
+## F. Found by Gerard's cowcard checks, 2026-09-09 — both real, both unfixed
+
+### ☐ T20. The batch-load lag is applied in one place but not the other ✅ verified
+
+**Found via cow 7207.** Her sensor flagged on 2026-06-11 (`LOW DECLINE` + `STRONG DECLINE`), her white-line lesion was diagnosed 2026-06-11, and her `NEDLAME` landed in DairyComp on **2026-06-12** — one day later.
+
+The lookback window is `[lesion − 21, lesion]`, so a `NEDLAME` stamped the day *after* the lesion falls outside it. She is therefore scored `caught_by_nedap = FALSE`, counted as a miss, and — because the sensor fired inside the window — classified a **pipeline loss**. Her flag plainly did reach DairyComp.
+
+**The report already knows about this lag.** It is the entire basis of the post-trim exclusion: *"the daily batch loads at ~5am and stamps each alert with the day it was LOADED... an attention any time after ~5am on day D gets logged with date D+1."* That reasoning is applied to exclusions but never to the lookback, which only looks backward.
+
+**Scale:**
+
+| | Count |
+|---|---|
+| Misses with a `NEDLAME` dated exactly +1 day | **15 of 339** |
+| Pipeline losses with one | **14 of 144** |
+| …of which **priority 1** (the "clean integration failures") | **10 of 23** |
+| Within +2 days / +3 days (misses) | 34 / 50 |
+
+**Nearly half the priority-1 list is contaminated.** Those cows are not integration failures — the alert arrived, a day late. That directly undercuts the list I generated for the Nedap conversation.
+
+Treating +1 day as caught moves the miss rate from **58.5% to 56.0%** (339 → 324).
+
+**One caution against fixing it naively.** A `NEDLAME` at lesion+1 has two possible causes: the pre-lesion flag arriving late (7207's case), or a *genuine new* post-trim reaction — which is the artifact the post-trim exclusion exists to remove. The two are distinguishable: if a sensor attention exists on or before the lesion date and the `NEDLAME` is dated +1, it is the late arrival. All 14 pipeline-loss cases satisfy that by construction, since a pipeline loss requires an in-window attention. The 15 misses need the check applied case by case.
+
+**Suggested fix:** when testing whether an in-window sensor flag became a `NEDLAME`, allow the documented one-day batch lag. Regenerate `pipeline_losses.xlsx` afterwards — the priority-1 list is the part that matters.
+
+---
+
+### ☐ T21. `locate_lesion` invents a phantom left-front on `XNLF*` remarks ✅ verified
+
+**Found via cow 10214.** Gerard: *"the xnlfrf is not 2 legs. it means xnl for the treatment F for foot rot and then RF for leg — lf is not another leg."*
+
+`XNLFRF` = `XNL` (treatment) + `F` (foot rot) + `RF` (leg). A two-character scan finds a phantom `LF` spanning the treatment's trailing **L** and the lesion's **F**. This is upstream in how `locate_lesion` is built, not in the report's own parsing.
+
+Confirmed it is specific to this family. Other codes are 4-letter treatments followed by genuine feet — `BLKWLFRF` really is two feet, `LATDLRRR` really is two. `XNLF` is the one case where treatment and lesion letters accidentally form a valid foot pair. Note also that the farm writes `LH`/`RH` for hind and `locate_lesion` correctly normalises those to `LR`/`RR`; that mapping is fine.
+
+| | All history | In the analysis window |
+|---|---|---|
+| `XNLF*` rows carrying a phantom `LF` | 559 of 605 | 56 |
+| Foot-level entries removed by correcting it | — | 42 |
+| Left Front | — | 255 → **213** |
+| Left/Right Rear | — | unchanged (375 / 380) |
+
+**The headline is safe, and slightly strengthened.** The phantom is *always* a left front, so it can only inflate front-foot counts. DD-on-rear and non-DD-on-rear are untouched; the DD-on-**front** share (8.2% vs 7.6%, already no gap) shrinks further, which reinforces *"it is not DD as such."* Front/rear in the window goes 529/755 → 487/755.
+
+**Suggested fix:** for remarks starting `XNLF`, parse the feet from what follows `XNLF` rather than scanning the whole `locate_lesion` string. Verified against the awkward cases: `XNLFRHRF` → RR+RF, `XNLFLHRH` → LR+RR, `XNLFLF` → LF. The proper fix is upstream in step 0, since `locate_lesion` is built there and every downstream analysis inherits it.
