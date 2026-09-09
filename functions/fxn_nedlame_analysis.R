@@ -926,14 +926,14 @@ n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE
       all_attentions_blocked ~ "Working as designed: flag inside its FTDAT window",
       all_dsnlm_blocked      ~ "Working as designed: already alerted (DSNLM)",
       injury_explained       ~ "Working as designed: upper-leg history blocks Low",
-      alert_arrived_late     ~ "Not lost: the alert reached DC a day later",
+      alert_arrived_late     ~ "An alert did arrive, one day too late",
       low_only               ~ "Cannot tell: LOW only, no score at flag",
       TRUE                   ~ "Genuine pipeline loss: a decline flag vanished"
     ))
   n_only_ftdat  <- sum(pipeline_loss_cases$reason == "Working as designed: flag inside its FTDAT window")
   n_only_dsnlm  <- sum(pipeline_loss_cases$reason == "Working as designed: already alerted (DSNLM)")
   n_only_injury <- sum(pipeline_loss_cases$reason == "Working as designed: upper-leg history blocks Low")
-  n_only_late   <- sum(pipeline_loss_cases$reason == "Not lost: the alert reached DC a day later")
+  n_only_late   <- sum(pipeline_loss_cases$reason == "An alert did arrive, one day too late")
   stopifnot(n_only_ftdat + n_only_dsnlm + n_only_injury + n_only_late ==
               n_pipeline_loss_by_design)
 

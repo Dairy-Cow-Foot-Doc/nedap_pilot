@@ -1212,7 +1212,7 @@ enroll_by_month |>
 
 - **Animal numbers get reassigned, and that had to be handled before this check could be trusted.** DairyComp logs an ID change as an `XID` event holding the old number, and `r nrow(id_aliases)` such changes appear in this extract. A cow renumbered after she was enrolled looks absent under her current number while being present under her old one - cow 23143, renumbered from 14347, is enrolled all along as 14347. Enrollment is therefore checked against a cow's current *and* prior numbers; `r n_rescued_by_alias` animals are only found that way.
 
-## Pipeline Losses, How Many Are By-Design Exclusions?
+## Why Did No Alert Arrive in Time?
 
 Two rules limit which cows can become a `Low` alert: a score under 31, and no history of upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`).
 
@@ -1247,7 +1247,7 @@ pipeline_loss_cases |>
   scale_fill_viridis_d() +
   theme_minimal() +
   guides(fill = "none") +
-  labs(x = NULL, y = "N Pipeline-Loss Cases") +
+  labs(x = NULL, y = "N Cases") +
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
@@ -1261,7 +1261,7 @@ Four rules can explain this without anything having gone missing. Each case is c
 
 - `r n_only_dsnlm` had every flag suppressed by `DSNLM`: she had already been alerted inside the window (90 days on the `Low` route, 7 on the declines), so a repeat alert is deliberately withheld to keep the cowcard clean.
 
-- `r n_only_late` were not lost at all: a `NEDLAME` reached DairyComp the day after the lesion. The daily batch runs at ~5am and stamps an alert with the day it was loaded, so an attention after ~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. These are usually the camera reacting to the trim itself. The cow was still missed — an alert after the diagnosis helps nobody — but nothing was lost in the pipeline.
+- `r n_only_late` did get an alert into DairyComp — the day after the lesion, too late to act on. The daily batch runs at ~5am and stamps an alert with the day it was loaded, so an attention after ~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. Two readings fit and the data cannot separate them: either that flag arrived late, or the camera made a fresh observation of her post-trim gait and *that* is what came through. Under the second reading the original flag really was lost. Either way she was missed, and either way DairyComp was receiving something from the camera around that date — which is why these are not counted among the confirmed losses below.
 
 That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_cases)`**. The remaining `r n_pipeline_loss_unexplained` are not all failures either, and it matters to separate them:
 
