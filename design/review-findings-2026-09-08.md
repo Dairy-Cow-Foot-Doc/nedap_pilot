@@ -239,7 +239,7 @@ few culls to read anything into."*
 
 ---
 
-### ☐ T5. Farm report labels the Control arm "staff identified" ✅ verified
+### ☑ ~~T5. Farm report labels the Control arm "staff identified" ✅ verified~~ — DONE 2026-09-09 (`57fd3f5`)
 **`report_farm_summary.qmd`** — *"Overall staff identified cows have fewer cows with no
 lesion…"*
 
@@ -274,7 +274,7 @@ silently drops.
 
 ---
 
-### ☐ T7. Hard-coded table title disagrees with the table beneath it ✅ verified
+### ☑ ~~T7. Hard-coded table title disagrees with the table beneath it ✅ verified~~ — DONE 2026-09-09 (`57fd3f5`)
 **`report_farm_summary.qmd:668` and `report_nedlame_treatment_comparison_clean.qmd:924`** —
 title reads *"43-55% of Trims do not have a lesion"*. I recomputed: the cells are **46.2 /
 54.9 / 51.5**, so the range is **46-55%**. Stale from an earlier data cut, and it will
@@ -284,7 +284,7 @@ drift again on the next rebuild.
 
 ---
 
-### ☐ T8. Milk denominator sentence names the wrong event ✅ verified
+### ☑ ~~T8. Milk denominator sentence names the wrong event ✅ verified~~ — DONE 2026-09-09 (`57fd3f5`)
 **Both reports** — *"828 of the 849 cohort cows had at least one milk record **post
 trimming**…"*. The curves are indexed to the **alert** date, and most Control cows were
 never trimmed (only 225 of 452). "Post trimming" invites reading the milk curve as a
@@ -294,7 +294,7 @@ post-trim recovery curve in both arms.
 
 ---
 
-### ☐ T9. Farm report describes the miss population as excluding the treatment groups
+### ☑ ~~T9. Farm report describes the miss population as excluding the treatment groups~~ — DONE 2026-09-09 (`57fd3f5`)
 *"Cows with lesions not in the treatment groups that the camera missed"* — the 579 cases
 are explicitly *regardless of* treatment group and include cohort cows from both arms.
 This makes 58.5% look like an independent second dataset.
@@ -304,7 +304,7 @@ not flagged her first."*
 
 ---
 
-### ☐ T10. Time-to-trim presented as a measure of alert accuracy
+### ☑ ~~T10. Time-to-trim presented as a measure of alert accuracy~~ — DONE 2026-09-09 (`57fd3f5`) — with a deviation Gerard directed, see note
 **Both reports** — *"To determine the accuracy of the alert…"*. In the TX arm the trim is
 *caused by the alert by protocol*, so time-to-trim measures protocol compliance. The full
 report at least follows with a lesion-found table, which is a legitimate accuracy proxy;
@@ -315,7 +315,7 @@ mechanical measure.
 
 ---
 
-### ☐ T11. Invalid inference about limb distribution
+### ☑ ~~T11. Invalid inference about limb distribution~~ — DONE 2026-09-09 (`57fd3f5`) — applied far more broadly than the finding asked, see note
 **Full report** — *"The never-alerted share is the largest block on every foot, so the
 misses are not concentrated on one limb."* Which stacked segment is tallest does not
 establish equal miss *rates* across feet. It also sits awkwardly against the section 40
@@ -328,33 +328,33 @@ flagged-vs-missed comparison.
 
 ## C. Overstatements
 
-### ☐ T12. "Over time the control group reaches about 75% of cows trimmed" ✅ verified present
+### ☑ ~~T12. "Over time the control group reaches about 75% of cows trimmed" ✅ verified present~~ — DONE 2026-09-09 (`57fd3f5`) — replaced rather than deleted, see note
 **`report_farm_summary.qmd:505`.** The table directly below says **37% at 30 days**, and
 only 225 of 452 Control cows (49.8%) were *ever* trimmed in the observation window. 75%
 can only come from the far tail of the KM curve where very few cows remain at risk. The
 full report makes no such claim.
 
-### ☐ T13. Day-30 milk caveat weakened in a way that changes its meaning
+### ☑ ~~T13. Day-30 milk caveat weakened in a way that changes its meaning~~ — PARTLY ADDRESSED 2026-09-09 — Gerard wrote his own wording; the selection half is still open, see note
 Farm: *"more variability at those time points"* — implies wider error bars on the same
 estimate. The full report says something stronger: the day-30 point rests on a
 **different, non-random subset** (553 of 828, the earlier-alerting cows) and the estimate
 itself will move. Selection caveat, not a precision caveat.
 
-### ☐ T14. The 58.5% loses both eligibility caveats in the farm report
+### ☑ ~~T14. The 58.5% loses both eligibility caveats in the farm report~~ — DONE 2026-09-09 (`57fd3f5`)
 The full report notes 111 of 579 (19%) had **less than the full 21-day window** to be
 flagged. Some of those are counted as misses for a reason that has nothing to do with the
 camera.
 
-### ☐ T15. Causal framing on descriptive figures
+### ☑ ~~T15. Causal framing on descriptive figures~~ — DONE 2026-09-09 (`57fd3f5`)
 Both reports: *"the impact of the treatment group on milk production"*, *"the impact on
 milk production between the lesion history types"*. "Impact" asserts causation from
 unadjusted curves with no test — and history groups are not randomised at all.
 
-### ☐ T16. A null asserted from ~53 culling events
+### ☑ ~~T16. A null asserted from ~53 culling events~~ — DONE 2026-09-09 (`57fd3f5`)
 *"No real impact is seen."* Claims a demonstrated absence of effect where the data can
 only say "too few culls to tell".
 
-### ☐ T17. Headline DD claim slightly oversold
+### ☑ ~~T17. Headline DD claim slightly oversold~~ — SUPERSEDED 2026-09-09 — moot once T11 removed the passage it tempered
 The crossed reasoning is **sound** — the agent independently re-expressed it as detection
 rates and it holds (54% of rear-foot DD detected vs 73% of other rear-foot lesions). Three
 tempering suggestions: "the whole effect" is too strong for a descriptive contrast resting
@@ -397,7 +397,7 @@ unsupported competitor comparison made the bottom line.
 week.
 
 </details>
-### ☐ T19. NEW — report the one pipeline split that is actually actionable (full report only)
+### ☑ ~~T19. NEW — report the one pipeline split that is actually actionable (full report only)~~ — DONE 2026-09-09 (`57fd3f5`)
 
 **Proposed 2026-09-09 in response to:** *"we don't know why they happened as we don't have
 the scores at time of flag."* True for most of them — but not all, and the report does not
@@ -565,3 +565,41 @@ left_join(trims_gate, by = c("id_animal", "lact_number"), ...)
 So this is a correctness fix, not a numbers fix. It is worth doing anyway because the gate width varies by route (90 days for `Low`, 28 for the declines) and the 90-day `Low` window is wide enough that a prior-lactation trim *will* land inside it for some cow eventually — at which point the bug starts silently moving counts with nothing to warn you.
 
 **Fix:** join `trims_gate` on `id_animal` alone and keep the existing `gate_trim_date < attention_date` filter, which already does the temporal work. Same change applies to the `trims_gate` build itself, which currently carries `lact_number` only to support this join.
+
+---
+
+## H. Disposition of T5–T19, 2026-09-09
+
+Applied by the concurrent session in `57fd3f5` and `773bcd7`, Gerard cueing them one at a time. Recorded here because four did not land as written and the reasons matter more than the ticks.
+
+### T11 — applied far beyond the finding, and it removes the report's headline
+
+The finding asked only that an invalid limb-distribution inference be dropped. Gerard went much further: **"the whole DD and rear vs front is a who cares"**, and the DD-on-a-hind-foot crossing was **an agent's invention, not a question he had asked**. So the crossed table, its three bullets and the entire `conj_*` computation are gone, and the bilateral-DD mechanism went with them. Front versus hind is now stated plainly — hind-foot lesions dominate missed and flagged cases in much the same proportion, so there is no front-foot blind spot — and the mechanism paragraph leads on locomotion scoring detecting DD poorly.
+
+**This retires what Rounds 19–21 treated as the report's headline finding.** Anyone returning to this project should not go looking for the DD-on-hind-foot conjunction; it was removed deliberately, not lost. Verified in the working tree: no `conj_` and no "bilateral" remain in either `_fx` report.
+
+### T13 — only half addressed, and the open half is the one the finding was about
+
+Gerard rewrote the day-30 milk caveat himself. His text is a **precision** caveat ("more variability... the true impact is not certain yet"). The finding was about **selection** — that the cows behind the day-30 point are the earlier-alerting ones, so the figure describes a non-random subset rather than a noisy estimate of the whole. His wording, his call, and the concurrent session correctly did not overwrite it. Logged so the distinction is not quietly lost: **the selection point is still unmade.**
+
+### T10 and T12 — deviations Gerard directed
+
+- **T10:** reworded to protocol compliance in both reports, but the lesion-found table was **not** restored to the farm report — he said it is not useful to him.
+- **T12:** the 75% claim was **replaced** with the staff-vs-routine trim-driver table rather than simply deleted, which answers the underlying question instead of removing it.
+
+### Single-sourcing extended
+
+Both reports now also go through `fxn_build_control_trim_drivers()`, so the staff-vs-routine numbers are computed once, the same way the by-design verdicts already were. That is the T22 drift class closed off in a second place.
+
+### `pipeline_losses.xlsx` is reproducible now — and moving it found two live drifts
+
+The generator lived only in a scratchpad; it is now `scripts/step3_pipeline_losses.R`. Promoting it surfaced two real disagreements with the report that had been invisible:
+
+1. It still used the **inclusive same-day window**, so it built 144 candidates where the report had moved to 131.
+2. It emitted **"Flagged, Lost in Pipeline"** where the shared function had moved to **"Flagged, but no alert in time"** — a filter that silently matched nothing and zeroed every verdict.
+
+Both fixed; it now reproduces 131 → 50 by design / 81 not. **The second is the sharpest example yet of this project's recurring failure mode:** sharing logic through a *string label* rather than a value, so a rename fails silently instead of erroring. Same class as the `detection_group` label mismatches in Round 18 and the `DSNLM` split in T22. Note the `.xlsx` itself sits under the gitignored `reports/` tree and was never a committed artifact — the script is what makes it reproducible.
+
+### Still open
+
+**T13** (selection half, above) and **T23** (awaiting Gerard). **T24** is unfixed but quantified at zero impact.

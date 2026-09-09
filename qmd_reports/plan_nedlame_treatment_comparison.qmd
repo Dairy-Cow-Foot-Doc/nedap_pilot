@@ -1029,3 +1029,38 @@ Flag 2026-06-04 `LOW DECLINE` gave a toe ulcer on 06-09 with no `NEDLAME`. Yet s
 ### Also noted
 
 Overall, only **38.0%** of decline episodes in the pilot window (1,323 of 3,479) produced a matching `NEDLAME` within 0–1 days. Most of the shortfall is legitimate `DSNLM`/`FTDAT` gating, but the DairyComp-side filtering is doing far more work than the pipeline-loss framing alone suggests, and it has never been characterised end to end. Candidate for its own round.
+
+## Round 26: the review findings applied — and Gerard retires the DD-on-a-hind-foot headline
+
+`design/review-findings-2026-09-08.md` was worked through with Gerard cueing items one at a time (`57fd3f5`, `773bcd7`). T5, T7–T17 and T19 are now closed; **T23 and T24 remain open**, and T13 is only half closed. Full disposition is in section H of that file. Three things belong in the permanent record.
+
+### The headline finding from Rounds 19–21 has been REMOVED, deliberately
+
+T11 asked only that an invalid limb-distribution inference be dropped. Gerard went much further: **"the whole DD and rear vs front is a who cares"**, and the DD-on-a-hind-foot crossing was **an agent's invention, not a question he had asked**.
+
+So the crossed lesion-type × foot table, its three bullets and the entire `conj_*` computation are gone from both reports, and the bilateral-DD mechanism went with them. Front versus hind is now stated plainly — hind-foot lesions dominate the missed and the flagged cases in much the same proportion, so there is no front-foot blind spot — and the mechanism paragraph leads on the uncontroversial part: locomotion scoring detects DD poorly, and the camera scores locomotion.
+
+**Do not go looking for the DD-on-hind-foot conjunction in the reports.** Rounds 19, 21 and 22 all treat it as the sharpest result in the project and Round 22 records that excluding the unenrolled SmartSight cows *strengthened* it (+14.9pp → +17.0pp). All of that is now history rather than live analysis. Verified in the working tree: no `conj_` and no "bilateral" survive in either `_fx` report.
+
+The lesson worth keeping is not about DD. It is that **an analysis can be internally valid, well-defended against its obvious confounders, and still answer a question nobody asked.** The crossing was built to rule out two alternative explanations for a pattern that was itself an artefact of what an agent found interesting. Ruling out confounders is not the same as establishing that the question matters, and only the person who owns the problem can settle the second.
+
+### T13 is half closed, and the open half is the one that was raised
+
+Gerard rewrote the day-30 milk caveat himself. His wording is a **precision** caveat — more variability, the true impact is not certain yet. The finding was about **selection**: the cows behind the day-30 point are the earlier-alerting ones, so that figure describes a non-random subset rather than a noisy estimate of the whole. His text stands; the selection point is simply still unmade, and is logged in section H so it is not quietly lost.
+
+### `pipeline_losses.xlsx` became reproducible, and that immediately caught two live drifts
+
+The generator existed only in a scratchpad, so the workbook the report points readers at had gone stale — it still carried 144 candidates and the retired "NOT LOST" label while the report had moved to 131. Promoting it to `scripts/step3_pipeline_losses.R` surfaced two real disagreements:
+
+1. It still used the **inclusive same-day window** (144 candidates against the report's 131).
+2. It emitted **"Flagged, Lost in Pipeline"** where the shared function had moved to **"Flagged, but no alert in time"** — a filter that matched nothing and silently zeroed every verdict.
+
+Both fixed; it now reproduces 131 → 50 by design / 81 not. The `.xlsx` sits under the gitignored `reports/` tree and was never a committed artefact — the script is what makes it reproducible.
+
+**The second drift is the sharpest instance yet of this project's most persistent failure mode: sharing logic through a *string label* rather than a value, so a rename fails silently instead of erroring.** Same class as the `detection_group` label mismatches in Round 18 and the `DSNLM` split in T22. The pattern has now cost real numbers three times. The structural fix, where it can be afforded, is to have the shared function return the *set* rather than have each caller re-filter on a string it has to spell correctly.
+
+Also this round: both reports now go through `fxn_build_control_trim_drivers()`, so the staff-versus-routine trim numbers are computed once rather than duplicated — the same single-sourcing that closed T22, applied in a second place.
+
+### Working practice worth keeping: two sessions, one repo
+
+Two Claude sessions worked this repo simultaneously, split by file — one owning `functions/` and both `_fx` reports, the other owning the design and plan documents — coordinating by direct message. It worked, with one mistake worth recording: **`git add -u` stages every tracked file, not just your own.** One session swept the other's uncommitted work into its commit; caught immediately and undone with `git reset --soft HEAD~1` plus `git restore --staged` on the two files, leaving the working tree untouched. **Commit with explicit pathspecs when another session is live in the same repo.**
