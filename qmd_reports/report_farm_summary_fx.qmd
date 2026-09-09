@@ -635,9 +635,9 @@ q4_sensor <- q4_sensor |>
   mutate(detection_group_3way = factor(case_when(
     !in_coverage           ~ "No Data (Outside Coverage)",
     caught_by_nedap        ~ "Flagged, Caught in Time",
-    sensor_fired_in_window ~ "Flagged, Lost in Pipeline",
+    sensor_fired_in_window ~ "Flagged, but no alert in time",
     TRUE                   ~ "Never Flagged (True Miss)"
-  ), levels = c("Flagged, Caught in Time", "Flagged, Lost in Pipeline",
+  ), levels = c("Flagged, Caught in Time", "Flagged, but no alert in time",
                 "Never Flagged (True Miss)", "No Data (Outside Coverage)")))
 
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))

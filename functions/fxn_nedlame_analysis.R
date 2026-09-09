@@ -782,7 +782,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     select(id_animal, hist_date = date_event) |>
     distinct()
   
-  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, Lost in Pipeline")
+  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, but no alert in time")
   
   # Which alert type(s) actually fired within the lookback window for each
   # pipeline-loss case - needed to restrict the injury/Leg-AboveFoot check
@@ -917,11 +917,31 @@ n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE
       low_only  ~ "Cannot tell - LOW only, no score at flag",
       TRUE      ~ "Genuine pipeline loss"
     ))
+  # ONE reason per case, in a fixed precedence, so the categories sum to the
+  # total. The counts used to be independent - a case both FTDAT-blocked and
+  # late was counted under each - so the prose bullets added to more than the
+  # number of cases and disagreed with the figure beside them.
+  pipeline_loss_cases <- pipeline_loss_cases |>
+    mutate(reason = case_when(
+      all_attentions_blocked ~ "Working as designed: flag inside its FTDAT window",
+      all_dsnlm_blocked      ~ "Working as designed: already alerted (DSNLM)",
+      injury_explained       ~ "Working as designed: upper-leg history blocks Low",
+      alert_arrived_late     ~ "Not lost: the alert reached DC a day later",
+      low_only               ~ "Cannot tell: LOW only, no score at flag",
+      TRUE                   ~ "Genuine pipeline loss: a decline flag vanished"
+    ))
+  n_only_ftdat  <- sum(pipeline_loss_cases$reason == "Working as designed: flag inside its FTDAT window")
+  n_only_dsnlm  <- sum(pipeline_loss_cases$reason == "Working as designed: already alerted (DSNLM)")
+  n_only_injury <- sum(pipeline_loss_cases$reason == "Working as designed: upper-leg history blocks Low")
+  n_only_late   <- sum(pipeline_loss_cases$reason == "Not lost: the alert reached DC a day later")
+  stopifnot(n_only_ftdat + n_only_dsnlm + n_only_injury + n_only_late ==
+              n_pipeline_loss_by_design)
+
   n_pipeline_loss_unknowable <- sum(pipeline_loss_cases$verdict == "Cannot tell - LOW only, no score at flag")
   n_pipeline_loss_genuine    <- sum(pipeline_loss_cases$verdict == "Genuine pipeline loss")
   stopifnot(n_pipeline_loss_by_design + n_pipeline_loss_unknowable + n_pipeline_loss_genuine ==
               nrow(pipeline_loss_cases))
 
-  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine)
+  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late)
 }
 
