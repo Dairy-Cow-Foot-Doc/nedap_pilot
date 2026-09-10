@@ -1157,13 +1157,29 @@ Also worth knowing before quoting the split: upper-leg drops **22 → 13** as `F
 
 ### The extra-lesion number, and why it needs its caveat welded on
 
-Gerard asked how many extra lesion cows turned up in TX. Verified exactly: **a lesion was found in 184 of 397 TX cows (46.3%) against 133 of 452 Control (29.4%) — about 67 more, rate-adjusted for the unequal arms.**
+Gerard asked how many extra lesion cows turned up in TX. **A lesion was found in 170 of 397 TX cows (42.8%) against 127 of 452 Control (28.1%) — about 58 more, rate-adjusted for the unequal arms** (`0f4b30b`, verified). **The first version of this section said 67, computed from a lesion population the function built for itself; see below.**
 
 **This is ascertainment, not disease, and the sentence is one word away from being wrong.** Allocation was random, so expected incidence is equal by construction; what differs is who was looked at. Both reports say so explicitly. The direction was checked rather than asserted — among cows actually trimmed, Control trims found lesions *more* often than TX ones, which is what a suspicion-driven population looks like, not a healthier one.
 
-**"67 extra lesions in the trimmed group" is a very easy sentence to misread as a treatment effect**, and it is the kind of number that travels without its paragraph. If it ever appears in a summary, a slide or an email, the ascertainment clause has to travel with it. This is the single most misquotable figure the project has produced.
+**"58 extra lesions in the trimmed group" is a very easy sentence to misread as a treatment effect**, and it is the kind of number that travels without its paragraph. If it ever appears in a summary, a slide or an email, the ascertainment clause has to travel with it. This is the single most misquotable figure the project has produced — and it proved the point on itself: this very warning sat here carrying **67** for one commit after the number became 58, because the correction was applied to the paragraph stating the figure and not to the paragraph warning about it. **A number repeated in a second place is a number that will go stale in one of them.**
 
-One loose end, flagged rather than resolved: reproducing the supporting ascertainment figures with my own definitions gave different values from those quoted in the function's comment (I get Control 51.8% of the arm trimmed and 56.8% of trimmed cows with a lesion found, against TX 96.7% and 47.9%; the comment cites 49.8%/90.4% and 54%/45%). **The direction is identical and robust either way, which is all the argument needs** — but the exact percentages depend on the trim window and on cow-level versus visit-level grain, and the report should quote its own computed objects rather than a hand-figure in a comment. Same stale-comment hazard the project has hit before, in a place where it is only a comment.
+### The 67 was wrong, and the way it was wrong is the useful part
+
+I had flagged that the section's supporting percentages would not reproduce against my own computation, and treated it as a stale-comment nitpick. **It was the small, visible end of a real bug in the headline itself, and Gerard found the big one by eye** — the TX/Control counts did not line up with the treatment-group numbers in the tables beside them.
+
+`fxn_build_lesion_yield()` had rebuilt the lesion population from `lame_data` instead of reading what the report already had. Three defensible readings of *"had a lesion found after her alert"* were then in the same document:
+
+| reading | TX | Control |
+|---|---|---|
+| any `LAME`-with-lesion event in window (the new section's own) | 184 | 133 |
+| first post-alert trim (the trim-only table) | 162 | 121 |
+| `q2_lesion`, the report's own lesion curve | 170 | 127 |
+
+All three are reasonable. Only one is the report's, and **a new section has no business introducing a fourth.** Rebuilt on `q2_lesion` and `q2_any` — the same objects behind the survival curves immediately above it — the answer is 58, not 67. The ascertainment argument and the direction are unchanged; only the number moved. The supporting percentages are now returned by the function and interpolated rather than typed, which is what closed my original flag: my 96.7%/51.8% came from counting trims in `lame_data` cow-level, a different population again — not wrong, just not the report's.
+
+**This is a defect class none of the three checks below would have caught**, and it is worth its own rule. The code was self-contained, the categories partitioned, and the rendered prose was true of the data it was computed from. The defect is visible only by **comparing one section's numbers against another section's** — which is exactly what Gerard did, by eye, because he knows what the treatment groups should look like.
+
+**Rule: when a new section needs a population the report already has an object for, use that object rather than rebuilding it. If you must rebuild, print both and reconcile before writing any prose.** A second definition does not announce itself; it just quietly disagrees with the table above it.
 
 ### A render break arriving from a human edit
 
@@ -1173,10 +1189,11 @@ Gerard reordered the farm report's trimming section, which put a bullet quoting 
 
 Four re-derivation catches now between the two sessions, in both directions. This one is different in kind: the error was found by **reading the rendered output**, not the code. Static checks pass on that bullet, and the render succeeds — the sentence is perfectly valid R producing a grammatical sentence. It is simply nonsense about the data.
 
-**So the checks now stand at three layers, and each catches what the others cannot:**
+**So the checks now stand at four layers, and each catches what the others cannot:**
 
 1. `codetools::findGlobals()` and the like — catches code that is not self-contained. Blind to meaning.
 2. **Assert the partition wherever a string label decides a category** — catches renames and silent zeroing. Blind to prose.
 3. **Read the rendered page** — catches prose that is true of the code and false about the data.
+4. **Reconcile a new section's numbers against the sections around it** — catches a second, silently divergent definition of a population the report already had. Blind to nothing except what is not on the page.
 
-A successful render is evidence for none of the three.
+A successful render is evidence for none of the four. Layers 3 and 4 were both earned this round by a human reading output rather than code — Gerard on the counts, and the farm report's *"the same cows behind the lesion curve above"*, which was true in the full report and false in the farm one, which has no lesion curve.
