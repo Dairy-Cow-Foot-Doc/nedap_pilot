@@ -562,7 +562,7 @@ So the rule that landed is not about the window at all: **a cow alerted at any d
 
 ---
 
-### ☐ T24. The `FTDAT` trim gate is lactation-scoped; DairyComp's `FTDAT` is cow-level ✅ verified — **impact re-measured 2026-09-09: 18 cases, not zero**
+### ☑ ~~T24. The `FTDAT` trim gate is lactation-scoped; DairyComp's `FTDAT` is cow-level ✅ verified~~ — DONE 2026-09-09 (`a47f053`), 18 cases moved, and it emptied a category on the way
 
 **`functions/fxn_nedlame_analysis.R`, `fxn_build_pipeline_by_design()`, the `trims_gate` join**
 
@@ -585,7 +585,13 @@ left_join(trims_gate, by = c("id_animal", "lact_number"), ...)
 
 So the original conclusion survives, and is arguably strengthened: **this does not change what we take to Nedap.** But "cosmetic" was wrong. It cuts the unjudgeable pile by roughly a quarter. The prediction in the finding — that the 90-day `Low` gate is wide enough for prior-lactation trims to land inside it — is not waiting to happen; **it is already happening, 18 times.**
 
-**Fix:** join `trims_gate` on `id_animal` alone and keep the existing `gate_trim_date < attention_date` filter, which already does the temporal work. Same change applies to the `trims_gate` build, which carries `lact_number` only to support this join. Owned by the session holding `functions/`; being put to Gerard with the numbers above.
+**APPLIED in `a47f053`.** `trims_gate` now joins on `id_animal` alone, with the existing `gate_trim_date < attention_date` filter doing the temporal work. Verified independently by re-running the report's own chunks: **57 by design / 51 cannot tell / 11 genuine**, exactly as predicted, with the headline unchanged at 579 = 240 + 26 + 313 (54.1%) and the genuine 11 untouched.
+
+**Side effect found while verifying, and fixed in the same commit: the `DSNLM` bucket is empty, and one bullet was rendering as an explanation of nothing** — *"0 had every flag suppressed by DSNLM: she had already been alerted inside the window..."*. T24 was not the cause. Checked by extracting the pre-T24 function from `f6d5df6` and running it on the same data: `DSNLM` was already 0 there and 10 at `f3a6031`, so **the warned-not-acted rule (Round 27) emptied it**. The mechanism is near-structural rather than incidental: `all_dsnlm_blocked` needs a prior `NEDLAME` before the flag, and a cow with an earlier alert now leaves the population first — caught inside the lookback, or set aside as warned-and-not-acted-on. The two rules overlap almost entirely.
+
+It is **not** strictly unreachable: alert → trim → repeat flag inside the 7-day decline window would still land there, because the trim keeps her a miss. None currently does. So the factor level stays (Round 20's rule holds for the level) and only the prose changed — the bullet is now conditional and, at zero, explains *why* it is zero instead of vanishing.
+
+Note for anyone quoting the by-design split: the upper-leg count also drops **22 → 13** on this change, because `FTDAT` wins the precedence and absorbs 9 of those cases. Post-`a47f053` the exclusive breakdown is **FTDAT 39 + upper-leg 13 + late 5 + DSNLM 0 = 57**.
 
 **Measurement lesson worth more than the fix:** to size a change that can only ever push cases *one way* across a boundary, you have to measure it on the population that could cross — not on the group defined by having already landed on one side. Ask what the change can do, then pick the denominator that could show it.
 
@@ -625,4 +631,4 @@ Both fixed; it now reproduces 131 → 50 by design / 81 not. **The second is the
 
 ### Still open
 
-**T24** only — unfixed, but quantified at zero impact for the cases in hand. T13 and T23 are both closed (see their entries; T23 was subsumed rather than applied).
+**Nothing.** T13, T23 and T24 are all closed. T23 was subsumed rather than applied; T24 was applied in `a47f053` after its impact was re-measured from zero to 18 cases.

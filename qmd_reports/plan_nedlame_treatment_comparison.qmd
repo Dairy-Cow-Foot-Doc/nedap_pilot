@@ -1142,3 +1142,41 @@ That is the same error class as the base-rate trap recorded in Round 25 itself �
 **The transferable rule:** to size a change that can only push cases *one way* across a boundary, measure it on the population that could cross — never on the group defined by having already landed on one side. Ask what the change is capable of doing, then choose the denominator that could show it.
 
 This was caught by the other session re-deriving the number before putting the finding to Gerard, rather than carrying it forward on the strength of it being already written down. Two sessions checking each other's arithmetic has now caught a wrong count in both directions.
+
+## Round 29: T24 applied, the review closes, and one number that will be misquoted
+
+`a47f053`. **Every item in `design/review-findings-2026-09-08.md` is now closed** — T1–T22 across Rounds 26–27, T23 subsumed, T24 applied here.
+
+### T24 landed where the re-measurement said, and emptied a category on the way
+
+`trims_gate` now joins on `id_animal` alone. Verified by re-running the report's own chunks: **57 by design / 51 cannot tell / 11 genuine**, headline unchanged at 579 = 240 + 26 + 313 (54.1%), genuine 11 untouched.
+
+Found while verifying: the `DSNLM` bullet was rendering as *"0 had every flag suppressed by DSNLM: she had already been alerted inside the window..."* — an explanation of an empty set. **T24 was not the cause.** Running the pre-T24 function from `f6d5df6` on the same data gives `DSNLM` = 0 there too, against 10 at `f3a6031`, so **Round 27's warned-not-acted rule emptied it.** The overlap is near-structural: `all_dsnlm_blocked` needs a prior `NEDLAME` before the flag, and a cow with an earlier alert now leaves the population first. Not strictly unreachable — alert → trim → repeat flag inside the 7-day window would still land there — so the level stays and only the prose changed, which is Round 20's rule applied correctly rather than mechanically.
+
+Also worth knowing before quoting the split: upper-leg drops **22 → 13** as `FTDAT` wins the precedence and absorbs 9. Post-`a47f053`: **FTDAT 39 + upper-leg 13 + late 5 + DSNLM 0 = 57.**
+
+### The extra-lesion number, and why it needs its caveat welded on
+
+Gerard asked how many extra lesion cows turned up in TX. Verified exactly: **a lesion was found in 184 of 397 TX cows (46.3%) against 133 of 452 Control (29.4%) — about 67 more, rate-adjusted for the unequal arms.**
+
+**This is ascertainment, not disease, and the sentence is one word away from being wrong.** Allocation was random, so expected incidence is equal by construction; what differs is who was looked at. Both reports say so explicitly. The direction was checked rather than asserted — among cows actually trimmed, Control trims found lesions *more* often than TX ones, which is what a suspicion-driven population looks like, not a healthier one.
+
+**"67 extra lesions in the trimmed group" is a very easy sentence to misread as a treatment effect**, and it is the kind of number that travels without its paragraph. If it ever appears in a summary, a slide or an email, the ascertainment clause has to travel with it. This is the single most misquotable figure the project has produced.
+
+One loose end, flagged rather than resolved: reproducing the supporting ascertainment figures with my own definitions gave different values from those quoted in the function's comment (I get Control 51.8% of the arm trimmed and 56.8% of trimmed cows with a lesion found, against TX 96.7% and 47.9%; the comment cites 49.8%/90.4% and 54%/45%). **The direction is identical and robust either way, which is all the argument needs** — but the exact percentages depend on the trim window and on cow-level versus visit-level grain, and the report should quote its own computed objects rather than a hand-figure in a comment. Same stale-comment hazard the project has hit before, in a place where it is only a comment.
+
+### A render break arriving from a human edit
+
+Gerard reordered the farm report's trimming section, which put a bullet quoting `n_ctl_trimmed` **above the chunk that computes it** and broke the render. Same forward-reference class the project has hit before, but arriving through his edit rather than an agent's. **So the post-edit check script is worth running after his passes too, not only after ours** — the assumption that hand edits are safe because they are small is exactly how this one got in.
+
+### The practice note, updated
+
+Four re-derivation catches now between the two sessions, in both directions. This one is different in kind: the error was found by **reading the rendered output**, not the code. Static checks pass on that bullet, and the render succeeds — the sentence is perfectly valid R producing a grammatical sentence. It is simply nonsense about the data.
+
+**So the checks now stand at three layers, and each catches what the others cannot:**
+
+1. `codetools::findGlobals()` and the like — catches code that is not self-contained. Blind to meaning.
+2. **Assert the partition wherever a string label decides a category** — catches renames and silent zeroing. Blind to prose.
+3. **Read the rendered page** — catches prose that is true of the code and false about the data.
+
+A successful render is evidence for none of the three.
