@@ -579,6 +579,35 @@ Correcting the same error changes the sample size materially. **Only 18.3% of al
 
 For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a week, so three to four herds over a year. 7,100 is about 103 farm-weeks, which needs five or more.
 
+
+##### The cure outcome, simulated
+
+▶ *Worth simulating rather than trusting the two-proportion formula, because the closed form ignores three things this design has: the multi-stage selection from enrolled to lesion to assessed, herd-level variation in the cure rate, and arm-2 contamination.* 300 replicates per cell, mixed-effects logistic with a herd random effect, arm-2 modelled with a third of cows treated before its protocol week.
+
+**Power for arm 1 versus arm 3, by how cows are assessed:**
+
+| Improvement | Assessment route | 2,000 | 3,000 | **4,300** | 6,000 | 9,000 |
+|---|---|---|---|---|---|---|
+| **+10 points** | current practice (60%) | 24 | 31 | 39 | 51 | 73 |
+| | dry-off trim (75%) | 26 | 34 | 47 | 62 | 82 |
+| | scheduled recheck (95%) | 31 | 45 | **62** | 75 | 87 |
+| **+15 points** | current practice (60%) | 42 | 64 | 76 | 87 | 97 |
+| | dry-off trim (75%) | 53 | 66 | 86 | 91 | 99 |
+| | scheduled recheck (95%) | 55 | 79 | **93** | 98 | 100 |
+| **+20 points** | scheduled recheck (95%) | 87 | 97 | 100 | 100 | 100 |
+
+*Enrolled cows across all three arms.*
+
+**The simulation agrees with the closed-form figures**, which is worth stating because the milk simulation did not. For a scheduled recheck it puts 80% power at about 7,000 enrolled for +10 points and about 3,100 for +15, against closed-form values of 6,714 and 2,952 — within 5%. The agreement holds because the cure model has arm as a main effect with no interaction, so the formula applies directly; the milk discrepancy came entirely from the `treatment × history` term, and the same 2× penalty would apply here if the cure model carried an interaction.
+
+**Three things the table settles.**
+
+1. **At 4,300 enrolled the study has 93% power for a 15-point cure difference and 62% for a 10-point one.** That confirms the enrolment target from the other direction, and it confirms that 10 points is the ambition that does not fit.
+
+2. **Standardising the recheck is worth having but is not transformative.** At +15 points it moves power from 76% to 93% — the difference between inadequate and comfortable, but the study is not impossible without it.
+
+3. **The dry-off route would have worked on power** (86% at +15 points, between the other two, as its 75% coverage implies). It was dropped for the timing reason above, not because it lacked power — worth recording so the option is not rediscovered and re-rejected on the wrong grounds.
+
 #### Attrition: inflate the milk outcome by about 1.28
 
 Measured on the pilot cohort, from the alert:
@@ -749,7 +778,7 @@ Without these the study measures the camera and the integration together and can
 | Economic framing | Report **what the system is worth**, with an interval — not a pass/fail against a break-even. | Gerard's inversion; avoids assuming the answer. |
 | Incidence input | Measured: **27.1 new cases per 100 cow-years**, this herd at the **high end** of a range. Definition is `status_lesion == "New"`. | Gerard's definition + validated denominator. |
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
-| Enrolment target | **~4,300 across three arms** - covers the milk contrasts, recurrence, and a 15-point cure difference. A 10-point cure difference would need 7,100. | Pilot conversion rates, x1.28 attrition, x1.05 heterogeneity. |
+| Enrolment target | **~4,300 across three arms** - milk contrasts, recurrence, and a 15-point cure difference (93% power, simulated). A 10-point cure difference needs ~7,000. | Pilot conversion rates, x1.28 attrition, x1.05 heterogeneity; confirmed by simulation. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
 
