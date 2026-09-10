@@ -43,7 +43,7 @@ Randomised controlled trial, **three arms**, **one year of enrolment with 365-da
 
 ### Enrolment
 
-A cow enters **at her first SmartSight alert**, and is randomised at that moment, stratified by lameness history and lactation group.
+A cow enters **at her first SmartSight alert** and is randomised at that moment, in **blocks by lameness history (new / chronic) and lactation group (1 / 2 / 3+)**. Blocking balances the arms on the two covariates most likely to modify the effect, costs nothing, and improves precision on the main comparison.
 
 Enrolling at freshening instead was considered and rejected. It does not change the treatment contrast — cows are still only treated when alerted — so it buys nothing for these outcomes, at ×1.6 the cows and roughly double the calendar time. It would only earn that if detection accuracy were a study question, and it is not.
 
@@ -166,9 +166,26 @@ Powered on the primary milk contrast, at 80% power and two-sided α = 0.05, usin
 
 ## 5. Analysis
 
-**Milk.** Mixed linear model on weekly averages: arm, DIM spline, lactation group, lesion history, breed, herd as fixed effects; cow random intercept. Arm as a **main effect** for the primary estimand — an `arm × history` interaction makes the reported coefficient a within-stratum effect and **exactly doubles** the sample size required.
+**Milk.** Mixed linear model on weekly averages: arm, DIM spline, lactation group, lesion history, breed, herd as fixed effects; cow random intercept. **Arm enters as a main effect.** The `arm x history` interaction is **estimated and reported, but the study is not powered for it** - see below.
 
-**Cure and lesion at dry-off.** Mixed logistic, same covariates, herd random effect. The interaction penalty here is **1.59×**, not 2× — simulated rather than assumed, since the logistic and linear cases differ.
+**Cure and lesion at dry-off.** Mixed logistic, same covariates, herd random effect.
+
+### The chronicity interaction: explored, not powered
+
+Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 34% -> 48% -> 52% across parity, and cure falls from 51.9% in new cows to 45.0% in chronic ones (p = 0.007). Those are **main effects**, and adjusting for them is free. Whether the *treatment benefit* also differs by chronicity is untested - the pilot has no randomised treatment contrast to test it with.
+
+**The study will estimate that interaction and report it with its interval, without being sized for it.** At 6,000 enrolled the interaction term carries a 95% interval of about +/-0.83 kg/day against +/-0.59 kg for the main effect, so only a large difference between new and chronic cows would reach significance. The estimate is still worth having: it is what would tell a follow-up study whether to target one group.
+
+**If Nedap wants it powered**, the cost is available and it is substantial:
+
+| | Explored | Powered |
+|---|---|---|
+| Milk, 1.0 kg contrast | **5,800 enrolled** | **11,500 enrolled** |
+| Cure, WLD/SU +15 points | ~3,000 | ~4,700 |
+| Accrual at 69 alerts/week | 84 farm-weeks | 167 farm-weeks |
+
+Milk binds in both cases. Powering the interaction is **2.0x the study** - roughly two years of accrual across four herds rather than one - because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00x on the linear milk model and 1.59x on the logistic cure model.
+
 
 **Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culled cows are a competing risk for recurrence, not an attrition adjustment.
 
@@ -197,9 +214,11 @@ Without these the study measures the camera and the integration together and can
 
 ## 7. Open decisions
 
+**Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §5 should Nedap want it: 11,500 enrolled rather than 5,800.
+
+
 | | Decision | Turns on |
 |---|---|---|
-| 1 | Buy the chronicity × lactation interaction? Costs **2×** on milk, **1.59×** on cure. | Recurrence rises 34% → 52% across parity and cure falls 7 points in chronic cows, so there is real reason to think it matters. |
 | 2 | Number of herds. | Three to five. More herds buy protection against treatment-effect heterogeneity far more efficiently than more cows do, and routine trimming — the main thing that differs between farms — cannot be standardised. |
 | 3 | IOFC, cost per trim, replacement cost and cull value **from the participating farms**, not national averages. | The culling term dominates the economics and the answer is sensitive to it. |
 | 4 | Cure at +15 points, or +10 for a larger study? | +15 fits inside 6,000; +10 needs about 10,000. |
