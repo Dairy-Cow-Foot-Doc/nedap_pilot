@@ -99,6 +99,7 @@ This is the single most valuable feature of the three-arm structure and it shoul
 ### Herds
 
 - **Reliable** hoof trimming data (reviewer's wording, and better than "good" — the requirement is that records are complete and consistently coded, which is checkable).
+- **Low routine-trimming frequency.** Checkable from existing hoof records before enrolment. Power on the primary contrast more than doubles between a herd that trims routinely at 10% and one at 60%, at identical enrolment - a bigger lever than sample size. See §5.
 - Trained hoof trimming staff, so treatment is competent.
 - Daily milk weights.
 - Able to install and run SmartSight.
@@ -331,6 +332,60 @@ Week of trim, as a share of all Control trims:
 | 3.5 | 5 | 14 | 15 | 46 | 75 |
 
 The second table confirms the structural point: a threshold criterion is near-unattainable unless the true effect comfortably exceeds the threshold. At 2.5 kg against a 2.45 kg break-even, power never leaves single digits at any sample size.
+
+
+#### The three-arm simulation
+
+100 replicates per cell. Farm detection parameterised from the pilot: staff catch 17.7% of cows (median 7 days), the routine round 32.1% (median 23 days), each cow treated by whichever fires first. Arm as a main effect. 60-day window.
+
+**Dilution is the dominant fact.** The contrast a study can see is much smaller than the treatment effect that generates it:
+
+| True treatment effect | Arm 1 v 3 | Arm 2 v 3 | Arm 1 v 2 |
+|---|---|---|---|
+| 1.0 kg | 0.69 | 0.45 | 0.49 |
+| **1.5 kg** | **1.01** | 0.50 | 0.61 |
+| 2.0 kg | 1.42 | 0.78 | 0.71 |
+| 3.0 kg | 2.02 | 0.99 | 1.06 |
+
+*Observed contrast in kg/day, at the pilot's detection rates.*
+
+**Power, enrolled across all three arms:**
+
+| True effect | 900 | 1,500 | 2,400 | 3,600 | 6,000 |
+|---|---|---|---|---|---|
+| **Arm 1 v 3** | | | | | |
+| 1.0 kg | 14 | 20 | 26 | 45 | 52 |
+| 1.5 kg | 24 | 45 | 57 | — | 91 |
+| 2.0 kg | 46 | 51 | 82 | 94 | 100 |
+| **Arm 1 v 2** | | | | | |
+| 1.5 kg | 8 | 11 | 23 | — | 43 |
+| 3.0 kg | 24 | 45 | 58 | 70 | 91 |
+
+**Three findings.**
+
+**1. The simulation and the closed form agree once dilution is accounted for.** A 1.5 kg treatment effect produces a 1.01 kg observed contrast; the closed form needs about 4,200 cows over three arms to detect 1.01 kg, and the simulation puts 80% power between 3,600 and 6,000. They were never in conflict — the closed-form figures were quoted against *observed* contrasts and the simulation against *true* effects.
+
+**2. This revises the pilot's effect size upward, and it matters for the economics.** The pilot's 1.05 kg was itself an observed, diluted contrast — its Control arm was trimmed 49.8% of the time. On this dilution model, an observed 1.05 kg implies a **true treatment effect near 1.5 kg**. That moves the affordability figures: at 1.5 kg the system is worth **$0.51 per cow per month over 60 days, or $0.76 over 90** — against a price of $0.65–0.80. The 90-day figure covers the cost.
+
+▶ This is a model-dependent inference, not a measurement. It rests on how benefit is assumed to accrue after treatment, and it should be presented as a range rather than a point.
+
+**3. Arm 1 versus arm 2 cannot be answered on a 60-day window at any realistic size.** At a 1.5 kg true effect, 6,000 cows gives 43% power. Arm-2 contamination plus catch-up shrinks the contrast to 0.61 kg. **This is the quantitative confirmation that the timing question needs the 0–28 day window** — over 28 days arm 2 has had no treatment at all and the contrast is the full effect.
+
+#### Herd selection is a bigger lever than sample size
+
+Routine-trim coverage varies between farms and cannot be standardised. Holding staff detection at 17.7% and n at 2,400:
+
+| Routine coverage in arm 3 | Observed arm 1 v 3 | Power |
+|---|---|---|
+| 10% | 1.23 kg | **75%** |
+| 20% | 1.09 | 63% |
+| 32% (pilot) | 1.01 | 57% |
+| 45% | 0.94 | 55% |
+| 60% | 0.79 | **33%** |
+
+**Power more than doubles between a high-routine-trimming herd and a low one, at identical enrolment.** Recruiting three herds that trim routinely at 10–20% is worth more than adding 2,000 cows to a study run in 60%-coverage herds.
+
+▶ **This should be a herd eligibility criterion, and it is checkable before enrolment** — routine trimming frequency is visible in any farm's existing hoof records. It belongs alongside "reliable hoof trimming data" in §3.
 
 #### Why the simulation needs twice the cows the formulae say — and it is a design decision, not an error
 
