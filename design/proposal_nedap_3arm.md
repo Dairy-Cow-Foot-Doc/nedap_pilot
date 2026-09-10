@@ -8,14 +8,47 @@
 
 ## 1. Objective
 
-Determine whether acting on Nedap SmartSight lameness alerts improves cow outcomes enough to pay for the system, and whether acting *early* matters more than acting at all.
+**Does it pay a commercial dairy to use SmartSight?**
 
-Two questions, deliberately separated:
+Detection accuracy is not the question. The pilot already establishes that the camera works after a fashion — it flagged 240 of 579 lesion cases in time, missed 194 outright, and has a known blind spot in digital dermatitis. Measuring that more precisely needs a different study with a reference standard, and is not what a farm buying the system wants to know.
 
-1. **Does the system help?** Alerted-and-treated against alerted-and-not-treated.
-2. **Does speed matter?** Treated within a week against treated at four weeks.
+What a farm wants to know is whether acting on the alerts leaves it better off, and by how much. Two questions serve that:
 
-The pilot could answer neither. It compared "trim off the alert" against "farm discretion", and farm discretion turned out to be mostly the routine trim schedule catching up — only 80 of 225 trimmed Control cows had a staff check first. So the pilot's contrast was the camera against a mixture, and roughly two thirds of that mixture was not an active decision at all.
+1. **Does acting on alerts pay?** Arm 1 against arm 3 — trim off the alert, or carry on as now.
+2. **Does acting *quickly* pay?** Arm 1 against arm 2 — within a week, or at four weeks. This decides how much of the answer to (1) depends on responsiveness, which is the expensive part for a farm to deliver.
+
+### The ledger, and what the pilot already puts on it
+
+"Does it pay" is a **net** question, and the cost side is not only the subscription. **Acting on alerts means trimming more cows.** In the pilot the trimmed arm was trimmed 90.4% of the time against Control's 49.8% — **0.406 extra trims per alerted cow** — and 54.9% of those trims found no lesion.
+
+Per alerted cow, with milk valued at $0.25/kg IOFC and 35% of alerted cows having a lesion to treat:
+
+| Milk gain | Window | Milk benefit | Extra-trim cost @$12 | **Net before subscription** |
+|---|---|---|---|---|
+| 1.05 kg | 60 d | $5.51 | $4.87 | **+$0.64** |
+| 1.05 kg | 90 d | $8.27 | $4.87 | **+$3.40** |
+| 1.50 kg | 60 d | $7.87 | $4.87 | **+$3.00** |
+| 1.50 kg | 90 d | $11.81 | $4.87 | **+$6.94** |
+
+*At $8 a trim add about $1.60; at $18 subtract about $2.40.*
+
+And the subscription, on the same per-alerted-cow basis (62% of cows are alerted per lactation):
+
+| | Per cow-year | **Per alerted cow** |
+|---|---|---|
+| $0.65/cow/month | $7.80 | **$12.58** |
+| $0.80/cow/month | $9.60 | **$15.48** |
+
+▶ **So on milk alone, net of the extra trimming, the system does not pay.** The best case above is +$6.94 against a subscription of $12.58–15.48. **The shortfall is roughly $6 to $12 per alerted cow, and that is what culling, recurrence and labour have to cover.**
+
+This is the sharpest statement the pilot supports, and it sets the study's job precisely: **not "is there a milk benefit" — there probably is, and it is not enough on its own — but "do the other value streams close a $6–12 per-alerted-cow gap".**
+
+### What that means for the design
+
+- **The primary analysis is economic**: net margin per alerted cow, arm 1 against arm 3, combining milk, culling, recurrence, treatment cost and subscription.
+- **The clinical outcomes are there to explain the economics**, not to stand alone. Cure and recurrence matter because they drive future treatment cost and culling risk, which is where the gap has to close.
+- **Extra trim cost must be measured, not assumed.** It is a first-order term — comparable in size to the entire milk benefit — and it is the one cost a farm controls. Record every trim, its duration if possible, and whether a lesion was found.
+- **Arm 2 earns its place economically, not just clinically.** If arm 1's empty trims are prevented lesions, they are value; if they are false positives, they are the largest avoidable cost in the design. Arm 2 is what distinguishes those, and the answer moves the ledger by up to $4.87 per alerted cow.
 
 ---
 
@@ -896,6 +929,8 @@ Without these the study measures the camera and the integration together and can
 | Economic framing | Report **what the system is worth**, with an interval — not a pass/fail against a break-even. | Gerard's inversion; avoids assuming the answer. |
 | Incidence input | Measured: **27.1 new cases per 100 cow-years**, this herd at the **high end** of a range. Definition is `status_lesion == "New"`. | Gerard's definition + validated denominator. |
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
+| Enrolment point | **At the alert.** Detection accuracy is not a study question, so a freshening cohort buys nothing for these outcomes at x1.6 cows and double the duration. | Gerard, 2026-09-10. |
+| Primary question | **Does it pay?** Net margin per alerted cow, arm 1 v arm 3. Clinical outcomes explain the economics rather than standing alone. | Gerard, 2026-09-10. |
 | Enrolment target | **~4,300 across three arms** - milk contrasts, recurrence, and a 15-point cure difference (93% power, simulated). A 10-point cure difference needs ~7,000. | Pilot conversion rates, x1.28 attrition, x1.05 heterogeneity; confirmed by simulation. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
