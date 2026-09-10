@@ -299,6 +299,54 @@ The SE ratio is **1.414 — exactly √2 — so the sample-size penalty is exact
 
 This is the quantitative answer to the open question of whether to power the chronicity interaction or merely adjust for it. **It costs 2×.**
 
+
+### What does waiting four weeks cost? — and the window decides the answer
+
+▶ *Gerard's proposal: treat the benefit/cost of waiting as an outcome in its own right, with the expectation that milk differences run 1v3 > 2v3 > 1v2.*
+
+**That ordering is correct, but only for windows of 90 days or more.** It reverses at shorter windows, and the reversal is a design lever rather than a curiosity.
+
+Each contrast as a fraction of the full treatment effect (50% routine coverage in arm 3):
+
+| Window | Arm 1 v 3 | Arm 2 v 3 | Arm 1 v 2 |
+|---|---|---|---|
+| 28 days | 0.81 | **−0.19** | **1.00** |
+| 60 days | 0.78 | 0.33 | 0.44 |
+| 90 days | 0.77 | 0.46 | 0.31 |
+| 120 days | 0.77 | 0.53 | 0.24 |
+| 180 days | 0.76 | 0.61 | 0.15 |
+
+Cows needed across all three arms, 80% power, full effect 1.5 kg/day:
+
+| Window | Arm 1 v 3 | Arm 2 v 3 | Arm 1 v 2 |
+|---|---|---|---|
+| **28 days** | 2,982 | 55,613 | **1,967** |
+| 60 days | 3,138 | 17,124 | 9,633 |
+| 90 days | 3,185 | 8,820 | 19,844 |
+| 180 days | 3,228 | 5,076 | 78,596 |
+
+Three things fall out of this.
+
+**1. The cost of waiting must be measured over the delay window, not the study window.** Arm 2's entire disadvantage is realised in the first four weeks, and every week of measurement after that is arm 2 catching up and washing the signal out. Over 28 days the contrast is the *full* effect and costs about **2,000 cows**; over 90 days it is a third of the effect and costs **20,000**. Measuring the value of early treatment on a 90-day window is a tenfold mistake, and it is the natural mistake to make if one window is chosen for the whole study.
+
+▶ **Recommendation: define the arm-1-versus-arm-2 comparison on cumulative milk over days 0–28**, and the arm-1-versus-arm-3 comparison on 60–90 days. Different questions, different windows, both pre-specified.
+
+**2. Arm 1 versus arm 3 barely cares about the window** — 2,982 to 3,228 cows from 28 to 180 days. That contrast is robust, and it should carry the primary efficacy claim.
+
+**3. Arm 2 versus arm 3 is the expensive one and should not be a primary comparison.** It needs a long window and 5,000+ cows even at 180 days. At 28 days it is *negative*:
+
+> ⚠ **An early interim analysis would show arm 2 performing worse than doing nothing.** Inside the first four weeks arm-2 cows are protocol-bound to wait, while arm-3 cows can be picked up by the routine round at any time. This is an artifact of the protocol, not a harm, but it will look alarming to anyone reading a 30-day interim without warning. **Say so in the protocol before it happens.**
+
+#### Better outcomes than milk for the cost of waiting
+
+Milk over 28 days answers the question but is not the only, or the sharpest, measure. Three others are available, and two exploit inspection points the study is standardising anyway:
+
+- **Lesion severity at the trim itself.** Arm 1 is examined at week 1 and arm 2 at week 4, so comparing what is found is a direct measure of whether the lesion progressed while waiting — depth, block required, more than one claw affected. No extra data collection: it is the trim record.
+- **Cure at the standardised recheck.** Since rechecks are being standardised across arms, this is a clean common inspection point. Did the lesion resolve, and did waiting four weeks make it less likely to?
+- **Recurrence within 365 days.** Well-powered (~406 index cases per arm for a 20% relative reduction) and the outcome with the clearest clinical meaning: if delay lets a lesion establish, it should show up here.
+
+▶ **Recommendation: make lesion severity at trim and cure at recheck the primary measures of what waiting costs**, with 28-day milk as the economic translation. Severity and cure are measured at points both arms actually pass through, they need no additional window choice, and they are not diluted by catch-up.
+
 ### Economics: what is the system worth?
 
 ▶ **Recommended framing, and it replaces break-even.** Rather than fixing a break-even and powering to clear it, **fix a feasible sample size and report what the system is worth, with an interval.** There is no threshold to assume, so the study cannot be unfalsifiable, and the output is the number a farm or Nedap actually needs.
@@ -418,3 +466,5 @@ Without these the study measures the camera and the integration together and can
 | 7 | Confirm: sample size from recurrence (~2,850 enrolled), economics reported as an affordability estimate with an interval rather than a break-even verdict. |
 | 8 | Number of herds and expected alerts per herd per week. |
 | 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
+| 10 | Confirm different measurement windows per contrast: 0-28 d for arm 1 v 2, 60-90 d for arm 1 v 3. |
+| 11 | Confirm lesion severity at trim and cure at recheck as the primary measures of what waiting costs. |
