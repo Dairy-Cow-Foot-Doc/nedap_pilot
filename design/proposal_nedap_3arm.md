@@ -784,50 +784,61 @@ Routine-trim coverage varying between roughly 10% and 60% across farms implies t
 
 ---
 
-### The break-even calculator needs one more cost input
+### Sizing the study on the question it is actually asking
 
-The Shiny calculator is the right framework for "does it pay", and this section is not an alternative to it. It computes the milk gain needed **per lame cow** from herd size, annual first-lesion incidence, camera cost per cow per month and a benefit window. The point here is a **missing term in its cost side**.
+The calculator's model, from `app.R`: `IOFC = milk_price − feed_cost / conversion`, which on its metric defaults is **$0.254/kg**; cost per lame cow is the yearly camera cost divided by yearly lame cows; required milk is that over IOFC over the window. It has **no trim-cost and no culling term** — confirmed in the source, not inferred.
 
-**Acting on alerts means trimming more cows, and that costs money.** In the pilot the trimmed arm was trimmed 90.4% of the time against Control's 49.8% — 0.406 extra trims per alerted cow — and 54.9% of those trims found no lesion. Converted to the calculator's own denominator:
+#### Two terms to add, with Gerard's figures
 
-| | |
+**Extra trimming, a cost.** 0.97 extra trims per lame cow (§ above). At **$15–20** a trim that is $14.55–19.40 per lame cow.
+
+**Avoided culling, a benefit.** The right unit is not the cull's market value but **replacement cost minus cull value**: $2,500–3,500 less $1,200–1,500, so **$1,000–2,300 net per cull avoided**, with $1,500 a reasonable middle.
+
+With both, at $20 a trim:
+
+| Camera | Cost per lame cow | Milk at 1.05 kg/90 d | Milk at 1.5 kg/90 d |
+|---|---|---|---|
+| $0.65/cow/month | $48.18 | −$24.18 | −$13.89 |
+| $0.80/cow/month | $54.82 | −$30.82 | −$20.53 |
+
+**Milk does not cover it in any scenario.** But the gap is small against the value of a cull: at $1,500 net, **a 2-percentage-point reduction in culling among lame cows closes it entirely.**
+
+#### The problem, and it is the central one
+
+**A 2-point culling reduction is not detectable at any feasible size.** Culling among lame cows in the pilot was 5.0% over three months, so roughly 10% over the six months the study would follow. Testing that as its own outcome:
+
+| Reduction to detect | Lame cows/arm | **Enrolled, 3 arms** |
+|---|---|---|
+| 2 points | 3,213 | **27,540** |
+| 3 points | 1,356 | 11,625 |
+| 5 points | 435 | 3,729 |
+
+**So the study cannot show that culling falls by the amount that would make the system pay** — not at 4,300 cows, not at 10,000.
+
+#### The way through: measure the margin, not its components
+
+The question is not "does culling fall". It is "does the whole thing pay". A **composite margin per alerted cow** — milk value, minus trim cost, plus avoided-cull value — is a continuous outcome and does not require any component to be individually significant.
+
+| | Per alerted cow |
 |---|---|
-| Alerts per cow-year | 0.65 |
-| Extra trims per cow-year | 0.264 |
-| Lame cows per cow-year (27.1% incidence) | 0.271 |
-| **Extra trims per lame cow** | **0.97** |
+| SD of the composite margin | **$280–286** |
+| — of which culling | $276 |
+| — of which milk | $51–76 |
+| Margin gain needed to break even | **$16.86** ($0.65/mo) to **$19.19** ($0.80/mo) |
 
-Roughly **one extra trim for every lesion found**. At $12 a trim that is $11.69 per lame cow, on top of the subscription.
+| | Enrolled, 3 arms |
+|---|---|
+| Detect the break-even margin, $0.80/cow/month | **5,000–5,200** |
+| Detect the break-even margin, $0.65/cow/month | **6,500–6,800** |
+| *(Testing culling alone, for comparison)* | *27,540* |
 
-**What it does to the break-even:**
+**The composite costs a fifth of what testing culling separately would.**
 
-| $/cow/month | Cost per trim | Cost per lame cow | Break-even, 60 d | Break-even, 90 d |
-|---|---|---|---|---|
-| $0.65 | $0 *(app as it stands)* | $28.78 | 1.92 kg | 1.28 kg |
-| $0.65 | $8 | $36.58 | 2.44 | 1.63 |
-| $0.65 | **$12** | **$40.49** | **2.70** | **1.80** |
-| $0.65 | $18 | $46.34 | 3.09 | 2.06 |
-| $0.80 | $12 | $47.13 | 3.14 | 2.09 |
+▶ **What 4,300 buys, and why it is not quite enough.** At 4,300 enrolled the 95% CI on the margin is **±$20.52 per alerted cow**, against a break-even of $16.86–19.19. The interval would straddle break-even and the study would end inconclusive on its own question.
 
-**A 41% increase in the milk gain required**, at $0.65 a month and $12 a trim.
+▶ **Recommendation: size the study at about 6,000 enrolled cows across three arms, with the composite margin per alerted cow as the primary endpoint.** That is 87 farm-weeks at the pilot farm's rate — four to five herds over a year, which is also where the herd-heterogeneity argument pointed. It answers "does it pay" directly, and the milk, cure and recurrence outcomes then explain *why* rather than having to carry the verdict.
 
-▶ **And it changes the conclusion.** Without the trim cost, a 1.5 kg effect over 90 days clears a 1.28 kg break-even and the system pays on milk alone. With it, the break-even is 1.80 kg and **neither 1.05 nor 1.5 kg clears it in any of the eight scenarios above.**
-
-▶ *Caveat: I could only read the calculator's inputs from its rendered page, not its code. If it already carries a trim-cost term, this is moot and the numbers above are already in it.*
-
-### What this settles about the study
-
-**Milk cannot carry the case on its own.** That is now robust rather than marginal — it holds at both cost points, both windows, and both plausible effect sizes, once the extra trimming is paid for. The gap to close is roughly **$12 to $18 per lame cow**.
-
-So the study's job is not to establish that there is a milk benefit. It is to measure **whether culling, recurrence and treatment-labour savings close a gap of that size**, and the design should be built to measure those with the same care as milk:
-
-- **Culling** — the largest single term. A cull avoided is worth many times a lactation's milk difference, so even a small absolute reduction moves the ledger.
-- **Recurrence** — a repeat lesion is another trim, another treatment, and more lost milk. At a 48.7% baseline over 365 days there is a lot of room.
-- **Treatment labour and consumables** — blocks, wraps, chute time. Cheap to record and directly comparable across arms.
-
-▶ **One consequence worth stating plainly to Nedap.** If the extra trimming is what sinks the economics, then the value of the camera is not in flagging more cows — it is in flagging the *right* cows. A system that halved the empty-trim rate would be worth more than one that raised sensitivity, and the pilot's 54.9% empty-trim rate in the trimmed arm is the number to attack.
-
----
+▶ **One caveat that cuts both ways.** The culling SD dominates the composite, so the answer is sensitive to the net cull cost. At $1,000 the required sample rises; at $2,300 it falls. That figure should be set from the participating farms' actual replacement economics before the protocol is fixed, not from a national average.
 
 ### Economics: what is the system worth?
 
@@ -956,7 +967,7 @@ Without these the study measures the camera and the integration together and can
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
 | Enrolment point | **At the alert.** Detection accuracy is not a study question, so a freshening cohort buys nothing for these outcomes at x1.6 cows and double the duration. | Gerard, 2026-09-10. |
 | Primary question | **Does it pay?** Net margin per alerted cow, arm 1 v arm 3. Clinical outcomes explain the economics rather than standing alone. | Gerard, 2026-09-10. |
-| Enrolment target | **~4,300 across three arms** - milk contrasts, recurrence, and a 15-point cure difference (93% power, simulated). A 10-point cure difference needs ~7,000. | Pilot conversion rates, x1.28 attrition, x1.05 heterogeneity; confirmed by simulation. |
+| Enrolment target | **~6,000 across three arms**, set by the composite margin endpoint. 4,300 leaves the margin CI straddling break-even. 4-5 herds over a year. | Pilot economics; see §5. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
 
