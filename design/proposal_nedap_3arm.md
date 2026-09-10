@@ -393,11 +393,47 @@ Sample size on the 60-day cure rate, baseline 40.4%:
 
 **2. Cure rates differ enormously by lesion**, from 15.5% for foot rot to 56.8% for thin sole. **The outcome has to be defined per lesion type, or restricted to the lesions where a recheck is clinically meaningful.** Pooling across a mix that differs between arms would be a confound in its own right.
 
-**3. Foot rot is a partial exception to the expectation.** It is re-examined 52.2% of the time here, not rarely — though on only 136 cases, and with the lowest cure rate in the table at 15.5%, which is unexpected for a lesion that usually responds to treatment and is worth a look before relying on it.
+**3. Foot rot is a partial exception to the expectation** - re-examined 52.2% of the time, not rarely. Its 15.5% cure rate turns out to be a recording artifact rather than a clinical finding; see below.
 
 ▶ **The consequence for the study, and it is a real one.** DD is simultaneously the lesion the camera misses most (42% of what it never flagged, against 21% of what it caught) and the lesion with the least recheck data (13.4%). **Standardising rechecks across all lesion types would generate genuinely new information exactly where the pilot is blindest** — but it also means the DD cure baseline is the least certain input in this design, resting on a 13.4% selected sample.
 
-▶ **Recommendation.** Make cure the primary measure of what waiting costs **for white line and sole ulcer**, where the baseline is well estimated and the recheck is standard practice anyway. Collect it for DD as a **secondary, hypothesis-generating** outcome, and size on the well-estimated lesions rather than the pooled figure.
+▶ **Recommendation.** Make cure the primary measure of what waiting costs **for white line and sole ulcer**, where the baseline is well estimated and rechecks are standard practice. Exclude foot rot (artifact, below). Collect DD opportunistically rather than by standardised recheck, which is not feasible.
+
+
+##### Foot rot's low cure rate is a recording artifact
+
+▶ *Gerard: the trimmer enters a foot rot, then farm staff enter another foot rot treatment when the drug is actually given.* The data agrees. Of the 171 foot rot index cases whose follow-up "found a lesion":
+
+| Gap to follow-up | 0–1 d | 2–3 d | 4–7 d | 8–14 d | 15–30 d | 31–60 d |
+|---|---|---|---|---|---|---|
+| Cases | 27 | 10 | 65 | 33 | 22 | 14 |
+
+**60% fall within 7 days**, the median gap is 7 days, and **46% of those follow-ups are themselves coded foot rot.** That is one episode entered twice, not a treatment failure. The 15.5% cure rate is an artifact and foot rot must be excluded from the cure outcome.
+
+▶ **This generalises into a design rule.** Any cure outcome needs a **minimum gap between the index diagnosis and the exam that scores it** — otherwise the same episode is counted as a failure. Pre-specify it: no follow-up inside 14 days counts as a cure assessment, and a scheduled recheck at a fixed interval avoids the problem entirely.
+
+##### Digital dermatitis: no evidence it sets cows up for white line or sole ulcer
+
+▶ *Gerard's hypothesis: the camera's value probably runs through white line and sole ulcer, with DD contributing little — unless an ignored DD lesion predisposes to WLD/SU.*
+
+Tested on the pilot. Index = a cow's first foot exam, excluding cows already found with WLD or SU; outcome = WLD or sole ulcer within 365 days:
+
+| At the index exam | Cows | Later WLD/SU | Rate |
+|---|---|---|---|
+| DD found | 1,401 | 176 | 12.6% |
+| No DD found | 6,788 | 850 | 12.5% |
+
+Risk ratio **1.00**, risk difference **0.0 points**, 95% CI −1.9 to +2.0, p = 1.0. **A precise null, not an underpowered one** — the interval excludes anything larger than a two-point difference in either direction.
+
+▶ **But it does not test the hypothesis as stated, and the distinction matters.** Every DD case in these records was *diagnosed*, and diagnosis at this farm means treatment. So this shows that **DD found and treated** does not raise later WLD/SU risk. Gerard's hypothesis is about DD that is **ignored** — and undiagnosed DD, by construction, cannot appear in diagnosis records. It is unobservable here.
+
+**That gives arm 3 a specific scientific purpose beyond being a control.** By leaving alerted cows to regular practice, the study creates the untreated-DD condition that no observational dataset can supply, and the DD → WLD/SU pathway becomes testable for the first time. It is worth stating as a secondary objective rather than leaving it implicit.
+
+▶ **Design consequences, taking these together with the recheck selection above.**
+
+- **Standardising DD rechecks is not feasible** (Gerard) and should not be proposed. DD is scored at whatever exam the cow next has.
+- **The camera's value case rests on white line and sole ulcer.** They are the lesions the camera detects well — white line is 16% of what it missed against 48% of what it caught — they are the block-and-recheck lesions with well-estimated cure rates, and they carry the milk and culling consequences.
+- **DD stays in as a secondary question**, not as a driver of the value case: whether prolonged untreated DD leads to WLD/SU, answerable only because arm 3 exists.
 
 #### Not lesion severity
 
