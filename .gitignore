@@ -155,3 +155,4 @@ step3_create_denominators_lact_dim_season_files
 # the *.md ignore above
 !mcp_server/README.md
 !mcp_server/knowledge/*.md
+output/
