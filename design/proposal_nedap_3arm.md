@@ -19,29 +19,9 @@ What a farm wants to know is whether acting on the alerts leaves it better off, 
 
 ### The ledger, and what the pilot already puts on it
 
-"Does it pay" is a **net** question, and the cost side is not only the subscription. **Acting on alerts means trimming more cows.** In the pilot the trimmed arm was trimmed 90.4% of the time against Control's 49.8% — **0.406 extra trims per alerted cow** — and 54.9% of those trims found no lesion.
+"Does it pay" is a **net** question, and the cost side is not only the subscription. **Acting on alerts means trimming more cows**: in the pilot the trimmed arm was trimmed 90.4% of the time against Control's 49.8%, and 54.9% of those trims found no lesion.
 
-Per alerted cow, with milk valued at $0.25/kg IOFC and 35% of alerted cows having a lesion to treat:
-
-| Milk gain | Window | Milk benefit | Extra-trim cost @$12 | **Net before subscription** |
-|---|---|---|---|---|
-| 1.05 kg | 60 d | $5.51 | $4.87 | **+$0.64** |
-| 1.05 kg | 90 d | $8.27 | $4.87 | **+$3.40** |
-| 1.50 kg | 60 d | $7.87 | $4.87 | **+$3.00** |
-| 1.50 kg | 90 d | $11.81 | $4.87 | **+$6.94** |
-
-*At $8 a trim add about $1.60; at $18 subtract about $2.40.*
-
-And the subscription, on the same per-alerted-cow basis (62% of cows are alerted per lactation):
-
-| | Per cow-year | **Per alerted cow** |
-|---|---|---|
-| $0.65/cow/month | $7.80 | **$12.58** |
-| $0.80/cow/month | $9.60 | **$15.48** |
-
-▶ **So on milk alone, net of the extra trimming, the system does not pay.** The best case above is +$6.94 against a subscription of $12.58–15.48. **The shortfall is roughly $6 to $12 per alerted cow, and that is what culling, recurrence and labour have to cover.**
-
-This is the sharpest statement the pilot supports, and it sets the study's job precisely: **not "is there a milk benefit" — there probably is, and it is not enough on its own — but "do the other value streams close a $6–12 per-alerted-cow gap".**
+That cost is quantified in §5 in the units the break-even calculator already uses — about **one extra trim per lame cow**, which raises the milk gain needed to break even by 41%. **On milk alone, net of the extra trimming, the system does not pay at either cost point or either window.**
 
 ### What that means for the design
 
@@ -801,6 +781,51 @@ Routine-trim coverage varying between roughly 10% and 60% across farms implies t
 | Cure, recheck standardised | 3,330 | 1.00 | 1.05 | **~3,500** |
 
 **About 4,300 enrolled cows covers the milk contrasts, recurrence, and a 15-point cure difference** - see the corrected figures above. A 10-point cure difference would need 7,100, which is the one decision where the enrolment target is genuinely in play.
+
+---
+
+### The break-even calculator needs one more cost input
+
+The Shiny calculator is the right framework for "does it pay", and this section is not an alternative to it. It computes the milk gain needed **per lame cow** from herd size, annual first-lesion incidence, camera cost per cow per month and a benefit window. The point here is a **missing term in its cost side**.
+
+**Acting on alerts means trimming more cows, and that costs money.** In the pilot the trimmed arm was trimmed 90.4% of the time against Control's 49.8% — 0.406 extra trims per alerted cow — and 54.9% of those trims found no lesion. Converted to the calculator's own denominator:
+
+| | |
+|---|---|
+| Alerts per cow-year | 0.65 |
+| Extra trims per cow-year | 0.264 |
+| Lame cows per cow-year (27.1% incidence) | 0.271 |
+| **Extra trims per lame cow** | **0.97** |
+
+Roughly **one extra trim for every lesion found**. At $12 a trim that is $11.69 per lame cow, on top of the subscription.
+
+**What it does to the break-even:**
+
+| $/cow/month | Cost per trim | Cost per lame cow | Break-even, 60 d | Break-even, 90 d |
+|---|---|---|---|---|
+| $0.65 | $0 *(app as it stands)* | $28.78 | 1.92 kg | 1.28 kg |
+| $0.65 | $8 | $36.58 | 2.44 | 1.63 |
+| $0.65 | **$12** | **$40.49** | **2.70** | **1.80** |
+| $0.65 | $18 | $46.34 | 3.09 | 2.06 |
+| $0.80 | $12 | $47.13 | 3.14 | 2.09 |
+
+**A 41% increase in the milk gain required**, at $0.65 a month and $12 a trim.
+
+▶ **And it changes the conclusion.** Without the trim cost, a 1.5 kg effect over 90 days clears a 1.28 kg break-even and the system pays on milk alone. With it, the break-even is 1.80 kg and **neither 1.05 nor 1.5 kg clears it in any of the eight scenarios above.**
+
+▶ *Caveat: I could only read the calculator's inputs from its rendered page, not its code. If it already carries a trim-cost term, this is moot and the numbers above are already in it.*
+
+### What this settles about the study
+
+**Milk cannot carry the case on its own.** That is now robust rather than marginal — it holds at both cost points, both windows, and both plausible effect sizes, once the extra trimming is paid for. The gap to close is roughly **$12 to $18 per lame cow**.
+
+So the study's job is not to establish that there is a milk benefit. It is to measure **whether culling, recurrence and treatment-labour savings close a gap of that size**, and the design should be built to measure those with the same care as milk:
+
+- **Culling** — the largest single term. A cull avoided is worth many times a lactation's milk difference, so even a small absolute reduction moves the ledger.
+- **Recurrence** — a repeat lesion is another trim, another treatment, and more lost milk. At a 48.7% baseline over 365 days there is a lot of room.
+- **Treatment labour and consumables** — blocks, wraps, chute time. Cheap to record and directly comparable across arms.
+
+▶ **One consequence worth stating plainly to Nedap.** If the extra trimming is what sinks the economics, then the value of the camera is not in flagging more cows — it is in flagging the *right* cows. A system that halved the empty-trim rate would be worth more than one that raised sensitivity, and the pilot's 54.9% empty-trim rate in the trimmed arm is the number to attack.
 
 ---
 
