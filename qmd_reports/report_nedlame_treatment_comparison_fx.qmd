@@ -355,13 +355,13 @@ pct_decline_cohort <- round(100 * mean(cohort$alert_type %in% c("LOW DECLINE", "
 invisible(list2env(fxn_build_q1(cohort, milk_resolved, params), environment()))
 ```
 
-The figures below compare milk production between the treatment groups. Cows were assigned to TX or Control at enrollment, so this is a like-for-like comparison rather than a descriptive one - and because the groups were randomised, seeing no difference here is itself evidence against a large effect, not just a lack of adjustment.
+The figures below compare milk production between the groups. Cows were assigned at enrollment, so this is a like-for-like comparison. Because the split was random, finding no difference here is itself evidence against a large effect - not just a missing adjustment.
 
 - `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline.
 
 - The milk extract runs to `r format(milk_coverage_end)`, behind the event data. A cow needs `r params$milk_window_post` days of records after her alert to appear at the right-hand end of the curves, so the number of cows contributing falls across the x-axis: **`r n_milk_day30` cows sit behind the day-`r params$milk_window_post` point, not `r n_milk_cows`.** `r n_no_milk_at_all` cohort cows were alerted after the milk data ends and contribute nothing. The day-`r params$milk_window_post` figures therefore describe the earlier-alerting cows, and will change as milk data catches up.
 
-Due to the fact that cows were at very different lactation stages when flagged milk production is not directly comparable across cows. Each cow's production is normalized to **% of her own pre-alert baseline** (mean production over the `r params$milk_baseline_days` days before the alert) before averaging by day and treatment group. This allow us to isolates the *shape* of the trend/recovery from each cow's absolute production level.
+Cows were at very different lactation stages when flagged, so raw production is not comparable across them. Each cow is normalised to **% of her own pre-alert baseline** (her mean over the `r params$milk_baseline_days` days before the alert) before averaging by day and group. That isolates the *shape* of the trend from each cow's absolute level.
 
 ::: panel-tabset
 ## By Treatment Group
@@ -412,7 +412,11 @@ milk_norm |>
 
 ## Time to next trimming after alert
 
-These curves measure **protocol compliance rather than alert accuracy**. For each cow we took the first trimming event after her first NEDLAME alert, censoring at end of lactation or culling. In the TX arm the trim is caused by the alert by protocol, so time-to-trim is a measure of how faithfully the protocol was executed, not of whether the alert was correct. The Control curve is doing a different job: with no protocol acting on the alert, it shows when those cows were trimmed anyway, by staff decision or by the routine schedule - the split between those two is in @tbl-trim-driver. Whether the alerts were *right* is addressed by the lesion-found table below and by the miss analysis later on.
+These curves measure **protocol compliance, not alert accuracy**. For each cow we took the first trim after her first NEDLAME alert, censored at end of lactation or culling.
+
+In TX the trim is caused by the alert, so the curve shows how well the protocol was followed. The Control curve does a different job: nothing there acts on the alert, so it shows when those cows were trimmed anyway. The staff-versus-routine split is in @tbl-trim-driver.
+
+Whether the alerts were *right* is a separate question, answered by the lesion table below and the miss analysis later.
 
 The figures below show the time to the next trimming event split by treatment group and for various lesion or alerts types.
 
@@ -616,13 +620,13 @@ control_trims |>
 invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 ```
 
-A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%) against `r n_lesion_ctl` of `r n_cows_ctl` Control cows (`r pct_lesion_arm_ctl`%). Rate-adjusted for the arms being different sizes, that is **`r n_extra_lesion_cows` more cows with a lesion identified** under the trim protocol. These counts are read off `q2_lesion`, the same object behind the lesion-event curve above, so this section and that curve cannot diverge.
+A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%) against `r n_lesion_ctl` of `r n_cows_ctl` Control cows (`r pct_lesion_arm_ctl`%). Rate-adjusted for the unequal arms, that is **`r n_extra_lesion_cows` more cows with a lesion identified**. The counts come from `q2_lesion`, the object behind the curve above, so the two cannot diverge.
 
-Note the denominator: this is out of the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). Conditioning on having been trimmed would condition on the exposure under study, since being trimmed is most of what separates the arms.
+Note the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). Being trimmed is most of what separates the arms, so it cannot go in the denominator.
 
-This is an **ascertainment** difference and should not be read as a treatment effect on disease. Allocation was random, so expected lesion incidence is equal by construction; what differs is exposure to inspection. `r pct_trimmed_tx`% of TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of Control cows.
+This is **ascertainment**, not disease. Allocation was random, so incidence is equal by construction; what differs is who got inspected. `r pct_trimmed_tx`% of TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of Control.
 
-The direction of the trim-level rates confirms it rather than assuming it: among cows actually trimmed, `r pct_trimonly_ctl`% of Control trims found no lesion against `r pct_trimonly_tx`% of TX trims. Control trimmed fewer cows and hit more often, which is the signature of a suspicion-driven population, not a healthier one. The `r n_extra_lesion_cows` are lesions surfaced earlier, not lesions caused.
+The trim-level rates confirm it. Among cows actually trimmed, `r pct_trimonly_ctl`% of Control trims found nothing against `r pct_trimonly_tx`% of TX trims. Control trimmed fewer cows and hit more often - a suspicion-driven population, not a healthier one. So the `r n_extra_lesion_cows` are lesions surfaced earlier, not lesions caused.
 
 # How does the Farm staff do?
 
@@ -772,7 +776,7 @@ km_cull |>
   tab_header(title = "% Culled After First NEDLAME Alert")
 ```
 
-Time to culling is compared between the treatment groups below. The curves sit close together, but only `r n_culls` cows were culled in total (`r n_culls_tx` TX, `r n_culls_ctl` Control). That is far too few to tell whether trimming off the alert changes culling - this is not evidence that it makes no difference, it is a question the study is too small and too short to answer.
+Time to culling is compared below. The curves sit close together, but only `r n_culls` cows were culled (`r n_culls_tx` TX, `r n_culls_ctl` Control). That is far too few to tell whether trimming off the alert changes culling. Not evidence of no effect - a question this study is too small and too short to answer.
 
 # What cows were missed by the system?
 
@@ -792,15 +796,17 @@ invisible(list2env(fxn_build_q4(
 
 A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
 
-Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) are counted as missed**: no `NEDLAME` reached DairyComp in the `r params$q4_lookback_days` days before the lesion, and no earlier alert had gone unanswered either.
+Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) are counted as missed**: no `NEDLAME` reached DairyComp in the `r params$q4_lookback_days` days before the lesion, and no earlier alert had gone unanswered either. `r sum(q4$caught_by_nedap)` were caught inside the window.
 
-A further **`r n_warned_not_acted` are not counted as misses**, because the camera had alerted on them before the lookback window opened - a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days out - and nothing was done between that alert and the lesion. No trim, no `LAME`, no `FOOTRIM`. The camera gave warning and the warning was not acted on, which is a response failure rather than a detection failure. `r sum(q4$caught_by_nedap)` were caught inside the window.
+A further **`r n_warned_not_acted` are not counted as misses**. The camera had alerted on them before the window opened - a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days out - and nothing happened between that alert and the lesion. No trim, no `LAME`, no `FOOTRIM`. The warning arrived and was not used, which is a response failure, not a detection failure.
 
-This matters because the `r params$q4_lookback_days`-day window is a judgement call, not a property of the data, and it was doing most of its work in one arm. Counting those cows as misses puts the Control miss rate at 27.9%; excluding them puts it at `r round(100 * mean(q4$is_miss[q4$tx_group == 'Control']), 1)`%, while TX barely moves. That is because a Control cow was under no protocol obligation to be trimmed off her alert, so an alert `r params$q4_lookback_days`+ days out is still a warning the farm chose not to use. Where a cow *was* trimmed after that earlier alert, the later lesion is a new episode the camera did not warn about, and she stays a miss - that is the case for `r sum(q4$acted_on_alert & !q4$caught_by_nedap)` of them.
+This matters because the `r params$q4_lookback_days`-day window is a judgement call, and it was doing most of its work in one arm. Counting those cows as misses puts the Control miss rate at `r round(100 * mean(!q4$caught_by_nedap[q4$tx_group == 'Control']), 1)`%; excluding them puts it at `r round(100 * mean(q4$is_miss[q4$tx_group == 'Control']), 1)`%. TX barely moves.
+
+A Control cow was under no obligation to be trimmed off her alert, so an alert `r params$q4_lookback_days`+ days out is still a warning the farm chose not to use. Where a cow *was* trimmed after that alert, the later lesion is a new episode the camera did not warn about, and she stays a miss - `r sum(q4$acted_on_alert & !q4$caught_by_nedap)` of them.
 
 ## Alert Check: True Misses vs. Pipeline Losses
 
-The figure above can only answer "did a `NEDLAME` event land in DairyComp in time". However, it can't tell a true alert miss apart from a case where the cow was flagged but the flag never reached DairyComp. The impact of this was checked with raw flag data from Nedap for the following time period (`r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`).
+The figure above only answers "did a `NEDLAME` land in DairyComp in time". It cannot tell a true miss from a cow the camera flagged whose flag never arrived. Raw Nedap flag data separates them, for `r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`.
 
 The figure below compares among lesions what the reasons for not being flagged were. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
 
@@ -852,6 +858,10 @@ q4_sensor <- q4_sensor |>
 misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
 n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, but no alert in time")
 n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (True Miss)")
+# These two split the misses on a string. Rename a level anywhere and the
+# comparison quietly matches nothing: the counts go to zero, the page still
+# renders, and the numbers just come out wrong. Happened in the farm report.
+stopifnot(n_pipeline_loss + n_true_miss == nrow(misses_in_coverage))
 pct_pipeline_loss <- round(100 * n_pipeline_loss / nrow(misses_in_coverage), 1)
 n_outside_coverage <- sum(!q4_sensor$in_coverage)
 # Misses specifically that fall outside coverage - the figure that belongs
@@ -911,7 +921,7 @@ Further investigation of the missed cows showed:
 
 `r if (n_misses_outside_coverage > 0) paste0("- The other ", n_misses_outside_coverage, " misses were diagnosed after ", format(nedap_coverage_end), ", which the current export can't see. These are left unclassified rather than assumed.") else paste0("Every miss here is checkable against the raw sensor feed: the analysis stops at ", format(analysis_end), ", the last day the Nedap export covers.")`
 
-One judgement call sits behind these numbers. `r n_attentions_incomplete` of the resolved flags are marked not completed in the raw export, and they are counted here as the camera having flagged the cow. `r n_pipeline_loss_incomplete_only` of the `r n_pipeline_loss` pipeline losses rest only on such a flag; counting completed flags alone would give `r n_pipeline_loss_completed_only` instead. The choice matters at the margin, so it is stated rather than assumed.
+One judgement call sits behind these numbers. `r n_attentions_incomplete` of the resolved flags are marked not completed in the raw export, and are counted here as the camera having flagged the cow. `r n_pipeline_loss_incomplete_only` of the `r n_pipeline_loss` pipeline losses rest on such a flag alone; counting only completed flags would give `r n_pipeline_loss_completed_only`. Stated rather than assumed.
 
 ## What Lesions are being missed?
 
@@ -1028,6 +1038,8 @@ checkable <- q4_sensor |>
 
 n_cam_miss <- sum(checkable$camera == "Camera never flagged")
 n_cam_flag <- sum(checkable$camera == "Camera flagged her")
+# Same trap, same guard: both groups non-empty and accounting for every case.
+stopifnot(n_cam_miss > 0, n_cam_flag > 0, n_cam_miss + n_cam_flag == nrow(checkable))
 
 lesion_by_camera <- lame_lesion_recent |>
   select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
@@ -1062,7 +1074,7 @@ pct_rear_flag <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera flagged
 ```
 
 
-The `r n_cam_miss` cases the camera never flagged are compared below against the `r n_cam_flag` it did flag. Both sit inside the sensor coverage window, so both have raw flag data behind them. Percentages are within each group, and a cow can have more than one lesion type and more than one affected foot, so they add to more than 100%.
+The `r n_cam_miss` cases the camera never flagged are compared below against the `r n_cam_flag` it did. Both sit inside the sensor coverage window, so both have raw flag data behind them. Percentages are within each group, and a cow can have several lesion types and several affected feet, so they add to more than 100%.
 
 ```{r}
 #| label: fig-true-miss-lesion
@@ -1084,7 +1096,7 @@ lesion_by_camera |>
 
 - **Front versus hind is not where the difference is.** Rear feet are `r pct_rear_miss`% of the missed cases against `r pct_rear_flag`% of the ones the camera did flag. Hind-foot lesions dominate both groups in much the same proportion, so there is no sign the camera is specifically blind to front feet.
 
-So the difference is in the lesion, not the limb. That is not really a surprise: locomotion scoring is known to pick digital dermatitis up poorly, and the camera is scoring locomotion, so a lesion that produces little gait change is exactly the lesion it will tend to miss. What this analysis adds is the size of the gap on this farm, and that it is specific rather than general - white line, which does change how a cow walks, is caught well.
+So the difference is in the lesion, not the limb. That is no surprise: locomotion scoring detects digital dermatitis poorly, and the camera scores locomotion, so a lesion that barely changes how a cow walks is the one it will miss. What this adds is the size of the gap here, and that it is specific rather than general - white line, which does change the gait, is caught well.
 
 Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
 
@@ -1225,7 +1237,7 @@ That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_c
 
 So the integration problem is **`r n_pipeline_loss_genuine` confirmed cases, not `r nrow(pipeline_loss_cases)`** — with an upper bound of `r n_pipeline_loss_unexplained` if every unjudgeable case turned out to be a failure, which is unlikely.
 
-One earlier caveat has been retired. The `FTDAT` lookup is now cow-level, matching DairyComp, where it is a lifetime date item that does not reset at freshening; it used to be scoped to the current lactation, which hid every trim in a prior lactation and so under-counted the correct suppressions. The remaining `r n_pipeline_loss_unknowable` are unjudgeable for the score reason alone.
+One earlier caveat is retired. The `FTDAT` lookup is now cow-level, matching DairyComp, where it is a lifetime date that does not reset at freshening. It used to be scoped to the current lactation, which hid prior-lactation trims and under-counted the correct suppressions. The remaining `r n_pipeline_loss_unknowable` are unjudgeable for the score reason alone.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 
