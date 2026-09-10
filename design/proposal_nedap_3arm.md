@@ -242,7 +242,7 @@ Two things the protocol must get right, both found in the data:
 
 - **Share of trims finding a treatable lesion.** *The reviewer's point here is the sharpest in the review and it changes the interpretation.* If early treatment prevents lesions, arm 1 will show *fewer* lesions per trim. Read as diagnostic accuracy that looks like poor sensitivity; read as clinical effect it is the study succeeding. **The design cannot have it both ways, so it must declare which reading applies:** lesions-per-trim is reported as a *description of the trims*, and the efficacy question is answered by the dry-off prevalence and the recurrence outcomes instead.
 
-- **Reproductive outcomes.** Not powered as primary without a stated effect size.
+- **Reproductive outcomes.** **Dropped**, or exploratory only. The herd's own records show no signal at all - one day's difference in days to first service, and lesion cows marginally more likely to conceive. There is no effect size to power against. See §5.
 
 ### Outcomes needing an external reference standard
 
@@ -257,6 +257,45 @@ Human locomotion scoring, or a second independent camera, supplies that referenc
 - It tests the DD blind spot directly. Locomotion scoring is known to detect DD poorly, so a camera scoring locomotion missing DD is expected — but only a reference standard can show whether the camera is worse than a human scorer or merely equally limited.
 
 ▶ Cost and feasibility of scoring at the required frequency is a decision, not a given.
+
+---
+
+
+### Culling accumulates, and the pilot's window was far too short
+
+▶ *Raised: culling separates over the long term, not in a three-month window like the pilot's.* Confirmed, and more strongly than expected. Tested on the herd's multi-year records — 10,613 lactations from 2023, 19.0% with a lesion diagnosed by 120 DIM — the share of cows leaving the herd:
+
+| Window from freshening | No early lesion | Early lesion | Gap |
+|---|---|---|---|
+| 90 days | 28.1% | 33.0% | +4.9 |
+| 180 days | 34.0% | 40.8% | +6.8 |
+| 270 days | 39.0% | 45.9% | +6.9 |
+| **365 days** | **45.0%** | **52.3%** | **+7.3** |
+
+The gap grows from 4.9 to 7.3 points as the window lengthens.
+
+▶ **And the pilot's three-month figure was not merely small — it had the wrong sign.** Within the pilot cohort, lame cows were culled *less* than non-lame (5.0% against 7.0%). That is the artifact of a window shorter than the process: a cow diagnosed and treated in week one is not culled in week eight. Anyone reading the pilot's culling result as evidence of no effect would be reading a measurement artifact.
+
+**This matters for the economics because the culling term is where the case rests.** The break-even needs about 2 percentage points of avoided culling; the association between early lameness and leaving the herd is 7.3 points at a year. Early treatment would not have to recover the whole of that — **recovering a quarter of it would close the gap.**
+
+▶ **Two caveats, and they pull in opposite directions.** This is the *association* between having a lesion and being culled, not the effect of treating it earlier — some of the 7.3 points is confounding by whatever makes a cow both lame and cullable. But equally, the study's arms differ in *treatment*, not in whether the lesion happened, so the recoverable fraction is genuinely unknown and could be small.
+
+▶ **The design consequence is concrete: follow culling for at least a year, not six months.** At six months the gap is 6.8 points and still growing; the outcome window in the outline (six months) sits before the curve has flattened. A 365-day follow-up costs calendar time, not enrolment.
+
+### Reproduction: no signal, and it should not be an outcome
+
+▶ *Asked whether there is reproduction data. There is — 55,961 `BRED`, 51,310 `PREG`, 49,553 `HEAT` events — and it shows nothing.*
+
+| | Lactations | Median days to first service | Mean services | Pregnant |
+|---|---|---|---|---|
+| No early lesion | 6,795 | 77 | 1.93 | 96.6% |
+| Early lesion | 1,549 | **78** | **1.94** | **98.2%** |
+
+**One day's difference in days to first service, 0.01 of a service, and lesion cows marginally *more* likely to conceive.** There is no reproductive penalty visible in this herd, and no effect size to power a study against.
+
+▶ **So reproduction should come out of the outcome list**, or stay as a purely exploratory measure with no sample-size claim. The outline noted "add sample size for as primary outcome" — on this evidence there is nothing to size.
+
+▶ *Caveat: cows must survive to be bred, so the comparison conditions on staying in the herd, and the pregnancy rates of 96–98% suggest exactly that selection. The honest statement is that no signal survives that selection, not that lameness has no reproductive cost.*
 
 ---
 
@@ -710,7 +749,7 @@ For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a we
 
 ▶ **It is a plausible hypothesis, and arguably the most clinically interesting question in the study.** If chronic cows cure worse whatever you do, early intervention may buy less in them — which would mean targeting the camera's alerts at new cases. If instead early intervention is what *prevents* a new case becoming chronic, the benefit runs the other way and the value is concentrated exactly where the pilot says the camera performs (white line, sole ulcer).
 
-**What it costs to answer.** The interaction penalty was verified exactly (×2) for the linear milk model. For the logistic cure model it is being simulated rather than assumed, since the two need not agree. On the closed-form expectation, powering the cure interaction at +15 points would take the enrolment target from ~4,300 to somewhere near 8,600.
+Simulated rather than assumed, and it is **not** the same 2x as the linear case: the logistic cure model's interaction penalty is **1.59x** (SE ratio 1.26). Powering the cure interaction at +15 points would take that outcome's requirement from about 2,950 enrolled to about 4,700.
 
 ▶ **So the chronicity question forces the same decision twice** — once on milk, once on cure — and it is the same decision: buy the interaction at roughly double, or adjust for chronicity and report the interaction as exploratory. Given that the pilot shows recurrence rising 34% → 52% across parity *and* cure falling 7 points in chronic cows, the case for buying it is stronger than it looked before these numbers existed.
 
