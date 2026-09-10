@@ -536,40 +536,6 @@ ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = t
 `r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
 :::
 
-## What actually brought the Control cows in?
-
-In the Control arm a cow is only trimmed if someone decides to act, so the trims above are a mixture of two different things: staff spotting her and putting her on the list, or her simply coming up on the routine schedule. A `CHKLAME` recorded between her alert and her trim marks the first.
-
-```{r}
-#| label: q2-chklame-build
-
-invisible(list2env(fxn_build_control_trim_drivers(
-  next_events, cohort, events_formatted, lame_data), environment()))
-```
-
-```{r}
-#| label: tbl-trim-driver
-
-control_trims |>
-  group_by(Driver) |>
-  summarize(`Cows` = n(),
-            `% of trims` = round(100 * n() / n_ctl_trimmed, 1),
-            `% finding a lesion` = round(100 * mean(found_lesion), 0),
-            `Median days alert to trim` = median(days_to_trim),
-            .groups = "drop") |>
-  gt() |>
-  tab_header(title = "Most Control trims were routine, and most of those found nothing") |>
-  tab_source_note("Control cows only, counting each cow once at her first trim after the alert.")
-```
-
-- Of the `r n_ctl_trimmed` Control cows trimmed after their alert, **`r n_ctl_staff` (`r pct_ctl_staff`%) had a `CHKLAME` first**; the other `r n_ctl_routine` were trimmed with no staff check recorded.
-
-- **The two groups are not doing the same job.** Staff-flagged trims found a lesion `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and happened at a median `r med_days_staff` days after the alert rather than `r med_days_routine`.
-
-- So the Control curve above is mostly the routine trim schedule catching up with these cows, not staff responding to them. That is worth holding onto when comparing the arms: TX is being compared against a mixture, and only about a third of it is an active decision.
-
-*This is a description of the trims that happened, not a third survival curve. Whether a cow gets a `CHKLAME` is decided after her alert, during follow-up, so splitting the earlier curves on it would compare groups defined by something that happens after the clock starts and would overstate the difference.*
-
 ## How many trims with no lesions?
 
 The table below shows the number of cows who had a first NEDAP alert and were trimmed **but** did not have a lesion.
@@ -607,6 +573,54 @@ q2_trimonly_tab |>
   cols_label(n = 'N Cows with Trim', n_trimonly = 'No Lesion', pct_trimonly = '% Trim-Only') |>
   tab_header(title = trimonly_title)
 ```
+
+## What actually brought the Control cows in?
+
+In the Control arm a cow is only trimmed if someone decides to act, so the trims above are a mixture of two different things: staff spotting her and putting her on the list, or her simply coming up on the routine schedule. A `CHKLAME` recorded between her alert and her trim marks the first.
+
+```{r}
+#| label: q2-chklame-build
+
+invisible(list2env(fxn_build_control_trim_drivers(
+  next_events, cohort, events_formatted, lame_data), environment()))
+```
+
+```{r}
+#| label: tbl-trim-driver
+
+control_trims |>
+  group_by(Driver) |>
+  summarize(`Cows` = n(),
+            `% of trims` = round(100 * n() / n_ctl_trimmed, 1),
+            `% finding a lesion` = round(100 * mean(found_lesion), 0),
+            `Median days alert to trim` = median(days_to_trim),
+            .groups = "drop") |>
+  gt() |>
+  tab_header(title = "Most Control trims were routine, and most of those found nothing") |>
+  tab_source_note("Control cows only, counting each cow once at her first trim after the alert.")
+```
+
+- Of the `r n_ctl_trimmed` Control cows trimmed after their alert, **`r n_ctl_staff` (`r pct_ctl_staff`%) had a `CHKLAME` first**; the other `r n_ctl_routine` were trimmed with no staff check recorded.
+
+- **The two groups are not doing the same job.** Staff-flagged trims found a lesion `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and happened at a median `r med_days_staff` days after the alert rather than `r med_days_routine`.
+
+- So the Control curve above is mostly the routine trim schedule catching up with these cows, not staff responding to them. That is worth holding onto when comparing the arms: TX is being compared against a mixture, and only about a third of it is an active decision.
+
+*This is a description of the trims that happened, not a third survival curve. Whether a cow gets a `CHKLAME` is decided after her alert, during follow-up, so splitting the earlier curves on it would compare groups defined by something that happens after the clock starts and would overstate the difference.*
+
+## How many extra lesions did the trim protocol surface?
+
+```{r}
+#| label: lesion-yield-build
+
+invisible(list2env(fxn_build_lesion_yield(cohort, lame_data), environment()))
+```
+
+A lesion was found in `r n_lesion_tx` of the TX cows (`r pct_lesion_arm_tx`%) against `r n_lesion_ctl` of the Control cows (`r pct_lesion_arm_ctl`%). Rate-adjusted for the arms being different sizes, that is **`r n_extra_lesion_cows` more cows with a lesion identified** under the trim protocol.
+
+This is an **ascertainment** difference and should not be read as a treatment effect on disease. Allocation was random, so expected lesion incidence is equal by construction; what differs is exposure to inspection. `r round(100 * n_ctl_trimmed / nrow(cohort[cohort$tx_group == 'Control', ]), 1)`% of Control cows were trimmed at all, against a large majority of TX.
+
+The direction of the trim-level rates confirms it rather than assuming it: among cows actually trimmed, `r pct_trimonly_ctl`% of Control trims found no lesion against `r pct_trimonly_tx`% of TX trims. Control trimmed fewer cows and hit more often, which is the signature of a suspicion-driven population, not a healthier one. The `r n_extra_lesion_cows` are lesions surfaced earlier, not lesions caused.
 
 # How does the Farm staff do?
 
@@ -1197,7 +1211,7 @@ Four rules can explain this without anything having gone missing. Each case is c
 
 - `r n_only_injury` were `LOW`-only flags on cows with upper-leg lameness history, which blocks the `Low` route.
 
-- `r n_only_dsnlm` had every flag suppressed by `DSNLM`: she had already been alerted inside the window (90 days on the `Low` route, 7 on the declines), so a repeat alert is deliberately withheld to keep the cowcard clean.
+`r if (n_only_dsnlm > 0) paste0('- ', n_only_dsnlm, ' had every flag suppressed by DSNLM: she had already been alerted inside the window (90 days on the Low route, 7 on the declines), so a repeat alert is deliberately withheld to keep the cowcard clean.') else paste0('- No case is now explained by DSNLM alone. That rule needs a prior NEDLAME before the flag, and a cow with an earlier alert has already left this population - either caught inside the lookback, or set aside as warned-and-not-acted-on. The two rules overlap almost entirely. It is not unreachable: a cow alerted, then trimmed, then flagged again inside the 7-day decline window would still land here, because the trim keeps her a miss. None currently does.')`
 
 - `r n_only_late` did get an alert into DairyComp — the day after the lesion, too late to act on. The daily batch runs at ~5am and stamps an alert with the day it was loaded, so an attention after ~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. Two readings fit and the data cannot separate them: either that flag arrived late, or the camera made a fresh observation of her post-trim gait and *that* is what came through. Under the second reading the original flag really was lost. Either way she was missed, and either way DairyComp was receiving something from the camera around that date — which is why these are not counted among the confirmed losses below.
 
@@ -1209,7 +1223,7 @@ That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_c
 
 So the integration problem is **`r n_pipeline_loss_genuine` confirmed cases, not `r nrow(pipeline_loss_cases)`** — with an upper bound of `r n_pipeline_loss_unexplained` if every unjudgeable case turned out to be a failure, which is unlikely.
 
-The by-design count is still a floor: the trim lookup only covers the current lactation while the real `FTDAT` probably looks back further, so some of the `r n_pipeline_loss_unknowable` will be correct suppressions too.
+One earlier caveat has been retired. The `FTDAT` lookup is now cow-level, matching DairyComp, where it is a lifetime date item that does not reset at freshening; it used to be scoped to the current lactation, which hid every trim in a prior lactation and so under-counted the correct suppressions. The remaining `r n_pipeline_loss_unknowable` are unjudgeable for the score reason alone.
 
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 

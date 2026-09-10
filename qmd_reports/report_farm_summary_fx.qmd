@@ -296,10 +296,13 @@ cohort |>
 
 ## Time to next trimming after alert
 
-These curves are about **protocol compliance**. They show how quickly a cow was trimmed after her first NEDLAME alert. 
-In the TX group the trim is triggered by the alert by design, so the curve measures how well the protocol was followed. In the Control group nothing is triggered, so the same curve shows when those cows got trimmed anyway - whether staff picked them out or the routine round came round to them.
+The figures below show the time to the next trimming event split by treatment group and alerts types. The figures are about **protocol compliance**. They show how quickly a cow was trimmed after her first NEDLAME alert.
 
-The figures below show the time to the next trimming event split by treatment group and alerts types.
+- In the TX group the trim is triggered by the alert by design, so the curve measures how well the protocol was followed.
+
+- In the Control group nothing is triggered, so the same curve shows when those cows got trimmed anyway
+
+  - whether staff picked them out or the routine trimming schedule put them on the list.
 
 - It is clear that most of the TRIM treatment cows got trimmed within 7-10 days and about 20% of the cows in the Control group get trimmed within that same time period.
 
@@ -398,30 +401,6 @@ ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = t
 `r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
 :::
 
-- Only about half the Control cows (`r n_ctl_trimmed` of `r sum(cohort$tx_group == 'Control')`) were trimmed at all during the study.
-
-### Why did the Control cows get trimmed?
-
-A Control cow is only trimmed if someone decides to act - either staff spotted her and put her on the list, or she came up on the routine round. That split matters, because it decides what the camera is really being compared against.
-
-```{r}
-#| label: tbl-farm-trim-driver
-
-control_trims |>
-  group_by(Driver) |>
-  summarize(`Cows` = n(),
-            `% of trims` = round(100 * n() / n_ctl_trimmed, 1),
-            `% finding a lesion` = round(100 * mean(found_lesion), 0),
-            `Median days alert to trim` = median(days_to_trim),
-            .groups = 'drop') |>
-  gt() |>
-  tab_header(title = 'Most Control trims were routine, and most of those found nothing')
-```
-
-- Only `r n_ctl_staff` of the `r n_ctl_trimmed` (`r pct_ctl_staff`%) had a staff `CHKLAME` before the trim. The other `r n_ctl_routine` were the routine round.
-- The two are not doing the same job: staff-flagged trims found something `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and happened a median `r med_days_staff` days after the alert rather than `r med_days_routine`.
-- So the Control group is mostly the routine schedule catching up, not staff acting on cows. Worth holding onto when reading the comparison: the camera is being measured against a mixture, and only about a third of it is an active decision.
-
 ## How many trims with no lesions?
 
 The table below shows the number of cows who had a first NEDAP alert and were trimmed **but** did not have a lesion.
@@ -460,7 +439,44 @@ q2_trimonly_tab |>
   tab_header(title = trimonly_title)
 ```
 
-Just over half the trims done straight off a camera alert found no lesion (`r pct_trimonly_tx`%), against `r pct_trimonly_ctl`% in the control group. But the control trims are mostly the routine schedule catching up rather than staff picking cows out - only `r n_ctl_staff` of the `r n_ctl_trimmed` control cows trimmed after an alert had a `CHKLAME` first. When staff did flag a cow themselves, `r pct_lesion_staff`% of those trims found something, against `r pct_lesion_routine`% for the routine ones. So this is not a camera-versus-staff comparison; it is the camera against a mixture that is mostly routine.
+### Why did the Control cows get trimmed?
+
+A Control cow was only trimmed if either staff spotted her and put her on the list, or she came up on the routine trim list. So comparing the 2 groups is not really a fair comparision.
+
+- Only about half the Control cows (`r n_ctl_trimmed` of `r sum(cohort$tx_group == 'Control')`) were trimmed at all during the study.
+
+```{r}
+#| label: tbl-farm-trim-driver
+
+control_trims |>
+  group_by(Driver) |>
+  summarize(`Cows` = n(),
+            `% of trims` = round(100 * n() / n_ctl_trimmed, 1),
+            `% finding a lesion` = round(100 * mean(found_lesion), 0),
+            `Median days alert to trim` = median(days_to_trim),
+            .groups = 'drop') |>
+  gt() |>
+  tab_header(title = 'Most Control trims were routine, and most of those found nothing')
+```
+
+- Only `r n_ctl_staff` of the `r n_ctl_trimmed` (`r pct_ctl_staff`%) had a staff `CHKLAME` before the trim.
+  - The other `r n_ctl_routine` were the routine trimmings.
+- Staff-flagged trims found something `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones
+
+
+### How many extra lesions did trimming off the alert find?
+
+```{r}
+#| label: lesion-yield-build
+
+invisible(list2env(fxn_build_lesion_yield(cohort, lame_data), environment()))
+```
+
+Trimming straight off the alert found lesions in **`r n_lesion_tx` of the `r nrow(cohort[cohort$tx_group != 'Control', ])` TX cows (`r pct_lesion_arm_tx`%)**, against **`r n_lesion_ctl` of `r nrow(cohort[cohort$tx_group == 'Control', ])` in Control (`r pct_lesion_arm_ctl`%)**. Allowing for the groups being different sizes, that is about **`r n_extra_lesion_cows` extra cows with a lesion found and dealt with**.
+
+That is not `r n_extra_lesion_cows` extra lame cows in the TX group. The cows were split at random, so both groups will have had much the same amount of disease - the difference is who got picked up and looked at. TX cows were trimmed off the alert (`r round(100 * n_ctl_trimmed / nrow(cohort[cohort$tx_group == 'Control', ]))`% of Control cows were trimmed at all, against most of the TX group), so their lesions got found and recorded. The Control lesions were mostly still there; they were just found later, by the routine round, or not at all during the study.
+
+The check that shows this: among the cows that *were* trimmed, fewer of the Control trims came up empty (`r pct_trimonly_ctl`%) than the TX ones (`r pct_trimonly_tx`%). Control was trimming fewer cows and finding something more often, which is what you would expect if it was only trimming cows somebody already suspected.
 
 # How does the Farm staff do?
 
@@ -660,7 +676,6 @@ The figure below shows the lesion types found at these first-diagnosis cases, br
 - **Alerted earlier, no action taken** - the camera flagged her further back than `r params$q4_lookback_days` days and she was not trimmed in between. Not scored against the camera.
 - **Flagged, but no alert in time** - the camera did see something, but nothing reached DairyComp early enough to act on.
 - **Never flagged** - the camera never picked her up at all.
-
 
 ```{r}
 #| label: q4-lesion-types

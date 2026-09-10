@@ -878,9 +878,24 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
   # leaves the lesion-date test clean while making the attention itself
   # un-enrollable. Gate widths come straight from the farm's DairyComp
   # commands: FTDAT<-90 for the Low route, FTDAT<-28 for both decline routes.
+  # FTDAT is a COW-LEVEL date item in DairyComp - it does not reset at
+  # freshening. This lookup used to join on lact_number as well, which hid every
+  # trim in a prior lactation: a recently freshened cow looked as though she had
+  # never been trimmed and passed a gate DairyComp itself would have applied.
+  #
+  # Not cosmetic. It moves 18 of the 119 pipeline-loss cases from "cannot tell"
+  # to "working as designed" (by design 39 -> 57, cannot tell 69 -> 51). The
+  # genuine count is unchanged at 11 and no genuine loss is explained away, so
+  # what goes to Nedap does not move - but a quarter of the unjudgeable pile was
+  # unjudgeable only because of this bug. The 90-day Low gate is wide enough that
+  # prior-lactation trims land inside it routinely.
+  #
+  # The temporal work is done by the gate_trim_date < attention_date filter
+  # below, so dropping lact_number does not let a later trim block an earlier
+  # attention.
   trims_gate <- events_formatted |>
     filter(event %in% c("LAME", "FOOTRIM", "TRIM")) |>
-    select(id_animal, lact_number, gate_trim_date = date_event) |>
+    select(id_animal, gate_trim_date = date_event) |>
     distinct()
   
   attention_gate_check <- pipeline_loss_cases |>
@@ -888,7 +903,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
     filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
-    left_join(trims_gate, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    left_join(trims_gate, by = "id_animal", relationship = "many-to-many") |>
     mutate(days_since_trim = if_else(!is.na(gate_trim_date) & gate_trim_date < attention_date,
                                       as.numeric(attention_date - gate_trim_date), Inf)) |>
     group_by(id_animal, lact_number, date_event, attention_date, alert_type) |>
@@ -1063,5 +1078,52 @@ fxn_build_control_trim_drivers <- function(next_events, cohort, events_formatted
   med_days_routine <- median(control_trims$days_to_trim[!control_trims$staff_flagged])
 
   list(chklame_events = chklame_events, first_post_alert_trim = first_post_alert_trim, chk_before_trim = chk_before_trim, trim_driver = trim_driver, control_trims = control_trims, n_ctl_trimmed = n_ctl_trimmed, n_ctl_staff = n_ctl_staff, n_ctl_routine = n_ctl_routine, pct_ctl_staff = pct_ctl_staff, pct_lesion_staff = pct_lesion_staff, pct_lesion_routine = pct_lesion_routine, med_days_staff = med_days_staff, med_days_routine = med_days_routine)
+}
+
+
+# How many MORE cows had a lesion found in TX than in Control.
+#
+# This is an ascertainment difference, not a disease difference, and the report
+# has to say so: the arms were randomised, so true lesion incidence is the same.
+# What differs is who got looked at - TX trimmed 90% of its arm by protocol,
+# Control about half. Checked rather than assumed: among cows actually trimmed,
+# Control found lesions MORE often (54% vs 45%), because Control only trimmed
+# cows someone already suspected. So the extra cows are lesions found, not
+# lesions caused.
+#
+# Rate-adjusted rather than a raw subtraction, because the arms are different
+# sizes (397 TX vs 452 Control): it asks how many TX cows had a lesion found
+# above what Control's rate would have produced in a group that size.
+fxn_build_lesion_yield <- function(cohort, lame_data) {
+  lesions <- lame_data |>
+    filter(event == 'LAME', lesion == 1) |>
+    select(id_animal, lact_number, les_date = date_event) |>
+    distinct()
+
+  lesion_yield <- cohort |>
+    select(id_animal, lact_number, tx_group, first_nedlame_date, date_obs_end) |>
+    left_join(lesions, by = c('id_animal', 'lact_number'), relationship = 'many-to-many') |>
+    mutate(hit = !is.na(les_date) & les_date >= first_nedlame_date & les_date <= date_obs_end) |>
+    group_by(id_animal, lact_number, tx_group) |>
+    summarize(found_lesion = any(hit), .groups = 'drop')
+
+  yield_by_arm <- lesion_yield |>
+    group_by(tx_group) |>
+    summarize(cows = n(), with_lesion = sum(found_lesion),
+              pct = round(100 * mean(found_lesion), 1), .groups = 'drop')
+  tx  <- yield_by_arm[yield_by_arm$tx_group != 'Control', ]
+  ctl <- yield_by_arm[yield_by_arm$tx_group == 'Control', ]
+  stopifnot(nrow(tx) == 1, nrow(ctl) == 1)
+
+  n_lesion_tx      <- tx$with_lesion
+  n_lesion_ctl     <- ctl$with_lesion
+  pct_lesion_arm_tx  <- tx$pct
+  pct_lesion_arm_ctl <- ctl$pct
+  n_extra_lesion_cows <- round(tx$with_lesion - tx$cows * ctl$with_lesion / ctl$cows)
+
+  list(lesion_yield = lesion_yield, yield_by_arm = yield_by_arm,
+       n_lesion_tx = n_lesion_tx, n_lesion_ctl = n_lesion_ctl,
+       pct_lesion_arm_tx = pct_lesion_arm_tx, pct_lesion_arm_ctl = pct_lesion_arm_ctl,
+       n_extra_lesion_cows = n_extra_lesion_cows)
 }
 
