@@ -445,6 +445,8 @@ A Control cow was only trimmed if either staff spotted her and put her on the li
 
 - Only about half the Control cows (`r n_ctl_trimmed` of `r sum(cohort$tx_group == 'Control')`) were trimmed at all during the study.
 
+- Staff-flagged trims found something `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones
+
 ```{r}
 #| label: tbl-farm-trim-driver
 
@@ -459,9 +461,6 @@ control_trims |>
   tab_header(title = 'Most Control trims were routine, and most of those found nothing')
 ```
 
-- Only `r n_ctl_staff` of the `r n_ctl_trimmed` (`r pct_ctl_staff`%) had a staff `CHKLAME` before the trim.
-  - The other `r n_ctl_routine` were the routine trimmings.
-- Staff-flagged trims found something `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones
 
 
 ### How many extra lesions did trimming off the alert find?
@@ -472,13 +471,17 @@ control_trims |>
 invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 ```
 
-Trimming straight off the alert found a lesion in **`r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%)**, against **`r n_lesion_ctl` of `r n_cows_ctl` in Control (`r pct_lesion_arm_ctl`%)**. Allowing for the groups being different sizes, that is about **`r n_extra_lesion_cows` extra cows with a lesion found and dealt with**.
+To determine if using the camera is worth it we also need to look at how many extra cows with lesions it found as in theory finding them earlier should reduce the impact on lesion/lameness in the future.
 
-**The count here is out of every cow in the group, not just the ones that got trimmed.** The no-lesion table above counts only trimmed cows (`r n_trimmed_tx` of the TX group, `r n_trimmed_ctl` of Control), which is the right population for that question but the wrong one for this. Whether a cow was trimmed at all is most of what is being compared here, so putting it in the denominator would hide it.
+The TX group found **`r n_lesion_tx` of the `r n_cows_tx` (`r pct_lesion_arm_tx`%)**
 
-That is not `r n_extra_lesion_cows` extra lame cows in the TX group. The cows were split at random, so both groups will have had much the same amount of disease - the difference is who got picked up and looked at. `r pct_trimmed_tx`% of the TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of the Control cows, so the TX lesions got found and recorded. The Control lesions were mostly still there; they were just found later, by the routine round, or not at all during the study.
+The Control group found **`r n_lesion_ctl` of `r n_cows_ctl` (`r pct_lesion_arm_ctl`%)**.
+Allowing for the groups being different sizes, that is about **`r n_extra_lesion_cows` extra cows with a lesion found and dealt with**.
 
-The check that shows this: among the cows that *were* trimmed, fewer of the Control trims came up empty (`r pct_trimonly_ctl`%) than the TX ones (`r pct_trimonly_tx`%). Control was trimming fewer cows and finding something more often, which is what you would expect if it was only trimming cows somebody already suspected.
+Since the cows were split at random, both groups should have had much the same amount of disease. The difference is who got picked up and looked at. TX cows were trimmed off the alert whereas control cows were trimmed because of staff or routine trim list reasons. The Control lesions were likely present at alert; they were just found later, or not at all during the study.
+
+These counts are out of **every cow in the group**, not just the ones that were trimmed. The no-lesion table above counts only trimmed cows (`r n_trimmed_tx` of TX, `r n_trimmed_ctl` of Control), which is right for that question and wrong for this one - whether a cow got trimmed at all is most of what is being compared here, so it cannot go in the denominator.
+
 
 # How does the Farm staff do?
 
