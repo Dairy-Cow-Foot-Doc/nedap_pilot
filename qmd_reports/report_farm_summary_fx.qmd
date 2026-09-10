@@ -688,20 +688,18 @@ stopifnot(n_truly_never + n_pipeline == n_misses)
 
 - A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`).
 
-  - Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera** - either it never flagged them, or it did but no alert reached DairyComp before the lesion was found.
+  -  **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera**
 
-  - Following those up against the camera's own records, **`r n_truly_never` were truly never flagged** - the camera saw nothing on them. The remaining **`r n_pipeline` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem being worked through with Nedap rather than a limit of the camera.
+    - Following those up against the camera's own records, **`r n_truly_never` were truly never flagged** - the camera saw nothing on them.
 
-  - A further `r n_warned_not_acted` cows **were alerted and are counted as such**. The camera flagged them a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days before the lesion turned up and they were not trimmed in between, so the warning arrived and nothing was done with it. Whether that alert was about this lesion cannot be told from the data - lesions build over weeks, so it may well have been - and there is no case for scoring it against the camera either way. Most are Control cows, where nobody was asked to act.
-
-  - One thing to hold against that number: `r n_truncated_lookback` of the `r nrow(q4)` had less than the full `r params$q4_lookback_days` days for the camera to spot them, because their lesion fell close to the camera going live. They are still counted. Cows trimmed in the `r params$recent_trim_suppression_days` days before their lesion are already left out (`r n_excluded_recent_trim` of them), since the DairyComp set-up could not have alerted on those.
+    - The remaining **`r n_pipeline` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem due to filters we set up or problems in the file in rather than a limit of the camera.
 
 ## What Lesions are being missed?
 
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
 - **Camera alerted her** - a `NEDLAME` alert reached DairyComp before the lesion was found. For most of these it arrived within days; for `r n_warned_not_acted` it came further ahead and was not acted on.
-- **No warning from the camera** - no alert reached DairyComp before the lesion. Either the camera never picked her up, or it flagged her and the alert did not arrive. From the farm's side those look the same, so they are counted together here; the split is in the bullets above.
+- **No warning from the camera** - no alert reached DairyComp before the lesion. Either the camera never picked her up, or it flagged her and the alert did not arrive.
 
 ```{r}
 #| label: q4-lesion-types
@@ -774,7 +772,11 @@ ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group_3wa
   theme(legend.position = "bottom")
 ```
 
-Comparing what the camera missed against what it caught, digital dermatitis stands out: it is `r pct_dd_miss`% of the cases the camera never flagged against `r pct_dd_flag`% of the ones it did. White line runs the other way — `r pct_wld_miss`% against `r pct_wld_flag`% — so the camera picks that up well. "Other" on this farm is typically corkscrew claw.
+Comparing what the camera missed against what it caught:
+
+- Digital dermatitis stands out: it is `r pct_dd_miss`% of the cases the camera never flagged against `r pct_dd_flag`% of the ones it did.
+
+- White line is the opposite — `r pct_wld_miss`% against `r pct_wld_flag`%. The camera picks that up well.
 
 None of that is a surprise. Locomotion scoring is known to detect DD poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss.
 
@@ -801,7 +803,7 @@ stopifnot(n_no_warning + n_outside_coverage == nrow(staff_catch),
 
 ```
 
-Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed on the routine round or because staff picked them out),
+Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed on the routine trimming or because staff picked them out),
 
 - `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
 
@@ -811,10 +813,10 @@ Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded i
 
 - Cows with DD are being missed by the camera
 
-- The camera gave no useful warning for `r n_no_warning` of the cows found with a lesion, and digital dermatitis is over-represented among them.
+- The camera never flagged `r n_truly_never` of the `r nrow(q4)` cows found with a lesion, and digital dermatitis is over-represented among them. A further `r n_pipeline` were flagged but the alert did not reach DairyComp, which is a separate problem being worked through with Nedap.
 
-- NEDAP camera catches more cows than just farm staff/routine trimming
+- Trimming off the camera alert found lesions in about `r n_extra_lesion_cows` more cows than the control approach did (`r n_lesion_tx` of `r n_cows_tx` against `r n_lesion_ctl` of `r n_cows_ctl`). Those cows were not sicker - both groups were picked at random - they were the ones that got looked at.
 
-- Trimming a flagged cow straight away, rather than leaving it to staff or the routine round, did not produce a clear difference in milk or culling over the first 30 days. The milk curves slightly favour the trimmed group, but cows vary far more than the groups do, and there were too few culls either way to read anything into.
+- Trimming a flagged cow straight away, rather than leaving it to staff or the routine trimming, did not produce a clear difference in milk or culling over the first 30 days. The milk curves slightly favour the trimmed group, but cows vary far more than the groups do, and there were too few culls either way to read anything into at this point.
 
-- The study was not long enough to determine if more cows being caught by camera do better long term as in less repeat lesions.
+- The study was not long enough to determine if more cows being caught by camera do better long term as in less repeat lesions or long term milk production impacts.
