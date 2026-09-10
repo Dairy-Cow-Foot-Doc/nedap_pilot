@@ -257,68 +257,73 @@ The reason is structural, not statistical: a confidence bound can only clear a t
 
 ▶ Needed to firm this up: system cost per cow per day, milk price, cull value, cost per trim.
 
-### The economic question is the real question — and it is answerable
+### The economic question is the real question — and the effect sits close to break-even
 
-The 3.2 kg figure comes from the break-even calculator at `dairycowfootdoc-camera-math.share.connect.posit.cloud`. It takes herd size, annual first-lesion incidence, camera cost per cow per month, and a milk-improvement window, and it normalises the cost **per lame cow** — not per cow in the herd, and not per alerted cow. That is the right denominator, because only cows that get a lesion can produce the benefit.
+The 3.2 kg figure comes from the break-even calculator at `dairycowfootdoc-camera-math.share.connect.posit.cloud`. It takes herd size, annual first-lesion incidence, camera cost per cow per month and a milk-improvement window, and normalises the cost **per lame cow** — the right denominator, since only cows that get a lesion can produce the benefit.
 
-**Reported cost estimates are $0.65–0.80 per cow per month.**
+**Reported cost estimates: $0.65–0.80 per cow per month.**
 
-#### The pilot can measure the parameter this is most sensitive to
+#### Incidence is the parameter break-even is most sensitive to, and the pilot measures it
 
-Incidence sits in the denominator, so break-even moves inversely with it. It has been a guess; the pilot measures it.
+Incidence sits in the denominator, so break-even moves inversely with it. Using the project's own validated denominator file (`denominator_by_calendar_time_period.parquet`, `deno_type = lact_basic`, `Lactation Group = LACT > 0`) and counting the **first lesion per animal-lactation**:
 
-**Annual first-lesion incidence in this herd: ~14%** (2,544 first-lesion cases in the year to 2026-09-07). ▶ *Sanity-check this against your known herd size — my denominator was 11,006 distinct animals present in the window, which may include stock that should not count. If the true milking denominator is smaller, incidence is higher and break-even falls.*
-
-Break-even milk gain per lame cow, replicating the calculator's structure (`cost × 12 ÷ incidence ÷ IOFC ÷ days`):
-
-| Cost/cow/month | Incidence | IOFC $0.20/kg | $0.25/kg | $0.30/kg |
+| Year | First-lesion cases | Cow-years | Per 100 cow-years | % of animal-lactations |
 |---|---|---|---|---|
-| $0.65 | 14% (measured) | 4.64 | **3.71** | 3.10 |
-| $0.65 | 25% | 2.60 | 2.08 | 1.73 |
-| $0.65 | 45% | 1.44 | 1.16 | 0.96 |
-| $0.80 | 14% (measured) | 5.71 | **4.57** | 3.81 |
-| $0.80 | 25% | 3.20 | 2.56 | 2.13 |
-| $0.80 | 45% | 1.78 | 1.42 | 1.19 |
+| 2023 | 1,875 | 3,506 | 53.5 | 23.7 |
+| 2024 | 1,397 | 3,490 | 40.0 | 18.9 |
+| 2025 | 1,800 | 3,471 | 51.9 | 24.7 |
+| **Mean** | **~1,690** | **~3,490** | **48.5** | **22.4** |
 
-*60-day window; a 90-day window is two thirds of each figure.* At the measured 14% incidence and $0.25/kg IOFC: **3.72 kg/day over 60 days, or 2.48 kg/day over 90.** The 2.45 kg break-even in the existing simulation corresponds closely to $0.65/cow/month over 90 days — so that figure is coherent and internally consistent, and my earlier scepticism about it was misplaced.
+▶ **Which of these two the calculator wants matters enormously, and it is a decision to make explicitly.** Both are defensible: 48.5 per 100 cow-years counts lesion cases against average herd size; 22.4% counts them against lactation records. The app's phrasing — "% of cows with first lesion annually" — and its `herd size × incidence = yearly lame cows` arithmetic point to the cow-years version: 3,490 × 48.5% ≈ 1,690, which reproduces the observed case count.
 
-#### "If we power for A we can't answer B" — the objection is right, and the fix is neither A nor B
+#### Break-even, and where the pilot's effect falls
 
-Powering to detect a difference from zero does not answer whether the system pays, and powering for "the lower bound clears break-even" assumes the answer. The way out is to recognise that the economic question has **three** possible study outcomes, not two:
+| Cost/cow/month | Window | Incidence 48.5% | Incidence 22.4% |
+|---|---|---|---|
+| $0.65 | 60 days | **1.07 kg/day** | 2.32 kg/day |
+| $0.65 | 90 days | **0.72** | 1.55 |
+| $0.80 | 60 days | **1.32** | 2.86 |
+| $0.80 | 90 days | **0.88** | 1.91 |
+
+*IOFC $0.25/kg throughout.*
+
+**The pilot's observed effect is ~1.05 kg/day.** At the cow-years incidence that lands *inside* the break-even range — between the 0.72 and 1.32 kg bounds. The 2.45 kg break-even in the existing simulation corresponds to the lactation-denominator reading; at 48.5% incidence it falls to about 1 kg.
+
+**So the economics are not clearly unfavourable. They are marginal, and that is a harder position to study than either extreme.**
+
+#### "If we power for A we can't answer B" — the objection is right, and this is the honest answer
+
+Powering to detect a difference from zero does not answer whether the system pays; powering for "the lower bound clears break-even" assumes the answer. The economic question has **three** outcomes:
 
 1. Confidence interval entirely **above** break-even → it pays.
-2. Confidence interval entirely **below** break-even → it does not pay.
+2. Interval entirely **below** break-even → it does not.
 3. Interval **straddles** break-even → inconclusive.
 
-**Design for outcome 1 or 2, whichever is true.** That is a *precision* target, not a power-against-a-point target, and what it costs depends on the **gap between the true effect and break-even** — not on the effect size itself:
+Design to land on 1 or 2, whichever is true. That is a *precision* target, and its cost depends on the **gap between the true effect and break-even**, not on the effect size:
 
 | Gap between truth and break-even | Cows, two arms | Cows, three arms |
 |---|---|---|
 | 0.5 kg | 11,393 | 17,090 |
 | 1.0 kg | 2,849 | 4,274 |
-| **1.4 kg** | **1,454** | **2,181** |
+| 1.4 kg | 1,454 | 2,181 |
 | 2.0 kg | 713 | 1,070 |
 
-**Worked on the pilot's numbers.** True effect ~1.05 kg against a 2.45 kg break-even is a gap of 1.40 kg. That needs **1,454 cows across two arms, 2,181 across three** — to conclude, with 80% confidence, that the milk benefit does **not** reach break-even. Compare 2,584 cows merely to show the effect differs from zero.
+▶ **And here is the problem this design has to confront.** If the true milk effect is ~1.05 kg and break-even is ~0.7–1.3 kg, **the gap is close to zero and no feasible study resolves it on milk alone.** That is not a flaw in the analysis; it is what "marginal" means. A near-threshold effect is the hardest case, and it should be stated in the protocol rather than discovered in year two.
 
-**Answering the economic question is cheaper than detecting the effect.** That is not a paradox: 1.05 kg is far from 2.45 kg but close to zero, and a study only needs enough precision to clear whichever boundary matters.
+#### What follows — and it is the reviewer's own suggestion
 
-If the break-even is higher — 3.7 kg at 60 days on the measured incidence — the gap widens to 2.7 kg and the requirement drops below 500 cows per pair.
+The reviewer proposed milk **plus** reduced culling, and this is the quantitative argument for it. Additional value streams **lower the milk gain required to break even**. If avoided culls, fewer repeat lesions and reduced treatment labour each contribute, the milk requirement drops below 0.7 kg, the observed ~1.05 kg clears it, and the gap becomes resolvable.
 
-#### The one thing this design cannot do
+Put the other way: **milk alone cannot settle this question at any realistic sample size, because milk alone puts the answer right at the threshold.** A combined endpoint is not a complication to be tolerated — it is what makes the study answerable.
 
-▶ **If the true effect lands within about 1 kg of break-even, no feasible study resolves it.** At a 0.5 kg gap the requirement is 11,393 cows in two arms. That has to be stated in the protocol as a declared limitation, not discovered afterwards: *this study will resolve the economic question unless the true milk benefit falls within roughly ±1 kg of break-even.*
+▶ **Recommendation.**
 
-#### What this implies for the design
+- **Primary economic endpoint: net margin per cow-lactation** — milk, culling, treatment cost and system cost combined.
+- **Primary clinical endpoint: recurrence within 365 days**, which is well-powered (~406 index cases per arm for a 20% relative reduction) and mechanistically upstream of both milk and culling.
+- **Milk sample size set by the precision target**, reporting the estimate with its interval against break-even rather than as a pass/fail.
+- **Pre-specify the incidence definition and the IOFC figure** before the study starts, because the break-even threshold — and therefore the conclusion — moves by a factor of two between the two defensible readings of incidence.
 
-On present evidence the likely answer is that **milk alone does not pay for the system** — 1.05 kg against a break-even of 2.5–4.6 kg. Two consequences:
-
-- That is a publishable, decision-relevant finding, and the study should be built to establish it cleanly rather than to avoid it.
-- It raises the weight on **culling and recurrence**, which is where the remaining value would have to come from. A cull avoided is worth far more than a few kilograms of milk, and recurrence is both well-powered here (§ above) and mechanistically upstream of both.
-
-▶ **Recommendation.** Set the milk sample size from the precision target above (~2,200 cows across three arms for a 1.4 kg gap), and make the primary economic endpoint **net margin per cow-lactation** — milk, culling, treatment cost and system cost combined — with recurrence as the primary clinical endpoint. Milk then contributes to the economic answer without having to carry it alone.
-
-▶ Still needed: IOFC per kg on these farms, cull value, cost per trim, and confirmation of the herd-size denominator behind the 14% incidence.
+▶ Still needed: IOFC per kg on these farms, cull value, cost per trim, and a decision on the incidence denominator.
 
 ---
 
@@ -362,7 +367,7 @@ Without these the study measures the camera and the integration together and can
 | 3 | Power the chronicity × lactation interaction, or adjust only. |
 | 4 | Adopt lesion-at-dry-off as a primary outcome — recommended. |
 | 5 | Include locomotion scoring or a second camera as reference standard, and at what frequency. |
-| 6 | IOFC per kg, cull value, cost per trim, and the herd-size denominator behind the 14% incidence. Cost is $0.65-0.80/cow/month. |
+| 6 | IOFC per kg, cull value, cost per trim. Cost is $0.65-0.80/cow/month. **And the incidence denominator: 48.5 per 100 cow-years or 22.4% of lactations - break-even moves twofold between them.** |
 | 7 | Confirm the precision target (~2,200 cows over three arms) and net margin per cow-lactation as the economic endpoint, with recurrence as the primary clinical one. |
 | 8 | Number of herds and expected alerts per herd per week. |
 | 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
