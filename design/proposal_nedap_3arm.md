@@ -214,7 +214,36 @@ A simulation already exists at `C:\Github\nedap_camera\sample size simulation.qm
 
 **A units check first.** The pilot's `dmlk1` is in **pounds** — mean 88.4 lb, which is 40.1 kg/day. Any parameter lifted from this herd's raw records has to be divided by 2.205 before it enters a kg-denominated simulation. The figures above are already converted.
 
-**What this means.** Sample size scales with variance and with the inverse square of the effect. Variance components five times larger and an effect three times smaller move the required n by well over an order of magnitude in the unfavourable direction. **The existing simulation is very likely to be optimistic, and re-running it with measured inputs is the first thing to do.**
+**What this means — and it is not simply "the study is too big".** Sample size scales with variance and with the inverse square of the effect, so five-times-larger variance components and a three-times-smaller effect move the requirement a long way. But the two success criteria behave completely differently under those inputs, and conflating them is the mistake to avoid.
+
+Working from the measured components (per-cow SD over nine weekly observations = 9.52 kg):
+
+**Criterion A — show the effect differs from zero.** Feasible.
+
+| True effect | Cows, two arms | Cows, three arms |
+|---|---|---|
+| 1.05 kg (pilot's observed) | 2,584 | 3,876 |
+| 1.5 kg | 1,266 | 1,899 |
+| 2.0 kg | 713 | 1,070 |
+| 3.2 kg (simulation's assumption) | 279 | 419 |
+
+At 69 alerts per week, 2,584 cows is 37 weeks at one farm — or about 7 weeks of accrual across five herds. **Even the pilot's small observed effect is comfortably detectable inside a one-year multi-herd study.**
+
+**Criterion B — show the lower 95% bound clears the 2.45 kg break-even.** This is where it breaks down, and it has nothing to do with variance.
+
+| True effect | Cows needed, two arms |
+|---|---|
+| 2.45 kg or below | **impossible at any n** |
+| 2.50 kg | 1,139,299 |
+| 3.00 kg | 9,416 |
+| 3.20 kg | 5,064 |
+| 3.50 kg | 2,584 |
+| 4.00 kg | 1,186 |
+
+The reason is structural, not statistical: a confidence bound can only clear a threshold if the estimate itself sits above it with room to spare. **If the true milk benefit is at or below break-even, no sample size can demonstrate that it clears break-even** — and the pilot's estimate of ~1.05 kg is less than half of it.
+
+▶ **Neither criterion on its own is the right target** - see the economics section below, which reframes this as a precision question and resolves it.
+
 
 ▶ **Two caveats that cut the other way, and they are not small.**
 
@@ -222,23 +251,74 @@ A simulation already exists at `C:\Github\nedap_camera\sample size simulation.qm
 
 2. **The pilot measured 30 days; this study measures 60–90.** If the benefit of early treatment accumulates, a longer window sees more of it.
 
-▶ **Recommendation.** Re-run the existing simulation with the measured variance components, sweeping the true effect across 1.0 to 3.2 kg rather than fixing it at 3.2. That produces a power curve against effect size, which answers the real question: *how big does the milk benefit have to be before this study can detect it, and is that bigger than break-even?* If the answer is that only implausibly large effects are detectable, that is itself the finding — and it is the argument for making recurrence the primary endpoint and treating milk as economic supporting evidence.
+▶ **Still worth doing:** re-run the simulation itself with the measured components to confirm the closed-form figures above, since the simulation carries the blocking and the herd structure that the formulae ignore. Both should agree; if they do not, the disagreement is the finding.
 
 **On "can milk alone pay for it".** The reviewer's instinct looks right. The pilot's observed 1.05 kg/day sits **below** the 2.45 kg break-even used in the simulation. If that break-even is roughly correct, milk alone does not pay for the system on this evidence, and the case rests on culling and recurrence. That is a finding worth stating plainly to Nedap rather than discovering halfway through.
 
 ▶ Needed to firm this up: system cost per cow per day, milk price, cull value, cost per trim.
 
-### Economics — and why the reviewer is right that milk alone is the wrong target
+### The economic question is the real question — and it is answerable
 
-▶ **The system's cost per cow per day is the missing input and everything depends on it.**
+The 3.2 kg figure comes from the break-even calculator at `dairycowfootdoc-camera-math.share.connect.posit.cloud`. It takes herd size, annual first-lesion incidence, camera cost per cow per month, and a milk-improvement window, and it normalises the cost **per lame cow** — not per cow in the herd, and not per alerted cow. That is the right denominator, because only cows that get a lesion can produce the benefit.
 
-The proposed approach — find the milk gain needed to break even, then power for that — has a problem the pilot's numbers expose. It requires a *pre-specified* detectable difference, and the honest one is small: the pilot saw 2.9 percentage points, which needs 1,737 cows per arm. If the break-even gain turns out to be smaller than the study can detect, the design is unfalsifiable before it starts.
+**Reported cost estimates are $0.65–0.80 per cow per month.**
 
-**The reviewer's suggestion of milk *plus* reduced culling is the better framing**, and the reason is that culling is where the money is: a cull is worth far more than a few kilograms of milk, so a small absolute reduction in culling can carry the ROI where milk cannot. The cost is that a combined economic endpoint is harder to power and harder to pre-specify.
+#### The pilot can measure the parameter this is most sensitive to
 
-▶ **Recommended resolution:** define the primary economic endpoint as **net margin per cow-lactation**, combining milk, culling, treatment cost and system cost, and power the study on **recurrence** — which is well-powered, clinically meaningful, and mechanistically upstream of both milk and culling. The economic endpoint is then reported as the decision-relevant summary rather than the thing the sample size rests on.
+Incidence sits in the denominator, so break-even moves inversely with it. It has been a guess; the pilot measures it.
 
-▶ Inputs still needed: system cost per cow per day, cull value, treatment cost per trim, and milk price.
+**Annual first-lesion incidence in this herd: ~14%** (2,544 first-lesion cases in the year to 2026-09-07). ▶ *Sanity-check this against your known herd size — my denominator was 11,006 distinct animals present in the window, which may include stock that should not count. If the true milking denominator is smaller, incidence is higher and break-even falls.*
+
+Break-even milk gain per lame cow, replicating the calculator's structure (`cost × 12 ÷ incidence ÷ IOFC ÷ days`):
+
+| Cost/cow/month | Incidence | IOFC $0.20/kg | $0.25/kg | $0.30/kg |
+|---|---|---|---|---|
+| $0.65 | 14% (measured) | 4.64 | **3.71** | 3.10 |
+| $0.65 | 25% | 2.60 | 2.08 | 1.73 |
+| $0.65 | 45% | 1.44 | 1.16 | 0.96 |
+| $0.80 | 14% (measured) | 5.71 | **4.57** | 3.81 |
+| $0.80 | 25% | 3.20 | 2.56 | 2.13 |
+| $0.80 | 45% | 1.78 | 1.42 | 1.19 |
+
+*60-day window; a 90-day window is two thirds of each figure.* At the measured 14% incidence and $0.25/kg IOFC: **3.72 kg/day over 60 days, or 2.48 kg/day over 90.** The 2.45 kg break-even in the existing simulation corresponds closely to $0.65/cow/month over 90 days — so that figure is coherent and internally consistent, and my earlier scepticism about it was misplaced.
+
+#### "If we power for A we can't answer B" — the objection is right, and the fix is neither A nor B
+
+Powering to detect a difference from zero does not answer whether the system pays, and powering for "the lower bound clears break-even" assumes the answer. The way out is to recognise that the economic question has **three** possible study outcomes, not two:
+
+1. Confidence interval entirely **above** break-even → it pays.
+2. Confidence interval entirely **below** break-even → it does not pay.
+3. Interval **straddles** break-even → inconclusive.
+
+**Design for outcome 1 or 2, whichever is true.** That is a *precision* target, not a power-against-a-point target, and what it costs depends on the **gap between the true effect and break-even** — not on the effect size itself:
+
+| Gap between truth and break-even | Cows, two arms | Cows, three arms |
+|---|---|---|
+| 0.5 kg | 11,393 | 17,090 |
+| 1.0 kg | 2,849 | 4,274 |
+| **1.4 kg** | **1,454** | **2,181** |
+| 2.0 kg | 713 | 1,070 |
+
+**Worked on the pilot's numbers.** True effect ~1.05 kg against a 2.45 kg break-even is a gap of 1.40 kg. That needs **1,454 cows across two arms, 2,181 across three** — to conclude, with 80% confidence, that the milk benefit does **not** reach break-even. Compare 2,584 cows merely to show the effect differs from zero.
+
+**Answering the economic question is cheaper than detecting the effect.** That is not a paradox: 1.05 kg is far from 2.45 kg but close to zero, and a study only needs enough precision to clear whichever boundary matters.
+
+If the break-even is higher — 3.7 kg at 60 days on the measured incidence — the gap widens to 2.7 kg and the requirement drops below 500 cows per pair.
+
+#### The one thing this design cannot do
+
+▶ **If the true effect lands within about 1 kg of break-even, no feasible study resolves it.** At a 0.5 kg gap the requirement is 11,393 cows in two arms. That has to be stated in the protocol as a declared limitation, not discovered afterwards: *this study will resolve the economic question unless the true milk benefit falls within roughly ±1 kg of break-even.*
+
+#### What this implies for the design
+
+On present evidence the likely answer is that **milk alone does not pay for the system** — 1.05 kg against a break-even of 2.5–4.6 kg. Two consequences:
+
+- That is a publishable, decision-relevant finding, and the study should be built to establish it cleanly rather than to avoid it.
+- It raises the weight on **culling and recurrence**, which is where the remaining value would have to come from. A cull avoided is worth far more than a few kilograms of milk, and recurrence is both well-powered here (§ above) and mechanistically upstream of both.
+
+▶ **Recommendation.** Set the milk sample size from the precision target above (~2,200 cows across three arms for a 1.4 kg gap), and make the primary economic endpoint **net margin per cow-lactation** — milk, culling, treatment cost and system cost combined — with recurrence as the primary clinical endpoint. Milk then contributes to the economic answer without having to carry it alone.
+
+▶ Still needed: IOFC per kg on these farms, cull value, cost per trim, and confirmation of the herd-size denominator behind the 14% incidence.
 
 ---
 
@@ -282,7 +362,7 @@ Without these the study measures the camera and the integration together and can
 | 3 | Power the chronicity × lactation interaction, or adjust only. |
 | 4 | Adopt lesion-at-dry-off as a primary outcome — recommended. |
 | 5 | Include locomotion scoring or a second camera as reference standard, and at what frequency. |
-| 6 | System cost per cow per day, cull value, treatment cost, milk price. |
-| 7 | Primary endpoint for sample size: recurrence — recommended — versus milk or a combined economic endpoint. |
+| 6 | IOFC per kg, cull value, cost per trim, and the herd-size denominator behind the 14% incidence. Cost is $0.65-0.80/cow/month. |
+| 7 | Confirm the precision target (~2,200 cows over three arms) and net margin per cow-lactation as the economic endpoint, with recurrence as the primary clinical one. |
 | 8 | Number of herds and expected alerts per herd per week. |
 | 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
