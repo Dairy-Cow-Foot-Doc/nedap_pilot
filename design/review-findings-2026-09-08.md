@@ -562,7 +562,7 @@ So the rule that landed is not about the window at all: **a cow alerted at any d
 
 ---
 
-### ☐ T24. The `FTDAT` trim gate is lactation-scoped; DairyComp's `FTDAT` is cow-level ✅ verified — impact quantified as zero here
+### ☐ T24. The `FTDAT` trim gate is lactation-scoped; DairyComp's `FTDAT` is cow-level ✅ verified — **impact re-measured 2026-09-09: 18 cases, not zero**
 
 **`functions/fxn_nedlame_analysis.R`, `fxn_build_pipeline_by_design()`, the `trims_gate` join**
 
@@ -572,11 +572,22 @@ left_join(trims_gate, by = c("id_animal", "lact_number"), ...)
 
 `FTDAT` in DairyComp is a **cow-level date item** — it does not reset at freshening. Scoping the lookup to the current lactation makes any trim in a prior lactation invisible, so a cow who freshened recently shows `days_since_last_trim = NA` and passes a gate that DairyComp itself would have applied. This was already noted as a floor in Round 18 (*"the trim lookup is lactation-scoped while real `FTDAT` likely looks back further"*), never quantified, and never fixed.
 
-**Quantified now: it changes 0 of 43 flags for the 13 cases.** Recomputing cow-level, seven cows go from `NA` to a real interval (10204: 147 d, 10214: 189, 10379: 164, 10581: 124, 23069: 175, 7784: 205, 9254: 108) and **none** falls inside its gate — every one of the 13 had a *decline* flag, whose window is only 28 days. The 43 flags were enumerated under the pre-`d40cca3` window; the narrower window can only *remove* flags, never make one fall inside its gate, so the zero holds a fortiori (10379 has since left the set entirely).
+**⚠ CORRECTION — my original "changes 0 of 43 flags" was measured on the wrong population and should not be relied on.** I enumerated 43 flags across the 13 *genuine* cases. Those are, by construction, the cases where **nothing blocked** — and a gate change can only ever block *more*. Testing it on the set defined by "nothing blocked" was close to guaranteed to return zero. The cases the fix actually moves are the ones sitting in **cannot-tell**, which that sample excluded by construction. **The denominator was chosen by the outcome** — the same error class as the base-rate trap I flagged in Round 25, made here by me while flagging it there.
 
-So this is a correctness fix, not a numbers fix. It is worth doing anyway because the gate width varies by route (90 days for `Low`, 28 for the declines) and the 90-day `Low` window is wide enough that a prior-lactation trim *will* land inside it for some cow eventually — at which point the bug starts silently moving counts with nothing to warn you.
+**Re-measured against the current window and the post-`f6d5df6` population, and verified independently by building a cow-level variant of the function and re-running the report's own chunks:**
 
-**Fix:** join `trims_gate` on `id_animal` alone and keep the existing `gate_trim_date < attention_date` filter, which already does the temporal work. Same change applies to the `trims_gate` build itself, which currently carries `lact_number` only to support this join.
+| `trims_gate` join | by design | cannot tell | genuine |
+|---|---|---|---|
+| on `id_animal` + `lact_number` (current) | 39 | 69 | **11** |
+| on `id_animal` alone (the fix) | **57** | **51** | **11** |
+
+**27 of the 119 pipeline-loss cases change their `FTDAT` verdict; net 18 move from cannot-tell into working-as-designed.** The genuine set is byte-identical either way — **11 cows, and not one of them is explained away by the fix.**
+
+So the original conclusion survives, and is arguably strengthened: **this does not change what we take to Nedap.** But "cosmetic" was wrong. It cuts the unjudgeable pile by roughly a quarter. The prediction in the finding — that the 90-day `Low` gate is wide enough for prior-lactation trims to land inside it — is not waiting to happen; **it is already happening, 18 times.**
+
+**Fix:** join `trims_gate` on `id_animal` alone and keep the existing `gate_trim_date < attention_date` filter, which already does the temporal work. Same change applies to the `trims_gate` build, which carries `lact_number` only to support this join. Owned by the session holding `functions/`; being put to Gerard with the numbers above.
+
+**Measurement lesson worth more than the fix:** to size a change that can only ever push cases *one way* across a boundary, you have to measure it on the population that could cross — not on the group defined by having already landed on one side. Ask what the change can do, then pick the denominator that could show it.
 
 ---
 

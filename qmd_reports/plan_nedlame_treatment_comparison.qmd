@@ -1018,7 +1018,7 @@ And the decisive one, **within cow**: 11139's `LOW` episode ran unbroken 2026-04
 ### Ruled out as the mechanism for the remaining 12
 
 - **Flag delivery.** Every decline flag for all 13 is `is_completed = TRUE`; the 13 carry *fewer* incomplete flags than the herd (4.3% vs 6.9%).
-- **`FTDAT` lactation-scoping.** `trims_gate` joins on `lact_number` while DairyComp's `FTDAT` is a cow-level date item — the floor already flagged in Round 18. Quantified here for the first time: recomputing cow-level changes **0 of 43 flags** (enumerated under the pre-`d40cca3` window; narrowing it only removes flags, so the zero holds a fortiori). Still worth fixing for correctness; it is not load-bearing for these cases.
+- **`FTDAT` lactation-scoping.** `trims_gate` joins on `lact_number` while DairyComp's `FTDAT` is a cow-level date item — the floor already flagged in Round 18. Quantified here for the first time: recomputing cow-level moves **18 cases** from cannot-tell to by-design (39/69/11 → 57/51/11). **The "0 of 43 flags" first recorded here was wrong** — measured on the genuine set, i.e. the cases defined by nothing having blocked, which a blocking change can never move. See Round 28. Still worth fixing for correctness; it is not load-bearing for these cases.
 - **Pen.** Split across two barn groups (pens 5–8 and 72–78), not localised.
 - **Timezone.** `fxn_read_nedap_attentions()` converts UTC to `America/Chicago` before taking the date. Correct. Lag validation confirms the ~5am batch behaviour: matched alert-to-episode lags are 431 at 0 days and 901 at 1 day, with 2–5 day lags rare.
 
@@ -1119,3 +1119,26 @@ So the practice to carry forward is sharper than "return a set instead of a stri
 - **T13 closed properly on a second pass** (`f3ee7e6`). The first rewrite was a *precision* caveat where the finding was about *selection*; the farm report now says the day-30 end "is not the same cows as the day-0 end — it is the ones alerted earliest in the study." Worth noting that this survived only because Round 26 logged it as a half-closure instead of ticking it off. A binary checkbox would have lost the distinction.
 - The farm report's **"No data (Outside Coverage)" bullet was dropped** — Gerard asked why it was there, and the answer was that nothing falls into it. The factor level is kept and the partition asserted, per the Round 20 lesson about never deleting a category merely because it is currently empty.
 - **T24 is now the only open review item**, unfixed but quantified at zero impact for the cases in hand.
+
+## Round 28: T24 re-measured — 18 cases, not zero, and the zero was a measurement error of mine
+
+Round 25 recorded that making the `FTDAT` trim gate cow-level rather than lactation-scoped "changes 0 of 43 flags". That number was wrong, and the way it was wrong is worth keeping.
+
+**The error.** The 43 flags were enumerated across the 13 *genuine* pipeline-loss cases. Those are, by construction, the cases where **nothing blocked** — and making a gate wider can only ever block *more*. Measuring it on the set defined by "nothing blocked" was close to guaranteed to return zero. The cases the change actually moves are the ones sitting in **cannot-tell**, which that sample excluded by construction. **The denominator was chosen by the outcome.**
+
+That is the same error class as the base-rate trap recorded in Round 25 itself — where two convincing leads died once measured against the herd rate. Flagging that trap in one paragraph and falling into it in the next is a fair illustration of how little the general principle protects you: the CHKLAME lead *felt* like it needed a control group, and the T24 measurement felt like a simple count.
+
+**Re-measured** against the current window and the post-`f6d5df6` population, verified by building a cow-level variant of `fxn_build_pipeline_by_design()` and re-running the report's own chunks:
+
+| `trims_gate` join | by design | cannot tell | genuine |
+|---|---|---|---|
+| `id_animal` + `lact_number` (current) | 39 | 69 | **11** |
+| `id_animal` alone (the fix) | **57** | **51** | **11** |
+
+**27 of the 119 cases change their `FTDAT` verdict; net 18 move from cannot-tell into working-as-designed.** The genuine set is identical either way — 11 cows, none explained away.
+
+**The conclusion survives; the characterisation does not.** "Correctness fix, not a numbers fix" was right about what matters — this changes nothing we take to Nedap. But "cosmetic" would have been wrong, and someone reading "0 of 43" later would reasonably have concluded exactly that and left the bug in place. It cuts the unjudgeable pile by about a quarter. The finding predicted that the 90-day `Low` gate was wide enough for prior-lactation trims to land inside it; that is not waiting to happen, it is already happening 18 times.
+
+**The transferable rule:** to size a change that can only push cases *one way* across a boundary, measure it on the population that could cross — never on the group defined by having already landed on one side. Ask what the change is capable of doing, then choose the denominator that could show it.
+
+This was caught by the other session re-deriving the number before putting the finding to Gerard, rather than carrying it forward on the strength of it being already written down. Two sessions checking each other's arithmetic has now caught a wrong count in both directions.
