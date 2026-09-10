@@ -33,6 +33,39 @@ A cow enters the study **at her first SmartSight alert**, not at study start. Ra
 - Accrual is continuous. In the pilot one farm produced **849 alerts in 86 days, about 69 per week**. A cow enrolled in month 11 has one month of follow-up, so the analysis must handle staggered entry (time-to-event models, and milk indexed to days-since-alert rather than calendar date).
 - **Cross-sectional enrollment would not work here.** Randomising every cow at study start means most of the sample never gets alerted, and the arms would differ only among those who do — a much larger study for the same information.
 
+
+##### Cure at the dry-off trim: considered and dropped
+
+Attractive on coverage — 74.8% of index white line and sole ulcer cases reach a dry-off trim, better than the 60.2% a recheck currently achieves, and it needs no standardisation because the dry-off trim already happens for ~90% of cows with no difference between arms.
+
+**Dropped on timing.** The gap from index lesion to dry-off trim has a median of 154 days and an interquartile range of 22 to 247 — a cow whose lesion appeared at 250 DIM is assessed three weeks later, one at 50 DIM eight months later. That is not one outcome; it mixes acute cure with durable resolution, and no amount of adjustment makes those the same question.
+
+The dry-off trim stays in the design as **lesion prevalence at dry-off**, which is a legitimate end-of-lactation outcome in its own right and is arm-independent. It is just not a cure measure.
+
+##### Enrolling at freshening instead of at the alert
+
+▶ *Raised as the alternative that makes timing clean, at the cost of a longer study.* Worth quantifying rather than assuming.
+
+**What it costs.** Most cows enrolled at freshening never get an alert, so the arms only differ among the alerted subset. Measured from the pilot: the alert hazard is 0.0032 per cow-day, which over a full 305-day lactation implies **about 62% of cows are alerted at least once**. (Checked against the observed rate by exposure band — 4% by 30 days, 15% by 60, 24% by 90 — which is consistent with a roughly constant hazard.)
+
+| | Enrol at alert | Enrol at freshening |
+|---|---|---|
+| Cows to enrol for 4,300 alerted | 4,300 | **~6,900** (×1.6) |
+| Accrual | 62 farm-weeks | **101 farm-weeks** |
+| Follow-up after the last enrollee | 60–90 days | **a full lactation** |
+| Across 3 herds | ~5 months accrual | ~8 months accrual + ~10 months follow-up |
+
+Roughly **1.6× the cows and about double the calendar time.**
+
+**What it buys**, and some of it is more than tidiness:
+
+- **Randomisation precedes the alert.** Assignment cannot interact with anything about how or when the cow was flagged.
+- **A fixed time anchor.** DIM at enrolment is known and balanced across arms, and dry-off becomes a fixed endpoint rather than a variable one.
+- **A complete pre-alert baseline**, rather than whatever milk history happens to exist before an alert that arrives at an arbitrary DIM.
+- **A denominator for detection performance.** This is the substantial one. With every cow enrolled and every cow reaching a dry-off trim, the study has an unselected population and a common examination point — which is what makes the camera's sensitivity estimable at all. Enrolling at the alert cannot do this, because the population is defined by the camera having fired. It partly answers the open question about whether a reference standard is needed, though the dry-off trim only sees lesions still present at dry-off, so it is an imperfect one.
+
+▶ **The decision.** Enrol at the alert if the study is about *what to do with an alert*. Enrol at freshening if it is also about *how well the camera detects* — that question cannot be answered from an alert-triggered cohort at any sample size, and 1.6× the cows plus a year of calendar time is what it costs to add it.
+
 ### Arms
 
 All three arms sit on a common floor: **if farm staff identify a cow as lame, she goes on the trim list and is treated, regardless of arm.** This is an ethical requirement and it is not negotiable.
@@ -706,7 +739,6 @@ Without these the study measures the camera and the integration together and can
 | Arms | Three: trim within 1 week, trim at 4 weeks, regular farm practice. | Gerard's outline. |
 | Arm 2 | Treated at 4 weeks **or sooner** if the routine round or staff pick her up. About **a third never actually waits** - 66% of farm catches land inside four weeks. Record the actual treatment date; pre-specify a per-protocol analysis alongside intention-to-treat. | Gerard + pilot timing. |
 | Arm 3 | **Regular farm practice**, including routine trimming — not an untreated arm. Its coverage varies by farm, is only partly standardisable, and must be recorded per herd and carried in the model. | Gerard, 2026-09-10. |
-| Enrollment | Rolling, at each cow's first SmartSight alert. | Cross-sectional would randomise mostly cows who never get alerted. |
 | Common inspection point | Routine **dry-off trim** — coverage does not differ by arm in the pilot (88.6% vs 92.7%, p = 0.62). Defined as a window of −45 to +7 days, not a day. | Measured; see §4. |
 | Cure outcome | Read from the follow-up trim coming back trim-only. **Sized on white line and sole ulcer**; foot rot excluded as a recording artifact; DD collected opportunistically. | Gerard + pilot data. |
 | DD rechecks | **Not standardised** — not feasible on farm. | Gerard, 2026-09-10. |
