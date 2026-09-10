@@ -108,7 +108,7 @@ Two observations from the pilot, both **hypothesis-generating and not conclusive
 
 **Cows with lameness history appear to be missed by the camera more often.** Among alerted cows who were later found with a lesion, the share the camera gave no useful warning for was **17.3% with history against 3.0% without**. The cell counts are small (156 and 135 cases) and this is exactly the kind of pattern the pilot learned to distrust before checking base rates, so it is offered as a question for the full study rather than a finding.
 
-Both argue for **powering the interaction rather than adjusting it away.** ▶ That materially raises sample size and is a decision to take deliberately.
+Both argue for **powering the interaction rather than adjusting it away.** ▶ That doubles the sample size - verified, not estimated; see the simulation section in §5. A deliberate purchase, not a side effect.
 
 ---
 
@@ -240,11 +240,58 @@ At 69 alerts per week, 2,584 cows is 37 weeks at one farm — or about 7 weeks o
 
 2. **The pilot measured 30 days; this study measures 60–90.** If the benefit of early treatment accumulates, a longer window sees more of it.
 
-▶ **Still worth doing:** re-run the simulation itself with the measured components to confirm the closed-form figures above, since the simulation carries the blocking and the herd structure that the formulae ignore. Both should agree; if they do not, the disagreement is the finding.
+The simulation has now been re-run with those components. Results below.
 
 **On "can milk alone pay for it".** Not on its own - see the economics section below, which answers this with the herd's measured new-case incidence rather than an assumed break-even. Milk is worth about $0.36-0.53 per cow per month at the pilot's effect size, against a price of $0.65-0.80.
 
 ▶ Needed to firm this up: system cost per cow per day, milk price, cull value, cost per trim.
+
+
+#### The simulation, re-run with measured inputs
+
+100 replicates per cell, `glmmTMB`, the original engine's structure with the pilot's variance components. `n` is the two arms being compared; a third arm adds 50%.
+
+**Power to detect a difference from zero (95% CI excludes 0), %:**
+
+| True effect | 200 | 500 | 1,000 | 2,000 | 4,000 |
+|---|---|---|---|---|---|
+| 1.0 kg | 9 | 13 | 22 | 43 | 70 |
+| 1.5 | 14 | 13 | 41 | 68 | 94 |
+| 2.0 | 19 | 40 | 72 | 94 | 100 |
+| 2.5 | 35 | 55 | 86 | 100 | 100 |
+| 3.0 | 38 | 69 | 97 | 99 | 100 |
+| 3.5 | 39 | 83 | 97 | 100 | 100 |
+
+**Power for the economic criterion (lower 95% bound ≥ 2.45 kg), %:**
+
+| True effect | 200 | 500 | 1,000 | 2,000 | 4,000 |
+|---|---|---|---|---|---|
+| 1.0–2.5 kg | ~0 | ~0–5 | ~0–2 | ~0–2 | ~0–3 |
+| 3.0 | 4 | 6 | 19 | 12 | 26 |
+| 3.5 | 5 | 14 | 15 | 46 | 75 |
+
+The second table confirms the structural point: a threshold criterion is near-unattainable unless the true effect comfortably exceeds the threshold. At 2.5 kg against a 2.45 kg break-even, power never leaves single digits at any sample size.
+
+#### Why the simulation needs twice the cows the formulae say — and it is a design decision, not an error
+
+The simulation consistently requires about **2× the closed-form sample size**. That disagreement is worth resolving rather than averaging, and the cause is the model, not the variance:
+
+**`treatment * history` makes the reported `treatmentControl` coefficient the treatment effect within `history = "No"` only** — estimated from half the cows. Tested directly on identical data, 40 replicates at n = 1,000:
+
+| Model | Mean SE | Mean estimate |
+|---|---|---|
+| `treatment * history` | 0.844 | 1.945 (effect in one stratum) |
+| `treatment + history` | 0.597 | 2.27 (average across strata) |
+| Closed-form prediction | 0.602 | — |
+
+The SE ratio is **1.414 — exactly √2 — so the sample-size penalty is exactly 2×.** The closed-form figure matches the main-effects model to three decimals; it was never wrong, it just answers a different question.
+
+▶ **So the choice of primary estimand sets the sample size, and it doubles it.**
+
+- **If the primary question is the average treatment effect across the herd**, fit treatment as a main effect (or take the marginal effect from the interaction model) and the closed-form figures in §5 apply.
+- **If the interaction is itself of interest** — and §3 gives real reason to think chronicity matters, with recurrence rising 34% → 52% across parity — then the study needs roughly double, and that must be a deliberate purchase rather than a side effect of how the model was written.
+
+This is the quantitative answer to the open question of whether to power the chronicity interaction or merely adjust for it. **It costs 2×.**
 
 ### Economics: what is the system worth?
 
@@ -358,7 +405,7 @@ Without these the study measures the camera and the integration together and can
 |---|---|
 | 1 | Confirm rolling enrollment at first alert. |
 | 2 | Drop the "no lameness history" restriction and stratify instead — recommended. |
-| 3 | Power the chronicity × lactation interaction, or adjust only. |
+| 3 | Power the chronicity x lactation interaction, or adjust only. **Now quantified: the interaction costs exactly 2x the sample size.** |
 | 4 | Adopt lesion-at-dry-off as a primary outcome — recommended. |
 | 5 | Include locomotion scoring or a second camera as reference standard, and at what frequency. |
 | 6 | IOFC per kg, cull value, cost per trim. Incidence is measured (27.1 new cases/100 cow-years, this herd at the high end). |
