@@ -1210,6 +1210,22 @@ Commits `e3b8ed4`, `ccef7a3`, `3219af6`, `3d3b543`, `568d97b`, `5410a5f`, `15e35
 
 **Standing drift hazard, restated:** the two reports now deliberately differ in their category structure, not just their wording. Round 23 already recorded that every bug fixed in one must be fixed in the other with nothing enforcing it; a deliberate structural divergence makes that harder, because a difference between them is now sometimes correct. Anything touching detection categories needs checking against both, and the question "should this differ?" now has to be asked rather than assumed.
 
+**Where exactly the divergence sits, and the trap it arms.** `detection_group_3way` is built independently in each `.qmd` while both share `fxn_build_q4()` — the farm report emits three levels (`Camera alerted her` / `No warning from the camera` / `No Data (Outside Coverage)`), the full report four (including `Flagged, but no alert in time` and `Never Flagged (True Miss)`). Two divergent constructions is judged not yet worth pulling into the function with a flag; a third would be.
+
+But there is a specific consequence worth writing down, because it is **instance 5 of the string-label failure mode sitting armed rather than fired.** `fxn_build_pipeline_by_design()` opens with:
+
+```r
+pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, but no alert in time")
+```
+
+That is a **shared function depending on a string its callers must produce**, and the farm report's vocabulary never produces it. Today that is latent rather than live: the farm report does not call this function, and its two real callers — the full report and `scripts/step3_pipeline_losses.R` — both emit the matching level. `step3_pipeline_losses.R` even carries a comment at the call site saying the label must match what the function filters on.
+
+**The comment is at one call site; the check is nowhere.** Both `stopifnot()`s inside the function are partition assertions, and a partition assertion is **trivially satisfied by an empty set** — `0 + 0 + 0 + 0 == 0` passes, as does `0 + 0 + 0 == 0`. So if a caller ever hands this function a `detection_group_3way` built with the farm report's vocabulary, it returns zero rows, every downstream count is zero, both assertions pass, and the report renders. That is precisely the shape of Round 26's workbook bug, which is the one that silently zeroed every verdict.
+
+**The one-line guard the enumerated list keeps pointing at:** assert the filter matched something, not merely that the pieces sum. `stopifnot(nrow(pipeline_loss_cases) > 0)` — or better, that the expected level is present in the input's levels — converts a future silent zero into an error at the call that caused it. Raised with the session holding `functions/`; not applied here.
+
+**Generalising once, since this is the fifth time:** a partition assertion proves the parts add up to the whole. It says nothing about whether the whole is the right size, and it is at its weakest exactly where this failure mode strikes — when the whole has collapsed to nothing. Guard the *population* as well as the partition.
+
 ### The full report got the guards it never had
 
 `568d97b` tightened sixteen passages — Gerard: *"the full report is very wordy and that is not my style."* No number or caveat removed. Two structural things came with it:
