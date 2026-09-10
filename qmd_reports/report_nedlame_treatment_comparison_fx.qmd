@@ -380,13 +380,15 @@ With above exclusions and conditions it resulted in
 
 # Description of Cows
 
-The tables below describe the cows enrolled by treatment group to ensure groups were similar. The high number of low declines is not surprising considering we move the low threshold to allow more scores to get into DairyComp.
+The tables below describe the cows enrolled by treatment group to ensure groups were similar.
+
+- The high number of low declines is not surprising considering we move the low threshold to allow more scores to get into DairyComp.
 
 ::: panel-tabset
 ## By Alert Type
 
 ```{r}
-#| label: overview-table
+#| label: tbl-overview-table
 
 cohort |>
   count(tx_group, alert_type) |>
@@ -442,7 +444,7 @@ cohort |>
 ```
 
 ```{r}
-#| label: q1-dim-check
+#| label: fig-q1-dim-check
 #| fig-height: 4
 
 cohort |>
@@ -477,7 +479,7 @@ cohort_excluded_post_trim |>
 ```
 
 ```{r}
-#| label: post-trim-exclusion-plot
+#| label: fig-post-trim-exclusion-plot
 #| fig-height: 4
 
 cohort_excluded_post_trim |>
@@ -521,25 +523,28 @@ pct_decline_excluded <- round(100 * mean(cohort_excluded_post_trim$alert_type %i
 pct_decline_cohort <- round(100 * mean(cohort$alert_type %in% c("LOW DECLINE", "STRONG DECLINE")), 1)
 ```
 
-# Trimming
+## Trimming Data
 
-## Time to next trimming after alert
+### Time to next trimming after alert
 
-These curves measure **protocol compliance, not alert accuracy**. For each cow we took the first trim after her first NEDLAME alert, censored at end of lactation or culling.
+These time to event curves measure **protocol compliance**.
 
-In TX the trim is caused by the alert, so the curve shows how well the protocol was followed. The Control curve does a different job: nothing there acts on the alert, so it shows when those cows were trimmed anyway. The staff-versus-routine split is in @tbl-trim-driver.
+- For each cow we took the first trim after her first NEDLAME alert, censored at end of lactation or culling.
 
-Whether the alerts were *right* is a separate question, answered by the lesion table below and the miss analysis later.
+  - It is clear that most of the TX cows got trimmed within 7-10 days as designed.
+  - The difference between the
 
-The figures below show the time to the next trimming event split by treatment group and for various lesion or alerts types.
+In TX the trim is caused by the alert, so the curve shows how well the protocol was followed.
 
-- It is clear that most of the trim cows got trimmed within 7-10 days.
+The Control curve does a different job: nothing there acts on the alert, so it shows when those cows were trimmed anyway due to either staff flagging them or a routine scheduled trimming.
+
+- A breakdown of the staff-versus-routine split is in @tbl-trim-driver.
 
 ::: panel-tabset
 ## Time to Any Trim/LAME Event
 
 ```{r}
-#| label: q2-any-plot
+#| label: fig-q2-any-plot
 #| fig-height: 5
 
 km_any <- survfit2(Surv(days_to_event, event_occurred) ~ tx_group, data = q2_any)
@@ -556,7 +561,7 @@ km_any |>
 ```
 
 ```{r}
-#| label: q2-any-table
+#| label: tbl-q2-any-table
 
 km_any |>
   tbl_survfit(times = c(7, 14, 30), label = " ", type = "risk", label_header = "{time} Days") |>
@@ -567,7 +572,7 @@ km_any |>
 ## Time to a Trim/LAME Event *With a Lesion*
 
 ```{r}
-#| label: q2-lesion-plot
+#| label: fig-q2-lesion-plot
 #| fig-height: 5
 
 km_lesion <- survfit2(Surv(days_to_event, event_occurred) ~ tx_group, data = q2_lesion)
@@ -584,7 +589,7 @@ km_lesion |>
 ```
 
 ```{r}
-#| label: q2-lesion-table
+#| label: tbl-q2-lesion-table
 
 km_lesion |>
   tbl_survfit(times = c(7, 14, 30), label = " ", type = "risk", label_header = "{time} Days") |>
@@ -597,7 +602,7 @@ km_lesion |>
 Decline cows mostly all get trimmed
 
 ```{r}
-#| label: q2-alert-type-plot
+#| label: fig-q2-alert-type-plot
 #| fig-height: 6
 
 alert_levels <- c("LOW", "LOW DECLINE", "STRONG DECLINE")
@@ -654,7 +659,7 @@ The table below shows the number of cows who had a first NEDAP alert and were tr
 **This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
 
 ```{r}
-#| label: q2-trimonly-summary
+#| label: tbl-q2-trimonly-summary
 
 q2_first_event_detail <- q2_any |>
   filter(event_occurred == 1) |>
@@ -743,7 +748,7 @@ invisible(list2env(fxn_build_q3(cohort, events_formatted), environment()))
 ## By Treatment Group
 
 ```{r}
-#| label: q3-treatment-group-plot
+#| label: fig-q3-treatment-group-plot
 #| fig-height: 4
 
 staff_id |>
@@ -764,7 +769,7 @@ staff_id |>
 Staff catches a bigger % of Low and Strong Decline alerts
 
 ```{r}
-#| label: q3-alert-type-by-group-plot
+#| label: fig-q3-alert-type-by-group-plot
 #| fig-height: 4
 
 staff_id |>
@@ -803,7 +808,7 @@ Cows were at very different lactation stages when flagged, so raw production is 
 ## By Treatment Group
 
 ```{r}
-#| label: q1-plot
+#| label: fig-q1-plot
 #| fig-height: 5
 
 ggplot(trend, aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group)) +
@@ -825,7 +830,7 @@ ggplot(trend, aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group))
 Does the milk trend differ by the type of the Nedap alert?
 
 ```{r}
-#| label: q1-alert-type-plot
+#| label: fig-q1-alert-type-plot
 #| fig-height: 5
 
 milk_norm |>
@@ -902,7 +907,7 @@ milk_norm |>
 # Time to Culling After NEDAP Enrollment
 
 ```{r}
-#| label: q6-plot
+#| label: fig-q6-plot
 #| fig-height: 5
 
 km_cull |>
@@ -917,7 +922,7 @@ km_cull |>
 ```
 
 ```{r}
-#| label: q6-table
+#| label: tbl-q6-table
 
 km_cull |>
   tbl_survfit(times = c(7, 14, 30), label = " ", type = "risk", label_header = "{time} Days") |>
@@ -950,7 +955,7 @@ The figure above only answers "did a `NEDLAME` land in DairyComp in time". It ca
 The figure below compares among lesions what the reasons for not being flagged were. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
 
 ```{r}
-#| label: q4-sensor-plot
+#| label: fig-q4-sensor-plot
 #| fig-height: 4
 
 q4_sensor |>
@@ -990,7 +995,7 @@ Where a cow had two different lesions on the same day, each type is counted. The
 From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
 
 ```{r}
-#| label: q4-lesion-types
+#| label: fig-q4-lesion-types
 
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
@@ -1237,7 +1242,7 @@ Two rules limit which cows can become a `Low` alert: a score under 31, and no hi
 Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked. It is shown in the figure below.
 
 ```{r}
-#| label: pipeline-loss-injury-plot
+#| label: fig-pipeline-loss-injury-plot
 #| fig-height: 4
 
 # `reason` assigns ONE cause per case, so these bars sum to the total and
@@ -1294,7 +1299,7 @@ Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded i
 Each check above narrows a different group of cows, so the percentages don't share a denominator. The table below ties them together. Indented rows are splits of the row above, and the "% of" column always refers to the base named beside it.
 
 ```{r}
-#| label: q4-reconciliation
+#| label: tbl-q4-reconciliation
 
 n_caught_total <- sum(q4$caught_by_nedap)
 n_staff_caught <- sum(staff_catch$staff_flagged)
