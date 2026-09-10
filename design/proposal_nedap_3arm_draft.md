@@ -33,7 +33,26 @@ Per lame cow, with the break-even calculator's own IOFC of $0.254/kg:
 | Milk supplies, at 1.05–1.5 kg over 90 days | $24–34 | $24–34 |
 | **Shortfall** | **$14–24** | **$21–31** |
 
-**Milk alone does not cover the cost.** The shortfall is what culling, recurrence and treatment labour must close — and at $1,500 net per cull avoided, roughly **1.3 percentage points of avoided culling** would close it.
+**Milk alone does not cover the cost.** The shortfall is what culling, recurrence and treatment labour must close. At $1,650 net per cull avoided, roughly **0.9 to 1.5 percentage points of avoided culling** would close it.
+
+#### Economic assumptions
+
+Stated explicitly, since the ledger depends on them:
+
+| Input | Value used | Range | Source |
+|---|---|---|---|
+| Milk price | $0.37/kg | | Break-even calculator default |
+| Feed cost | $0.29/kg DM | | Calculator default |
+| Feed conversion | 2.5 kg milk per kg DM | | Calculator default |
+| **IOFC** | **$0.254/kg** | | Derived from the three above |
+| Cost per hoof trim | **$18** | $15–20 | Current typical |
+| Replacement animal | **$3,000** | $2,500–3,500 | Current market |
+| Cull cow value | **$1,350** | $1,200–1,500 | Current market |
+| **Net cost of a cull** | **$1,650** | $1,000–2,300 | Replacement less cull value |
+| Camera subscription | $0.65–0.80/cow/month | | Reported estimates |
+
+**None of these affect the sample size.** The study is powered on the milk contrast alone (§5); the economic inputs enter only the interpretation, where they convert measured effects into dollars. A reader who disagrees with any of them can substitute their own and the study's precision is unchanged — which is the main practical argument for not powering on the economics.
+
 
 ---
 
@@ -102,7 +121,7 @@ The pre-alert period is included both as the normalising baseline and because th
 
 ### Secondary
 
-**1. Cure at a standardised recheck — white line and sole ulcer.**
+**1. Cure at a standardised recheck — white line and sole ulcer. Primary comparison: arm 1 versus arm 2.**
 
 Cure is read from the follow-up trim coming back trim-only. There is no hoof recheck event in this herd's data (`RECK` is reproductive), so the study must create one: a scheduled re-examination at a fixed interval after treatment.
 
@@ -110,6 +129,16 @@ Cure is read from the follow-up trim coming back trim-only. There is no hoof rec
 - **Foot rot excluded** — its apparent 15.5% cure rate is a recording artifact. 60% of its "non-cures" fall within 7 days and 46% are re-coded foot rot, consistent with the trimmer recording the lesion and staff recording the treatment separately.
 - **A minimum 14-day gap applies to foot rot only.** White line and sole ulcer show no early clustering (10–11% within a week, medians of 29–35 days), so their early returns are genuine failures and must be counted.
 - **DD collected opportunistically**, not by standardised recheck, which is not feasible on farm.
+
+**Why arms 1 and 2 carry this outcome.** Both are trimmed by protocol, so cure is measured on the same population in each and the comparison is clean by construction. It is also the clinically important question: **does a lesion left for four weeks still heal as well?** That is what a farm is really deciding when it weighs a responsive protocol against a scheduled one.
+
+**Arm 3 is reported too, with its caveat stated.** In arm 3 only cows the farm catches are trimmed, so cure there is measured on **farm-detected lesions**, which may be more severe because they were noticed. The pilot cannot settle whether that matters — among control cows, cure was 14.7% (n = 34) in staff-detected against 18.2% (n = 11) in routine-detected, p = 1.0, an interval that spans everything of interest. So:
+
+  - **Record how every arm-3 cow came to be trimmed** — staff `CHKLAME` or routine round — and report cure separately by route. Routine-round cows are the closer analogue to a protocol trim, since the routine round is not triggered by anyone noticing her.
+  - Present arm 3's cure as **descriptive, not as an unbiased treatment contrast.**
+
+**One dilution to note on the 1-versus-2 comparison.** About a third of arm 2 is treated before its protocol week, by staff or the routine round. The design detects a **10.5-point** observed difference; among cows who actually waited the four weeks that corresponds to roughly a **16-point** true difference. Both figures should be reported, alongside the per-protocol analysis.
+
 
 **2. Lesion prevalence at the routine dry-off trim.**
 
@@ -171,14 +200,21 @@ At 6,000 enrolled: **1,000 alerted cows per herd** across six, or 1,500 across f
 
 **Herd heterogeneity is ×1.05**, not a cluster design effect. Randomisation is *within* herd, so herd is a blocking factor and blocking *removes* between-herd variance. The `1 + (m−1)·ICC` inflation applies to studies that randomise whole herds; this does not.
 
-### What 6,000 buys on the secondary outcomes
+### What this design detects
 
-| Outcome | Detectable at 6,000 | 
-|---|---|
-| **Cure, WLD/SU** | +15 points on a 49.3% baseline at 98% power; +10 points at 75% |
-| **Recurrence** | 20% relative reduction on a 48.7% baseline |
-| **Lesion prevalence at dry-off** | Two thirds of enrolled cows retained under the 90-day rule |
-| **Culling, 365 days** | Estimated with a 95% interval of about ±5.2 points |
+Smallest difference detectable at 80% power at 6,000 enrolled (2,000 per arm), after allowing for attrition and herd heterogeneity. Contrasts are arm 1 versus arm 3 except where noted:
+
+| Outcome | Cows contributing per arm | **Smallest detectable difference** |
+|---|---|---|
+| **Milk** (primary) | 2,000 | **0.98 kg/day** observed contrast |
+| Lesion prevalence at dry-off | 1,320 | **4.9 points** |
+| Recurrence within 365 days | 700 | **7.4 points** on a 48.7% baseline (15% relative) |
+| Culling at 365 days | 700 | **7.5 points** on a 52.3% baseline |
+| Cure, white line and sole ulcer *(arm 1 v 2)* | 348 | **10.5 points** on a 49.3% baseline |
+
+**Cure is targeted at a 15-point improvement**, which the design detects with 98% power; the 10.5-point figure above is the floor at 80%. Detecting a 10-point difference as the stated target would need about 10,000 enrolled, which is not worth a 65% larger study when milk is the primary endpoint.
+
+**Recurrence and dry-off prevalence come free** at the enrolment the milk contrast requires, and both are detectable at clinically meaningful sizes.
 
 ### The limitation, stated up front
 
@@ -238,17 +274,18 @@ Without these the study measures the camera and the integration together and can
 
 ---
 
-## 7. Open decisions
+## 7. Decisions taken
 
 **Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §5 should Nedap want it: 11,500 enrolled rather than 5,800.
 
 **Settled:** **six herds** across three regions, two each, with four as a stated minimum. Six is the right count for a geographically spread study, not merely a convenient one - see §2 and §5.
 
+**Settled:** the **economic inputs are stated assumptions**, listed in §1. They do not affect the sample size, since the study is powered on milk, so a reader who prefers different figures can substitute them without changing the study's precision.
 
-| | Decision | Turns on |
-|---|---|---|
-| 3 | IOFC, cost per trim, replacement cost and cull value **from the participating farms**, not national averages. | The culling term dominates the economics and the answer is sensitive to it. |
-| 4 | Cure at +15 points, or +10 for a larger study? | +15 fits inside 6,000; +10 needs about 10,000. |
+**Settled:** cure is targeted at **+15 points**. §5 states what the design detects on every outcome rather than only the powered one.
+
+**Settled:** the **cure comparison is primarily arms 1 versus 2**, where both arms are protocol-trimmed and the contrast is clean. Arm 3 is reported with its selection caveat stated and its detection route recorded. This is the clinically important question — does a lesion left four weeks still heal as well — and it is also the timing question the three-arm design exists to answer.
+
 
 ---
 
