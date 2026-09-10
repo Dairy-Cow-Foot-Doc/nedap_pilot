@@ -2,7 +2,7 @@
 
 ## A proposal for a three-arm randomised trial
 
-**Draft 2 — 2026-09-10.** Consolidated from the working document (`proposal_nedap_3arm.md`), which retains the derivations, the checks and the corrections behind every figure here. Every number attributed to the pilot is computed from its data.
+**Draft 2 — 2026-09-10.** All figures attributed to the pilot are computed from its data; derivations and validation are held separately and available on request.
 
 ---
 
@@ -58,7 +58,7 @@ Stated explicitly, since the ledger depends on them:
 
 ## 2. Design
 
-Randomised controlled trial, **three arms**, **365-day follow-up**, **six herds** across three regions - two each in New York, South Dakota/Kansas and the West Coast. **Four herds is the minimum**; §5 gives what that costs.
+Randomised controlled trial, **three arms**, **365-day follow-up**, **six herds of 2,000–5,000 cows** across three regions - two each in New York, South Dakota/Kansas and the West Coast. **Four herds is a workable minimum**; §5 gives what that costs in both precision and calendar time.
 
 ### Enrolment
 
@@ -187,15 +187,30 @@ Powered on the primary milk contrast, at 80% power and two-sided α = 0.05, usin
 
 ### What each herd supplies
 
-At 6,000 enrolled: **1,000 alerted cows per herd** across six, or 1,500 across four. Accrual time depends on herd size, at the pilot farm's rate of about 0.020 alerts per cow per week:
+At 6,000 enrolled that is **1,000 alerted cows per herd** across six, or 1,500 across four.
 
-| Herd size | 6 herds (1,000 each) | 4 herds (1,500 each) |
-|---|---|---|
-| 1,000 cows | 49 weeks | 74 weeks |
-| 2,000 cows | 25 weeks | 37 weeks |
-| 3,400 cows | 14 weeks | 22 weeks |
+Participating herds are expected to run **2,000 to 5,000 cows**. At the pilot farm's alert rate of about 0.020 per cow per week:
 
-**With six herds even a 1,000-cow farm accrues its share inside a year**, and larger herds finish much sooner - at which point the binding constraint becomes the 365-day follow-up rather than enrolment. That matters for the timeline: with reasonably sized herds the study is roughly six months of accrual plus a year of follow-up, not two years of accrual.
+| Herd size | Alerts per week | **6 herds** (1,000 each) | 4 herds (1,500 each) |
+|---|---|---|---|
+| 2,000 cows | 40 | **25 weeks** | 37 weeks |
+| 3,000 cows | 60 | **17 weeks** | 25 weeks |
+| 5,000 cows | 100 | **10 weeks** | 15 weeks |
+
+**So enrolment closes in roughly three to six months, not a year.**
+
+### Timeline
+
+| | |
+|---|---|
+| Enrolment | **3–6 months**, running in parallel across the six herds |
+| Follow-up on the last cow enrolled | **12 months** |
+| **Total from first enrolment to last observation** | **15–18 months** |
+
+**The 365-day culling follow-up is what sets the duration, not recruitment.** That is worth stating plainly, because the instinct is to assume a six-herd study takes longer than a smaller one. It does not: more herds shorten the enrolment phase, and the follow-up window is fixed regardless. Six herds of 2,000–5,000 cows finish enrolment sooner than four would, and both are dominated by the year of follow-up.
+
+Shortening the follow-up to six months would cut the study to 9–12 months, but at the cost of the culling outcome: the lameness–culling gap is still widening at six months (6.8 points against 7.3 at twelve), so a six-month endpoint understates the effect the economics depends on.
+
 
 
 **Herd heterogeneity is ×1.05**, not a cluster design effect. Randomisation is *within* herd, so herd is a blocking factor and blocking *removes* between-herd variance. The `1 + (m−1)·ICC` inflation applies to studies that randomise whole herds; this does not.
