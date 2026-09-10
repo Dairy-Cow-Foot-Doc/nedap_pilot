@@ -618,6 +618,8 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
 A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%) against `r n_lesion_ctl` of `r n_cows_ctl` Control cows (`r pct_lesion_arm_ctl`%). Rate-adjusted for the arms being different sizes, that is **`r n_extra_lesion_cows` more cows with a lesion identified** under the trim protocol. These counts are read off `q2_lesion`, the same object behind the lesion-event curve above, so this section and that curve cannot diverge.
 
+Note the denominator: this is out of the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). Conditioning on having been trimmed would condition on the exposure under study, since being trimmed is most of what separates the arms.
+
 This is an **ascertainment** difference and should not be read as a treatment effect on disease. Allocation was random, so expected lesion incidence is equal by construction; what differs is exposure to inspection. `r pct_trimmed_tx`% of TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of Control cows.
 
 The direction of the trim-level rates confirms it rather than assuming it: among cows actually trimmed, `r pct_trimonly_ctl`% of Control trims found no lesion against `r pct_trimonly_tx`% of TX trims. Control trimmed fewer cows and hit more often, which is the signature of a suspicion-driven population, not a healthier one. The `r n_extra_lesion_cows` are lesions surfaced earlier, not lesions caused.

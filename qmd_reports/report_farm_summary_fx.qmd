@@ -474,6 +474,8 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
 Trimming straight off the alert found a lesion in **`r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%)**, against **`r n_lesion_ctl` of `r n_cows_ctl` in Control (`r pct_lesion_arm_ctl`%)**. Allowing for the groups being different sizes, that is about **`r n_extra_lesion_cows` extra cows with a lesion found and dealt with**.
 
+**The count here is out of every cow in the group, not just the ones that got trimmed.** The no-lesion table above counts only trimmed cows (`r n_trimmed_tx` of the TX group, `r n_trimmed_ctl` of Control), which is the right population for that question but the wrong one for this. Whether a cow was trimmed at all is most of what is being compared here, so putting it in the denominator would hide it.
+
 That is not `r n_extra_lesion_cows` extra lame cows in the TX group. The cows were split at random, so both groups will have had much the same amount of disease - the difference is who got picked up and looked at. `r pct_trimmed_tx`% of the TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of the Control cows, so the TX lesions got found and recorded. The Control lesions were mostly still there; they were just found later, by the routine round, or not at all during the study.
 
 The check that shows this: among the cows that *were* trimmed, fewer of the Control trims came up empty (`r pct_trimonly_ctl`%) than the TX ones (`r pct_trimonly_tx`%). Control was trimming fewer cows and finding something more often, which is what you would expect if it was only trimming cows somebody already suspected.
