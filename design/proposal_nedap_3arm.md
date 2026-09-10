@@ -50,7 +50,13 @@ All three arms sit on a common floor: **if farm staff identify a cow as lame, sh
 Staff detection continues in all three arms and cannot be switched off. That makes it a **co-intervention**, and the design has to treat it as one:
 
 - It is **recorded as an event** (`CHKLAME`) with its date, for every cow in every arm.
-- In arm 3 it is the *only* treatment pathway, so arm 3 is not "untreated" — it is "treated only when a human notices". That is the honest comparator and it should be named that way in the protocol.
+- In arm 3, staff detection and **the routine trim round** are the only treatment pathways. Arm 3 is **regular farm practice**, not an untreated arm, and it must be named that way in the protocol. In the pilot the equivalent group was trimmed 49.8% of the time, mostly by the routine round rather than by staff picking cows out.
+
+- **Routine trimming differs between farms and only part of it can be standardised.** Rechecks and dry-off 
+trims can be fixed by protocol; getting buy-in to standardise *mid-lactation* routine trims is unrealistic. 
+So routine coverage is a herd-level quantity that varies, it dilutes the arm-1-versus-arm-3 contrast, and it 
+dilutes it by a different amount in each herd. It has to be **recorded per herd and carried in the model**, 
+not assumed away.
 - Its magnitude is known from the pilot and it is modest: of cows whose lesion the camera had not flagged, staff caught **16.3% within 7 days**. So arm 3 will be largely, but not entirely, unmanaged.
 
 **"In item 2b the false positives are the ones that would not develop lesions because you treated them early, correct?"**
@@ -236,7 +242,7 @@ At 69 alerts per week, 2,584 cows is 37 weeks at one farm — or about 7 weeks o
 
 ▶ **Two caveats that cut the other way, and they are not small.**
 
-1. **The pilot's contrast is diluted.** Its Control arm was trimmed 49.8% of the time by the routine round, so the pilot compared "trim now" against "trim eventually", not against "do not trim". Arm 3 here is a genuinely untreated comparator, so **the true arm 1 versus arm 3 effect should be larger than 1.05 kg.** How much larger is unknown, and it is the single most consequential unknown in this sample size.
+1. **The pilot's contrast is probably the right one, not a diluted one.** Its Control arm was trimmed 49.8% of the time by the routine round - which is what arm 3 *is*. An earlier draft of this document argued arm 3 would be a genuinely untreated comparator and so reveal a larger effect; that was wrong. **1.05 kg is a reasonable estimate of the arm-1-versus-arm-3 contrast**, and the study should be sized for an effect of about that magnitude rather than hoping for more.
 
 2. **The pilot measured 30 days; this study measures 60–90.** If the benefit of early treatment accumulates, a longer window sees more of it.
 
@@ -341,7 +347,7 @@ $$\text{affordable \$/cow/month} = \frac{\text{milk gain (kg/day)} \times \text{
 
 At the pilot's observed effect and this herd's incidence, **milk alone is worth $0.36–0.53 per cow per month — roughly 45–80% of the price.** Short, but not by a wide margin, and the shortfall closes entirely if the true effect is nearer 1.5 kg over a 90-day window.
 
-That is a real possibility rather than wishful thinking, for a reason specific to the pilot: its Control arm was trimmed 49.8% of the time by the routine round, so it measured "trim now" against "trim eventually", not against "do not trim". **Arm 3 is a genuinely untreated comparator, so the true effect it reveals should exceed 1.05 kg.**
+Whether the true effect is nearer 1.5 kg is genuinely open, but **not** for the reason an earlier draft gave. Arm 3 is regular farm practice including routine trimming, which is what the pilot's Control arm was, so the pilot's 1.05 kg is a fair estimate of this contrast and not an understatement. The upside case rests instead on the longer measurement window (60-90 days against the pilot's 30) and on herds with lower routine-trim coverage, where the contrast is less diluted.
 
 #### The uncomfortable part, and why it decides the design
 
