@@ -105,6 +105,10 @@ inline_syms <- function(q) {
       body <- strip_strings(sub("`$", "", sub("^`r\\s*", "", txt)))
       # drop anything immediately followed by "(" - those are function calls
       body <- gsub("[A-Za-z._][A-Za-z0-9._]*\\s*\\(", "(", body)
+      # drop named arguments (collapse = , na.rm = ) - they are not objects
+      body <- gsub("[A-Za-z._][A-Za-z0-9._]*\\s*=(?!=)", "", body, perl = TRUE)
+      # drop $column references - those are columns, not free symbols
+      body <- gsub("\\$[A-Za-z0-9._]+", "", body)
       syms <- unique(regmatches(body, gregexpr("[A-Za-z._][A-Za-z0-9._]*", body))[[1]])
       for (s in setdiff(syms, RESERVED))
         out[[length(out) + 1]] <- list(line = i, sym = s)
@@ -112,6 +116,32 @@ inline_syms <- function(q) {
   }
   out
 }
+
+# --- I: names each fxn_build_*() hands back via its closing list(...) -------
+# Report objects mostly arrive through list2env(fxn_build_*()), so they are
+# never assigned in the .qmd. Without this, an inline `r obj` naming something
+# that exists NOWHERE is indistinguishable from a normal function-supplied
+# object. Reading the returns closes that gap - it is what would have caught
+# `n_truly_never` and `n_pipeline`, both pasted in from the farm report, which
+# computes the same quantities under different names.
+provided_names <- function(path = "functions/fxn_nedlame_analysis.R") {
+  if (!file.exists(path)) return(character(0))
+  p <- try(parse(path), silent = TRUE)
+  if (inherits(p, "try-error")) return(character(0))
+  out <- character(0)
+  for (e in p) {
+    if (!is.call(e) || !identical(as.character(e[[1]]), "<-")) next
+    b <- e[[3]]
+    if (!is.call(b) || !identical(as.character(b[[1]]), "function")) next
+    fb <- b[[3]]
+    st <- if (is.call(fb) && identical(as.character(fb[[1]]), "{")) as.list(fb)[-1] else list(fb)
+    last <- st[[length(st)]]
+    if (is.call(last) && identical(as.character(last[[1]]), "list"))
+      out <- c(out, names(as.list(last)[-1]))
+  }
+  unique(out[nzchar(out)])
+}
+FXN_PROVIDED <- provided_names()
 
 for (f in qmd_files) {
   cat("\n==== ", f, " ====\n", sep = "")
@@ -202,6 +232,22 @@ for (f in qmd_files) {
     if (!is.null(a) && a > h$line)
       say("ERROR", "G forward-ref",
           sprintf("line %d uses `%s`, first assigned at line %d (below it)", h$line, h$sym, a))
+  }
+
+  ## I. an inline `r obj` naming something defined nowhere at all
+  known_objs <- unique(c(names(assign_line), FXN_PROVIDED, "params"))
+  if (length(FXN_PROVIDED)) {
+    seen <- character(0)
+    for (h in inline_syms(q)) {
+      if (in_chunk[h$line] || h$sym %in% known_objs || h$sym %in% seen) next
+      seen <- c(seen, h$sym)
+      say("ERROR", "I undefined",
+          sprintf("line %d: `%s` is assigned nowhere and returned by no fxn_build_*()",
+                  h$line, h$sym))
+    }
+  } else {
+    say("WARN", "I undefined",
+        "functions/fxn_nedlame_analysis.R not readable - skipped the undefined-object check")
   }
 
   cat(sprintf("  (%d chunks, %d labelled, %d crossrefs)\n", length(ch), length(known), length(used)))
