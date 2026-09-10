@@ -1106,7 +1106,7 @@ The reasoning lesson is worth more than the count. T23 identified the *case* cor
 
 One caveat recorded rather than argued: the rule is unbounded in principle, though empirically capped at 90 days since nothing is recovered past that. For the longest-gap cows, calling an alert three months earlier a "warning" about *this* lesion is generous to the camera. The never-trimmed guard is what makes it defensible — the farm did not look, so nobody can say what was there. Gerard has seen the distribution and made the call.
 
-### The string-label failure mode, now four times
+### The string-label failure mode (tally corrected in Round 30 — see the enumerated list there, not a running count)
 
 This change hit it again, in a fourth place: the farm report's `detection_group_3way` `case_when` and its `factor(levels = )` are **two separate string lists that must agree**, and the first edit added the new category to only one of them. The level list sits directly beside a comment warning about this exact hazard.
 
@@ -1197,3 +1197,44 @@ Four re-derivation catches now between the two sessions, in both directions. Thi
 4. **Reconcile a new section's numbers against the sections around it** — catches a second, silently divergent definition of a population the report already had. Blind to nothing except what is not on the page.
 
 A successful render is evidence for none of the four. Layers 3 and 4 were both earned this round by a human reading output rather than code — Gerard on the counts, and the farm report's *"the same cows behind the lesion curve above"*, which was true in the full report and false in the farm one, which has no lesion curve.
+
+## Round 30: prose tightened, the farm report merged to two categories, and the string-label tally put on a proper footing
+
+Commits `e3b8ed4`, `ccef7a3`, `3219af6`, `3d3b543`, `568d97b`, `5410a5f`, `15e35a0`. The pilot analysis is finished; the next deliverable is a proposal to Nedap for a full three-arm study.
+
+### The farm report now has two detection categories, and the reasoning matters more than the merge
+
+`Camera alerted her` (266) against `No warning from the camera` (313). The finer split — caught in the lookback versus warned-and-not-acted-on — stays in the full report.
+
+**Gerard's reasoning, which is the part to keep:** an alert 35 days before a lesion *could* genuinely be about that lesion, and the data cannot distinguish that from an unrelated earlier flag. So asserting it was *not* about the lesion is an overclaim, and the farm-facing document should not make it. This is the same instinct that retired the DD conjunction in Round 26 and that produced the warned-not-acted rule in Round 27 — three times now he has pushed back on a distinction the data cannot actually support. Worth noticing as a pattern rather than three separate corrections.
+
+**Standing drift hazard, restated:** the two reports now deliberately differ in their category structure, not just their wording. Round 23 already recorded that every bug fixed in one must be fixed in the other with nothing enforcing it; a deliberate structural divergence makes that harder, because a difference between them is now sometimes correct. Anything touching detection categories needs checking against both, and the question "should this differ?" now has to be asked rather than assumed.
+
+### The full report got the guards it never had
+
+`568d97b` tightened sixteen passages — Gerard: *"the full report is very wordy and that is not my style."* No number or caveat removed. Two structural things came with it:
+
+- **The full report had ONE `stopifnot` in 1,300 lines**, and the same unguarded string comparisons that had already broken the farm report. Partition guards added where a level name decides a count.
+- **A hardcoded `27.9%`** was sitting in the prose for the Control miss rate under the *old* rule — a literal that survived the Round 27 change silently. Now computed. Exactly the hazard recorded at the end of Round 29: a number written in a second place goes stale in one of them, and a literal in prose is the worst version because nothing recomputes it.
+
+### The string-label failure mode: enumerated, because a running count went stale
+
+I had been carrying a tally of this failure mode and it drifted — I had counted T22 among them, and T22 was a *missing rule* (the report's `by_design` simply had no `DSNLM` term), not a stale string comparison. Different disease. So here is the list rather than a number, and future instances should be appended rather than counted:
+
+1. **Round 18** — `detection_group` tested `"Never Alerted"` against a column holding `"Never Alerted (Not in Pilot Cohort)"`. Matched nothing; all 230 never-alerted cows would have displayed as "Alerted, Missed".
+2. **Round 26** — the workbook generator filtered `"Flagged, Lost in Pipeline"` after the shared function moved to `"Flagged, but no alert in time"`. Matched nothing; silently zeroed every verdict.
+3. **Round 29** — the farm report's `case_when` and its `factor(levels = )` are two string lists that must agree, and only one was edited.
+4. **Round 30 (this one)** — a comparison site left testing `'Never Flagged (True Miss)'` after that level was renamed. Every cow fell into one group, the percentages went to `NaN`, **and the page still rendered** — with a blank where a number belonged: *"it is % of the cases the camera never flagged against 33%"*.
+
+**All four were silent. None was caught by a render or by a code diff.** The guard that works is asserting the comparison matched something — `stopifnot(n_a > 0, n_b > 0, n_a + n_b == total)` — which is now in place at the sites that decide a count.
+
+**One mechanical detail worth recording precisely, because the obvious reading of it is wrong.** The instance above survived a rename because the stale site was written with single quotes while the replacement targeted the double-quoted spelling. In R those are the *same string* — quoting style has no semantic effect whatsoever, and anyone who takes "single versus double quotes" as the cause will look for a bug that does not exist. The real lesson is about tooling, not language: **a find-and-replace over a quoted literal is quote-style sensitive, so rename by searching the bare label text**, then check both spellings.
+
+### The proposal phase starts here
+
+`15e35a0` adds `.claude/skills/nedap-proposal/SKILL.md`, force-added because `*.md` is gitignored to catch Quarto output — the same trap that hid `mcp_server/*.md` in Round 13 and that `design/*.md` needs an exception for. **Any new hand-authored Markdown in this repo has to be force-added or it silently will not be tracked.**
+
+Two things belong in whatever design document the proposal starts from:
+
+1. **The third arm has never been specified. It must be asked about, not invented.** There is no basis in the pilot for guessing what it should be.
+2. **Ascertainment is the central design problem, not a limitation to note in passing.** The pilot's headline benefit is entirely explained by TX cows being trimmed 90.4% of the time against Control's 49.8% — that is what Round 29's 58-extra-lesion finding actually measures. **A three-arm study repeats that confound at greater cost unless inspection is made common across arms.** Sample sizes make the same point from the other side: milk needs 585 cows per arm to detect 5 points and 1,737 for the 2.9 actually observed, which is 75 weeks at this farm's 69 alerts per week. **Detection is the only outcome a single farm can power.**
