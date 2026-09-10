@@ -253,6 +253,35 @@ The simulation has now been re-run with those components. Results below.
 ▶ Needed to firm this up: IOFC per kg, cull value, cost per trim. System cost is known at $0.65-0.80 per cow per month.
 
 
+
+##### Farm detection after an alert: two processes, not one
+
+The pilot's Control arm is the best available picture of what happens to an alerted cow when no protocol acts on her, and it separates two processes that behave very differently.
+
+| | Share of Control cows | Median days to trim | Within 28 days |
+|---|---|---|---|
+| Staff spot her (`CHKLAME`) | **17.7%** | 7 | **88%** of them |
+| Routine round reaches her | **32.1%** | 23 | **54%** of them |
+| Never trimmed | 50.2% | — | — |
+
+Week of trim, as a share of all Control trims:
+
+| Week | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| Share | **31%** | 21% | 8% | 5% | 10% | 6% | 5% | 2% | 12% |
+
+**Detection is heavily front-loaded: 66% of all catches land inside the first four weeks, and week 1 alone accounts for 31%.**
+
+**This is the number that governs arm 2.** A cow assigned to wait four weeks who is spotted by staff in week 1 is treated in week 1. About **a third of all alerted cows are caught within 28 days**, so roughly a third of arm 2 never actually waits — it is pulled toward arm 1, and the arm-1-versus-arm-2 contrast shrinks accordingly.
+
+**Two consequences for the design.**
+
+1. **Arm 2 is not "treated at four weeks", it is "treated at four weeks or sooner, whichever the farm gets to first".** The analysis has to record the actual treatment date per cow, and an intention-to-treat comparison of arm 1 against arm 2 will understate the true value of early treatment by roughly the contamination fraction. A per-protocol or time-varying analysis should be pre-specified alongside it.
+
+2. **Staff detection and routine trimming should be modelled and reported separately**, because only one of them is standardisable. Gerard's point is that rechecks and dry-off trims can be fixed by protocol but mid-lactation routine trims cannot — so routine coverage is the herd-varying nuisance, while staff detection can be treated as roughly constant across farms. Recording `CHKLAME` separately from routine trims is what makes that separation possible in the analysis, and the pilot shows it is worth doing: the two differ by a factor of three in median time-to-trim.
+
+▶ **This also sets a floor on how untreated arm 3 can be.** Half of alerted Control cows were never trimmed in the pilot, so arm 3 is roughly half-untreated — not fully. Any expectation of the arm-1-versus-arm-3 effect has to be discounted for that, and it is the main reason the pilot's 1.05 kg is the right planning figure rather than a floor.
+
 #### The simulation, re-run with measured inputs
 
 100 replicates per cell, `glmmTMB`, the original engine's structure with the pilot's variance components. `n` is the two arms being compared; a third arm adds 50%.
@@ -569,7 +598,7 @@ Without these the study measures the camera and the integration together and can
 | | Decision | Basis |
 |---|---|---|
 | Arms | Three: trim within 1 week, trim at 4 weeks, regular farm practice. | Gerard's outline. |
-| Arm 2 | Treated at 4 weeks **or sooner** if the routine round or staff pick her up. She is not held back. | Gerard, 2026-09-10. |
+| Arm 2 | Treated at 4 weeks **or sooner** if the routine round or staff pick her up. About **a third never actually waits** - 66% of farm catches land inside four weeks. Record the actual treatment date; pre-specify a per-protocol analysis alongside intention-to-treat. | Gerard + pilot timing. |
 | Arm 3 | **Regular farm practice**, including routine trimming — not an untreated arm. Its coverage varies by farm, is only partly standardisable, and must be recorded per herd and carried in the model. | Gerard, 2026-09-10. |
 | Enrollment | Rolling, at each cow's first SmartSight alert. | Cross-sectional would randomise mostly cows who never get alerted. |
 | Common inspection point | Routine **dry-off trim** — coverage does not differ by arm in the pilot (88.6% vs 92.7%, p = 0.62). Defined as a window of −45 to +7 days, not a day. | Measured; see §4. |
