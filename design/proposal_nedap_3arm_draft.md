@@ -39,7 +39,7 @@ Per lame cow, with the break-even calculator's own IOFC of $0.254/kg:
 
 ## 2. Design
 
-Randomised controlled trial, **three arms**, **one year of enrolment with 365-day follow-up**, **three to five herds**.
+Randomised controlled trial, **three arms**, **365-day follow-up**, **six herds** across three regions - two each in New York, South Dakota/Kansas and the West Coast. **Four herds is the minimum**; §5 gives what that costs.
 
 ### Enrolment
 
@@ -66,6 +66,19 @@ All three sit on a common floor: **if farm staff identify a cow as lame she is t
 ### Eligibility
 
 **Herds**
+
+**Six herds, three regions.** Two each in NY, SD/KS and the West Coast, run by collaborating investigators. Four is a workable minimum.
+
+**The geographic spread cuts both ways and the herd count is the answer to it.** Herds in different regions differ in housing, flooring, climate and trimming practice, which raises the between-herd variation in the treatment effect - the thing herd count protects against. Six herds is the right response to that spread, not a reason to narrow it:
+
+| Between-herd SD of the effect | 4 herds | **6 herds** | 10 herds |
+|---|---|---|---|
+| 0.25 kg | ×1.24 | **×1.16** | ×1.09 |
+| 0.50 kg | ×1.96 | **×1.49** | ×1.24 |
+| 0.75 kg | *no n suffices* | **×3.78** | ×1.79 |
+
+At a plausible 0.5 kg between-herd SD, six herds costs ×1.49 against four herds' ×1.96 - **a quarter less**. At 0.75 kg, four herds cannot deliver the target at any sample size and six still can. **Herds are cheaper insurance than cows.**
+
 
 - **Reliable** hoof trimming data — complete and consistently coded, checkable before enrolment.
 - **Low routine-trimming frequency.** Power on the primary contrast more than doubles between a herd that trims routinely at 10% and one at 60% (75% versus 33% at identical enrolment). This is a bigger lever than sample size and is visible in existing records.
@@ -143,6 +156,19 @@ Powered on the primary milk contrast, at 80% power and two-sided α = 0.05, usin
 
 **Attrition is ×1.28**, driven more by drying off (15.8% by day 90) than by culling (6.2%).
 
+### What each herd supplies
+
+At 6,000 enrolled: **1,000 alerted cows per herd** across six, or 1,500 across four. Accrual time depends on herd size, at the pilot farm's rate of about 0.020 alerts per cow per week:
+
+| Herd size | 6 herds (1,000 each) | 4 herds (1,500 each) |
+|---|---|---|
+| 1,000 cows | 49 weeks | 74 weeks |
+| 2,000 cows | 25 weeks | 37 weeks |
+| 3,400 cows | 14 weeks | 22 weeks |
+
+**With six herds even a 1,000-cow farm accrues its share inside a year**, and larger herds finish much sooner - at which point the binding constraint becomes the 365-day follow-up rather than enrolment. That matters for the timeline: with reasonably sized herds the study is roughly six months of accrual plus a year of follow-up, not two years of accrual.
+
+
 **Herd heterogeneity is ×1.05**, not a cluster design effect. Randomisation is *within* herd, so herd is a blocking factor and blocking *removes* between-herd variance. The `1 + (m−1)·ICC` inflation applies to studies that randomise whole herds; this does not.
 
 ### What 6,000 buys on the secondary outcomes
@@ -216,10 +242,11 @@ Without these the study measures the camera and the integration together and can
 
 **Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §5 should Nedap want it: 11,500 enrolled rather than 5,800.
 
+**Settled:** **six herds** across three regions, two each, with four as a stated minimum. Six is the right count for a geographically spread study, not merely a convenient one - see §2 and §5.
+
 
 | | Decision | Turns on |
 |---|---|---|
-| 2 | Number of herds. | Three to five. More herds buy protection against treatment-effect heterogeneity far more efficiently than more cows do, and routine trimming — the main thing that differs between farms — cannot be standardised. |
 | 3 | IOFC, cost per trim, replacement cost and cull value **from the participating farms**, not national averages. | The culling term dominates the economics and the answer is sensitive to it. |
 | 4 | Cure at +15 points, or +10 for a larger study? | +15 fits inside 6,000; +10 needs about 10,000. |
 
