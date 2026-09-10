@@ -740,6 +740,11 @@ n_cam_flag <- sum(checkable$camera == 'Camera flagged her')
 # percentages to NaN and still rendered - the page just had blanks where the
 # numbers should be. A level name compared as a string needs a check that the
 # comparison actually matched something.
+#
+# Why the rename missed this site: the search pattern included the surrounding
+# double quotes, and this line writes the same label in single quotes. R does
+# not care - they are the same string - but a find-and-replace over a quoted
+# literal does. Rename by searching the bare label text, not the quoted form.
 stopifnot(n_cam_miss > 0, n_cam_flag > 0,
           n_cam_miss + n_cam_flag == sum(q4_sensor$in_coverage))
 

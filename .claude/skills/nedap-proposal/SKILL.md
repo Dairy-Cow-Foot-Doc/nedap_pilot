@@ -42,6 +42,18 @@ These are not caveats to mention — they determine whether the study can answer
 
 **Do not frame DD detection as a defect to be fixed.** Locomotion scoring detects digital dermatitis poorly and the camera scores locomotion; DD is 42% of what it never flagged against 21% of what it caught, while white line runs the other way. If DD matters to the study, that argues for a second modality, not for expecting more from this one.
 
+## What Gerard will push back on
+
+He has now rejected the same thing three times, and it is predictive rather than incidental: **a distinction the data cannot carry.**
+
+- The DD-on-a-hind-foot conjunction - a real pattern, but it answered a question he had not asked and rested on ~81 cases. Removed entirely.
+- The 21-day lookback separating a miss from a catch - "a bit arbitrary", and it moved the Control miss rate from 27.9% to 10.7%.
+- The farm report's split between "caught in time" and "alerted too far ahead" - "it could be a warning of that lesion and we don't know so lets say they are alerted".
+
+Expect the same test applied to the proposal. Any arm, endpoint or cut-off that the study could not actually distinguish will be challenged, so state for each one what result would separate it from its neighbour.
+
+**The question to answer before it is asked:** why is a three-arm study worth the cost if inspection is not common across the arms? On the pilot's own numbers the answer is uncomfortable - the benefit it appeared to show was ascertainment. Address this in the design section, not the limitations.
+
 ## How to write it
 
 Gerard's style, learned across the pilot:
