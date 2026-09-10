@@ -48,7 +48,7 @@ sh <- qs |> filter(in_coverage) |> select(id_animal, lact_number, date_event, lo
   mutate(h = !is.na(attention_date) & attention_date < date_event & attention_date >= date_event - lookback_days_used) |>
   group_by(id_animal, lact_number, date_event) |> summarize(fired = any(h), .groups = "drop")
 qs <- qs |> left_join(sh, by = c("id_animal","lact_number","date_event")) |>
-  mutate(grp = case_when(!in_coverage ~ "outside", caught_by_nedap ~ "caught", fired ~ "pipeline", TRUE ~ "truemiss"))
+  mutate(grp = case_when(!in_coverage ~ "outside", caught_by_nedap ~ "caught", warned_not_acted ~ "warned", fired ~ "pipeline", TRUE ~ "truemiss"))
 pl <- qs |> filter(grp == "pipeline")
 cat("pipeline-loss candidates:", nrow(pl), "\n")
 

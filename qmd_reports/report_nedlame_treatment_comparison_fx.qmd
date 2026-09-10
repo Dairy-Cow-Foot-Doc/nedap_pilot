@@ -776,7 +776,11 @@ invisible(list2env(fxn_build_q4(
 
 A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
 
-Of those `r nrow(q4)` cows, `r sum(!q4$caught_by_nedap)` (`r round(100 * mean(!q4$caught_by_nedap), 1)`%) had no NEDAP alert entered in DairyComp in the `r params$q4_lookback_days` days before their lesion was diagnosed.
+Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) are counted as missed**: no `NEDLAME` reached DairyComp in the `r params$q4_lookback_days` days before the lesion, and no earlier alert had gone unanswered either.
+
+A further **`r n_warned_not_acted` are not counted as misses**, because the camera had alerted on them before the lookback window opened - a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days out - and nothing was done between that alert and the lesion. No trim, no `LAME`, no `FOOTRIM`. The camera gave warning and the warning was not acted on, which is a response failure rather than a detection failure. `r sum(q4$caught_by_nedap)` were caught inside the window.
+
+This matters because the `r params$q4_lookback_days`-day window is a judgement call, not a property of the data, and it was doing most of its work in one arm. Counting those cows as misses puts the Control miss rate at 27.9%; excluding them puts it at `r round(100 * mean(q4$is_miss[q4$tx_group == 'Control']), 1)`%, while TX barely moves. That is because a Control cow was under no protocol obligation to be trimmed off her alert, so an alert `r params$q4_lookback_days`+ days out is still a warning the farm chose not to use. Where a cow *was* trimmed after that earlier alert, the later lesion is a new episode the camera did not warn about, and she stays a miss - that is the case for `r sum(q4$acted_on_alert & !q4$caught_by_nedap)` of them.
 
 ## Alert Check: True Misses vs. Pipeline Losses
 
@@ -820,15 +824,16 @@ q4_sensor <- q4_sensor |>
     detection_group_3way = factor(case_when(
       !in_coverage ~ "No Data (Outside Coverage)",
       caught_by_nedap ~ "Flagged, Caught in Time",
+      warned_not_acted ~ "Alerted earlier, no action taken",
       sensor_fired_in_window ~ "Flagged, but no alert in time",
       TRUE ~ "Never Flagged (True Miss)"
     ), levels = c(
-      "Flagged, Caught in Time", "Flagged, but no alert in time",
+      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, but no alert in time",
       "Never Flagged (True Miss)", "No Data (Outside Coverage)"
     ))
   )
 
-misses_in_coverage <- q4_sensor |> filter(in_coverage, !caught_by_nedap)
+misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
 n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, but no alert in time")
 n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (True Miss)")
 pct_pipeline_loss <- round(100 * n_pipeline_loss / nrow(misses_in_coverage), 1)
@@ -837,7 +842,7 @@ n_outside_coverage <- sum(!q4_sensor$in_coverage)
 # next to nrow(misses_in_coverage). n_outside_coverage counts ALL lesion
 # cases outside coverage (caught ones included), so quoting it alongside a
 # miss-denominated number mixes two bases.
-n_misses_outside_coverage <- sum(!q4_sensor$in_coverage & !q4_sensor$caught_by_nedap)
+n_misses_outside_coverage <- sum(!q4_sensor$in_coverage & q4_sensor$is_miss)
 
 # Sensitivity on is_completed. The raw export marks some attention episodes
 # as not completed, and the loader does not filter them out, so an incomplete
@@ -1087,8 +1092,8 @@ q4_sensor <- q4_sensor |>
 # Unenrolled cows are excluded upstream in Q4, so this should now be empty.
 # Kept as an assertion rather than deleted: if it ever stops being zero, the
 # exclusion has silently stopped working.
-n_residual_not_in_smartsight <- sum(!q4_sensor$caught_by_nedap & q4_sensor$not_in_smartsight)
-n_total_misses <- sum(!q4_sensor$caught_by_nedap)
+n_residual_not_in_smartsight <- sum(q4_sensor$is_miss & q4_sensor$not_in_smartsight)
+n_total_misses <- sum(q4_sensor$is_miss)
 
 # Herd-level enrollment check. The misses above are only the unenrolled cows
 # who also happened to get a lesion, so they understate the gap. This asks the
@@ -1184,7 +1189,7 @@ pipeline_loss_cases |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-**Every cow in this section was still missed.** She is counted in the `r sum(!q4_sensor$caught_by_nedap)` above either way — the question here is only whether the camera's signal went astray on the way to DairyComp, or whether the system was correctly declining to raise an alert.
+**Every cow in this section was still missed.** She is counted in the `r sum(q4_sensor$is_miss)` above either way — the question here is only whether the camera's signal went astray on the way to DairyComp, or whether the system was correctly declining to raise an alert.
 
 Four rules can explain this without anything having gone missing. Each case is counted once, under the first rule that applies, so the figures below add to `r nrow(pipeline_loss_cases)`. Of those cases:
 

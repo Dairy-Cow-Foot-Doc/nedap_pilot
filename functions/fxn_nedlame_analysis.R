@@ -640,6 +640,53 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
     left_join(cohort |> select(id_animal, lact_number, tx_group), by = c("id_animal", "lact_number")) |>
     mutate(tx_group = if_else(is.na(tx_group), "Never Alerted (Not in Pilot Cohort)", tx_group))
   
+  # A cow can have been warned and simply not acted on. If a NEDLAME landed
+  # before the lookback opened and NOTHING was done between that alert and the
+  # lesion - no trim, no LAME, no FOOTRIM - then the camera did its job and the
+  # farm did not. Counting her as a camera miss attributes a response failure to
+  # the sensor.
+  #
+  # Gerard 2026-09-09, on cow 10581 (alerted 25 days out, Control): "a warning 25
+  # days isn't a miss as she was in the control group". In the Control arm no
+  # protocol obliged anyone to act, so an early warning is still a warning.
+  #
+  # The trim check is what keeps this honest. If she WAS trimmed after that alert
+  # and then got a lesion anyway, the lesion is a new episode the camera did not
+  # warn about, and she stays a miss. Only 2 of the 28 fall that way.
+  #
+  # Scale: 28 misses have an alert outside the window, 26 of them un-acted-on,
+  # 21 in the Control arm. It moves the Control miss rate from 27.9% to ~11% and
+  # barely touches TX, because the window was doing nearly all its work on the
+  # arm where nobody was required to respond quickly.
+  prior_alerts <- lame_lesion_recent |>
+    select(id_animal, lact_number, date_event) |>
+    distinct() |>
+    left_join(nedlame_all, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(!is.na(ned_date), ned_date <= date_event) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(last_prior_ned = max(ned_date), .groups = "drop") |>
+    mutate(days_alert_to_lesion = as.numeric(date_event - last_prior_ned))
+
+  action_after_alert <- prior_alerts |>
+    left_join(trims_for_suppression |> select(id_animal, lact_number, trim_date),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    mutate(acted = !is.na(trim_date) & trim_date > last_prior_ned & trim_date < date_event) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(acted_on_alert = any(acted), .groups = "drop")
+
+  q4 <- q4 |>
+    left_join(prior_alerts, by = c("id_animal", "lact_number", "date_event")) |>
+    left_join(action_after_alert, by = c("id_animal", "lact_number", "date_event")) |>
+    mutate(
+      acted_on_alert = coalesce(acted_on_alert, FALSE),
+      warned_not_acted = !caught_by_nedap & !is.na(last_prior_ned) & !acted_on_alert,
+      # the miss population every headline below is built from
+      is_miss = !caught_by_nedap & !warned_not_acted
+    )
+  n_warned_not_acted <- sum(q4$warned_not_acted)
+  n_misses <- sum(q4$is_miss)
+  stopifnot(n_misses + n_warned_not_acted + sum(q4$caught_by_nedap) == nrow(q4))
+
   n_truncated_lookback <- sum(q4$lookback_days_used < params$q4_lookback_days)
   
   # The "Never Alerted" label is assigned by absence from `cohort`, and
@@ -675,7 +722,7 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
     nrow()
   n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
 
-  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, q4_group = q4_group, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded)
+  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, q4_group = q4_group, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded, n_warned_not_acted = n_warned_not_acted, n_misses = n_misses)
 }
 
 # Detection categories and the lesion-type breakdown.
@@ -735,7 +782,7 @@ fxn_build_q4_groups <- function(q4_sensor, lame_lesion_recent) {
 fxn_build_staff_catch <- function(q4, chklame, staff_window_days = 7) {
   # The window was a hard-coded 7 in a project where every other window is a
   # params entry. Defaulted so behaviour is unchanged.
-  missed_cases <- q4 |> filter(!caught_by_nedap)
+  missed_cases <- q4 |> filter(is_miss)
   
   staff_catch <- missed_cases |>
     left_join(chklame, by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
