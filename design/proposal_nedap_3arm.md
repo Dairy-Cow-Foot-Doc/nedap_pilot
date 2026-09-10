@@ -368,7 +368,36 @@ Sample size on the 60-day cure rate, baseline 40.4%:
 
 **Standardising the recheck is worth about three times the sample size on this outcome.** In current practice only 35% of index cases are re-examined within 60 days, so 388 *re-examined* cows per arm means enrolling roughly 1,100 per arm. If every treated cow gets a protocol recheck — which is what is already planned — re-examined equals enrolled and the requirement stays at 388.
 
-▶ **Two caveats on the 40.4% baseline.** It is measured on cows who happened to be re-examined, which is a selected group: a cow looked at again within 60 days was probably looked at *because* something was wrong, so the true cure rate under a standardised recheck should be **higher** than 40.4%, and the sample sizes above correspondingly conservative. And "trim-only at the next exam" is a proxy for cure, not a clinical cure assessment — the study can do better by recording lesion resolution directly at a scheduled recheck.
+▶ **Two caveats on the 40.4% baseline**, before the lesion-type breakdown below sharpens them further. It is measured on cows who happened to be re-examined, and a cow looked at again within 60 days was probably looked at because something was wrong - so the true rate under a standardised recheck should be **higher**, and these sample sizes are conservative. And "trim-only at the next exam" is a proxy for cure, not a clinical assessment.
+
+
+##### Rechecks are lesion-selected, and that changes how the baseline can be used
+
+▶ *Gerard: rechecks typically happen for specific lesions, not DD or foot rot.* Correct for DD, and strikingly so. Within 60 days of the index case:
+
+| Index lesion | Index cases | Re-examined | Cure rate among those re-examined |
+|---|---|---|---|
+| Digital dermatitis | 2,521 | **13.4%** | 37.3% |
+| White line | 1,653 | **60.4%** | 51.6% |
+| Other (mostly corkscrew) | 1,555 | 44.9% | 23.8% |
+| Injury | 352 | 19.6% | 24.6% |
+| Sole ulcer | 183 | 57.4% | 50.5% |
+| Haemorrhage | 148 | 45.3% | 52.2% |
+| Foot rot | 136 | **52.2%** | 15.5% |
+| Thin sole | 136 | 32.4% | 56.8% |
+| Toe ulcer | 93 | 34.4% | 18.8% |
+
+**Three things follow, and they change how the 40.4% pooled figure can be used.**
+
+**1. The pooled cure rate is essentially a white-line cure rate.** White line supplies 999 of the 2,100 re-examinations. The block-and-recheck lesions — white line 60.4%, sole ulcer 57.4% — dominate the denominator, exactly as Gerard said. Quoting 40.4% as a general cure rate would be wrong.
+
+**2. Cure rates differ enormously by lesion**, from 15.5% for foot rot to 56.8% for thin sole. **The outcome has to be defined per lesion type, or restricted to the lesions where a recheck is clinically meaningful.** Pooling across a mix that differs between arms would be a confound in its own right.
+
+**3. Foot rot is a partial exception to the expectation.** It is re-examined 52.2% of the time here, not rarely — though on only 136 cases, and with the lowest cure rate in the table at 15.5%, which is unexpected for a lesion that usually responds to treatment and is worth a look before relying on it.
+
+▶ **The consequence for the study, and it is a real one.** DD is simultaneously the lesion the camera misses most (42% of what it never flagged, against 21% of what it caught) and the lesion with the least recheck data (13.4%). **Standardising rechecks across all lesion types would generate genuinely new information exactly where the pilot is blindest** — but it also means the DD cure baseline is the least certain input in this design, resting on a 13.4% selected sample.
+
+▶ **Recommendation.** Make cure the primary measure of what waiting costs **for white line and sole ulcer**, where the baseline is well estimated and the recheck is standard practice anyway. Collect it for DD as a **secondary, hypothesis-generating** outcome, and size on the well-estimated lesions rather than the pooled figure.
 
 #### Not lesion severity
 
@@ -496,4 +525,4 @@ Without these the study measures the camera and the integration together and can
 | 8 | Number of herds and expected alerts per herd per week. |
 | 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
 | 10 | Confirm different measurement windows per contrast: 0-28 d for arm 1 v 2, 60-90 d for arm 1 v 3. |
-| 11 | Confirm cure at a standardised recheck as the primary measure of what waiting costs (severity dropped - not standardisable across farms). |
+| 11 | Confirm cure at a standardised recheck as the primary measure of what waiting costs, sized on white line and sole ulcer; DD secondary. Severity dropped - not standardisable across farms. |
