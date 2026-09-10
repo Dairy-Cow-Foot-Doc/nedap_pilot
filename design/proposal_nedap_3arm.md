@@ -146,6 +146,52 @@ Both argue for **powering the interaction rather than adjusting it away.** That 
 
 ## 4. Outcomes
 
+### The proposed outcome structure
+
+▶ *Proposed: milk between arms 1 and 3 only; cure across all three arms; lesion prevalence at dry-off as a secondary outcome restricted to cows with a minimum alert-to-dry-off gap. The alternative is to enrol at freshening instead.*
+
+**Milk on arm 1 versus arm 3 only — yes, and the simulation supports it.** That contrast is insensitive to the measurement window (2,982 to 3,228 cows from 28 to 180 days) and it is the only milk comparison that is powerable at a realistic size. Arm 1 versus arm 2 on milk reaches 43% power at 6,000 cows over 60 days and should not be attempted there; if the timing question is to be answered on milk it needs the 0–28 day window, where the contrast is the full effect rather than a third of it.
+
+**Cure across all three arms — yes, but with one caveat that the pilot cannot resolve.**
+
+In arms 1 and 2 every cow is trimmed by protocol, so cure is measured on all lesions those arms have. In arm 3 a cow is only trimmed if the farm catches her, so cure there is measured on **farm-detected lesions**. If those are systematically worse — noticed because they were bad — the arm-1-versus-arm-3 cure comparison is confounded by severity rather than by treatment timing.
+
+I tested this in the pilot and **the test is uninformative rather than reassuring**: among Control cows, cure was 14.7% (n = 34) in staff-detected cows against 18.2% (n = 11) in routine-detected, p = 1.0. With 45 cows the confidence interval spans everything of interest. **The concern stands unresolved.**
+
+Two ways to handle it, and one is nearly free:
+
+- **Record how each arm-3 cow came to be trimmed** — staff `CHKLAME` or routine round — and report cure separately for each. Routine-round cows are the closer analogue to a protocol trim, since the routine round is not triggered by anyone noticing the cow.
+- **Restrict the primary cure comparison to arms 1 and 2**, where both arms are trimmed by protocol and the populations are comparable by construction, and treat arm 3's cure as descriptive.
+
+▶ The second is cleaner, and it costs less than it appears: arm 1 versus arm 2 is *also* the timing question, which is the one the three-arm design exists to answer.
+
+**Lesion prevalence at dry-off with a minimum gap — yes, and the restriction works.** Using DIM at alert to project the gap (the pilot's own three-month span makes the observed gaps useless for this):
+
+| Minimum alert-to-dry-off gap | Alerted cows retained (305-day lactation) |
+|---|---|
+| 30 days | 82% |
+| 60 days | 74% |
+| **90 days** | **66%** |
+| 120 days | 60% |
+
+A 90-day minimum keeps about two thirds of alerted cows. ▶ **But the third it drops are the cows alerted late in lactation, which is a selection on DIM rather than a random subset** — they differ in yield and in lesion risk. That is acceptable for a secondary outcome provided it is stated, and DIM at alert should be reported for the retained and excluded groups so a reader can see what was lost.
+
+### Enrol at freshening instead?
+
+**On these outcomes specifically, freshening enrolment buys very little for its cost.** It does not change the treatment contrast at all — cows are still only treated when alerted — so milk, cure and dry-off prevalence are all measured on the same alerted cows either way. What it adds is a denominator of unalerted cows, and none of the three proposed outcomes uses one.
+
+It earns its cost only if the study also wants to measure **how well the camera detects**, which an alert-triggered cohort cannot do at any sample size, since the population is defined by the camera having fired.
+
+▶ **So the question is not "which enrolment is better" but "is detection performance one of the questions?"**
+
+- **If no**: enrol at the alert. ~4,300 cows, about five months of accrual across three herds, and the minimum-gap restriction handles the dry-off timing problem well enough for a secondary outcome.
+- **If yes**: enrol at freshening. ~6,900 cows and roughly double the calendar time, with cows monitored and untouched for much of it — and it also fixes the dry-off timing by construction, since every cow has a full lactation.
+
+**Recommendation: enrol at the alert.** The pilot already establishes that the camera misses a great deal (54.1% of lesion cases got no useful warning) and that the misses are concentrated in digital dermatitis. A second study to measure that more precisely is a different study with a different design — a detection-accuracy study wants locomotion scoring or a second camera as its reference standard, not a treatment protocol. **Trying to answer both questions in one trial pays full price for each and gets a compromised version of both.**
+
+---
+
+
 ### The measurement problem that shapes all of them
 
 The pilot's most quotable result was that trimming off the alert found lesions in **58 more cows** than the control approach (170 of 397 against 127 of 452). **That number measures inspection, not disease.** TX cows were trimmed 90.4% of the time by protocol; Control cows 49.8%. Randomisation makes true lesion incidence equal by construction.
