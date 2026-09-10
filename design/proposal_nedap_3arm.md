@@ -501,7 +501,50 @@ Every sample size quoted above counts a different thing, which makes them not di
 | Cure at 60 d, +10 points — current practice | cows *re-examined* | 388 | 3,107 | **9,321** |
 | Cure at 60 d, +10 points — **recheck standardised** | cows *with a lesion* | 388 | 1,110 | **3,330** |
 
-**Standardising the recheck takes the cure outcome from 9,321 enrolled cows to 3,330** — a 2.8× saving, and the strongest practical argument for doing it.
+**Standardising the recheck helps, but by less than a first pass suggested, and the cure outcome is dearer than these rows imply** - both corrected immediately below, where the figures are re-derived on white line and sole ulcer rather than on all lesions pooled.
+
+
+##### What "standardising the recheck" means, and what it is worth
+
+The term needs pinning down, because the arithmetic depends on which of two things it means.
+
+**It does not mean giving every treated cow a follow-up exam.** A recheck in practice is the trimmer re-examining a cow he blocked — pulling the block, checking healing. That happens naturally for white line and sole ulcer and not for digital dermatitis, which has no block and is why standardising DD rechecks is not feasible.
+
+**It means fixing the timing and the recording of rechecks that already happen**: a scheduled re-examination at a set interval after treatment for the lesions that warrant one, recorded as a distinct event with the lesion status found. Not new rechecks for cows who would never have had one.
+
+On that reading, here is what it is worth. For white line and sole ulcer — the lesions the cure outcome is sized on:
+
+| | Current practice | Standardised |
+|---|---|---|
+| Re-examined within 60 days | **60.2%** | ~95% |
+| Saving on enrolment | — | **×1.58** |
+
+▶ **This corrects a figure given earlier in this document.** An earlier version claimed ×2.8, computed from the 35.7% re-examination rate pooled across *all* lesions. That pooled rate is dragged down by DD at 13.4%, and DD will not be rechecked under any version of this protocol. On the lesions the outcome is actually sized for, current practice is already around 60%, so the gain from standardising is real but smaller.
+
+##### The cure outcome is the expensive one, not the cheap one
+
+Correcting the same error changes the sample size materially. **Only 18.3% of alerted cows go on to have a white line or sole ulcer**, and the correct baseline cure rate for those lesions is **49.3%**, not the 40.4% pooled figure.
+
+| Improvement to detect | Re-examined per arm | Enrolled, 3 arms (standardised recheck) |
+|---|---|---|
+| +5 points (49→54%) | 1,567 | 27,042 |
+| +10 points (49→59%) | 389 | **6,714** |
+| +15 points (49→64%) | 171 | **2,952** |
+| +20 points (49→69%) | 94 | 1,623 |
+
+**Revised enrolment picture**, with ×1.28 attrition on the milk outcomes and ×1.05 for herd heterogeneity throughout:
+
+| Outcome | Target enrolled, 3 arms |
+|---|---|
+| Milk, arm 1 v 2 (0–28 d) | 2,600 |
+| Cure WLD/SU, **+15 points** | 3,100 |
+| Recurrence 365 d, −20% relative | 3,700 |
+| **Milk, arm 1 v 3 (60–90 d)** | **4,300** |
+| Cure WLD/SU, +10 points | 7,100 |
+
+▶ **The decision this forces.** At about **4,300 enrolled cows** the study covers the milk contrasts, recurrence, and a **15-point** cure difference. Detecting a **10-point** cure difference instead requires 7,100 — a 65% larger study for one outcome. **Is a 10-point improvement in cure the thing worth nearly doubling the study for, or is 15 points the honest target?** That is a clinical judgement, not a statistical one.
+
+For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a week, so three to four herds over a year. 7,100 is about 103 farm-weeks, which needs five or more.
 
 #### Attrition: inflate the milk outcome by about 1.28
 
@@ -544,7 +587,7 @@ Routine-trim coverage varying between roughly 10% and 60% across farms implies t
 | Recurrence | 3,483 | 1.00 | 1.05 | **~3,700** |
 | Cure, recheck standardised | 3,330 | 1.00 | 1.05 | **~3,500** |
 
-**About 4,200 enrolled cows covers every outcome except the arm-1-versus-arm-3 milk contrast at its own precision target, which is the binding one.** At the pilot farm's ~69 alerts a week that is 61 farm-weeks — comfortably inside a year across three or four herds, and the herd count should be set by the heterogeneity argument above rather than by accrual alone.
+**About 4,300 enrolled cows covers the milk contrasts, recurrence, and a 15-point cure difference** - see the corrected figures above. A 10-point cure difference would need 7,100, which is the one decision where the enrolment target is genuinely in play.
 
 ---
 
@@ -674,7 +717,7 @@ Without these the study measures the camera and the integration together and can
 | Economic framing | Report **what the system is worth**, with an interval — not a pass/fail against a break-even. | Gerard's inversion; avoids assuming the answer. |
 | Incidence input | Measured: **27.1 new cases per 100 cow-years**, this herd at the **high end** of a range. Definition is `status_lesion == "New"`. | Gerard's definition + validated denominator. |
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
-| Enrolment target | ~4,200 cows across three arms, set by the arm-1-v-3 milk contrast, after x1.28 for attrition and x1.05 for herd heterogeneity. All outcome-specific n converted to enrolled cows. | Pilot conversion rates. |
+| Enrolment target | **~4,300 across three arms** - covers the milk contrasts, recurrence, and a 15-point cure difference. A 10-point cure difference would need 7,100. | Pilot conversion rates, x1.28 attrition, x1.05 heterogeneity. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
 
