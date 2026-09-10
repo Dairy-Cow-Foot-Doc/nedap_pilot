@@ -282,6 +282,59 @@ The gap grows from 4.9 to 7.3 points as the window lengthens.
 
 ▶ **The design consequence is concrete: follow culling for at least a year, not six months.** At six months the gap is 6.8 points and still growing; the outcome window in the outline (six months) sits before the curve has flattened. A 365-day follow-up costs calendar time, not enrolment.
 
+
+### Sizing on culling: the range, and a correction
+
+The 7.3-point association between an early-lactation lesion and leaving the herd is a **ceiling**, not a treatment effect. Early treatment recovers some fraction of it, and that fraction is unknown. Sizing across the range, with culling measured among cows that have a lesion (52.3% baseline at 365 days):
+
+| Share of the 7.3-point gap recovered | Points | $ per lame cow | **Enrolled, 3 arms** |
+|---|---|---|---|
+| 10% | 0.73 | $10.95 | 630,276 |
+| 25% | 1.82 | $27.38 | 100,914 |
+| 40% | 2.92 | $43.80 | 39,438 |
+| 50% | 3.65 | $54.75 | 25,245 |
+| 75% | 5.47 | $82.12 | 11,214 |
+| 100% *(the whole association)* | 7.30 | $109.50 | 6,300 |
+
+**Break-even needs only about 1.3 points** — milk at 1.05–1.5 kg over 90 days supplies $24–34 of the roughly $48 per lame cow, leaving $14–24 for culling to find, which is **18% of the association.**
+
+▶ **And 1.3 points is not detectable.** It sits between the first two rows, somewhere near 200,000 enrolled cows. **The study cannot demonstrate the culling effect that would make the system pay**, even though the association is large and the required fraction of it is modest.
+
+#### A correction to the composite-margin recommendation
+
+I earlier proposed a composite dollar endpoint and sized it at 5,000–6,800 enrolled. **That was wrong**, and the error was the culling baseline: I used 10% over six months, where the year-long figure is about 46%. A $1,500 Bernoulli near *p* = 0.5 is close to maximum variance.
+
+| Culling baseline used | Cull SD | Milk SD | Total SD | Enrolled, 3 arms |
+|---|---|---|---|---|
+| 10% (six months, as I had it) | $450 | $76 | $456 | 16,017 |
+| **46% (twelve months, correct)** | **$748** | **$76** | **$751** | **43,419** |
+
+**Adding culling to a composite makes the endpoint harder, not easier**, because it imports a large variance to capture a small effect. The composite is the right thing to *report* and the wrong thing to *power on*.
+
+#### What to do instead
+
+**Power on milk, which is the outcome the study can actually resolve, and report culling and the combined margin as estimates with intervals.**
+
+| Observed milk contrast to detect | Per arm | **Enrolled, 3 arms** |
+|---|---|---|
+| 0.8 kg/day | 4,571 | **6,857** |
+| 1.0 kg/day | 2,926 | **4,389** |
+| 1.2 kg/day | 2,032 | 3,048 |
+
+*The three-arm simulation puts the observed arm-1-v-3 contrast at about 1.0 kg for a 1.5 kg true effect, so the middle row is the realistic target.*
+
+And the culling precision that comes free at those sizes:
+
+| Enrolled | Lame cows per arm | Culling CI half-width |
+|---|---|---|
+| 4,300 | 502 | ±6.2 points |
+| **6,000** | **700** | **±5.2 points** |
+| 8,000 | 933 | ±4.5 points |
+
+▶ **Recommendation: about 6,000 enrolled across three arms**, powered to detect a 1.0 kg observed milk contrast, with culling followed for 365 days and reported with its interval.
+
+▶ **And state the limitation plainly in the protocol, because it will otherwise be discovered late.** A ±5.2-point interval on culling cannot distinguish the 1.3 points that break-even needs from zero. **The study will estimate whether the system pays; it will not prove it.** That is a reasonable thing to buy — a good estimate with honest uncertainty is what a purchasing decision needs — but it is not a hypothesis test, and the proposal should not imply one.
+
 ### Reproduction: no signal, and it should not be an outcome
 
 ▶ *Asked whether there is reproduction data. There is — 55,961 `BRED`, 51,310 `PREG`, 49,553 `HEAT` events — and it shows nothing.*
@@ -867,15 +920,15 @@ The question is not "does culling fall". It is "does the whole thing pay". A **c
 
 | | Enrolled, 3 arms |
 |---|---|
-| Detect the break-even margin, $0.80/cow/month | **5,000–5,200** |
-| Detect the break-even margin, $0.65/cow/month | **6,500–6,800** |
+| Detect the break-even margin, $0.80/cow/month | *(superseded - see the correction below)* |
+| Detect the break-even margin, $0.65/cow/month | *(superseded)* |
 | *(Testing culling alone, for comparison)* | *27,540* |
 
 **The composite costs a fifth of what testing culling separately would.**
 
 ▶ **What 4,300 buys, and why it is not quite enough.** At 4,300 enrolled the 95% CI on the margin is **±$20.52 per alerted cow**, against a break-even of $16.86–19.19. The interval would straddle break-even and the study would end inconclusive on its own question.
 
-▶ **Recommendation: size the study at about 6,000 enrolled cows across three arms, with the composite margin per alerted cow as the primary endpoint.** That is 87 farm-weeks at the pilot farm's rate — four to five herds over a year, which is also where the herd-heterogeneity argument pointed. It answers "does it pay" directly, and the milk, cure and recurrence outcomes then explain *why* rather than having to carry the verdict.
+▶ **This recommendation is superseded** - see the correction below. The composite was sized on a 10% six-month culling rate; the year-long rate is about 46%, which triples the endpoint's variance and makes the composite the wrong thing to power on.
 
 ▶ **One caveat that cuts both ways.** The culling SD dominates the composite, so the answer is sensitive to the net cull cost. At $1,000 the required sample rises; at $2,300 it falls. That figure should be set from the participating farms' actual replacement economics before the protocol is fixed, not from a national average.
 
@@ -1006,7 +1059,7 @@ Without these the study measures the camera and the integration together and can
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
 | Enrolment point | **At the alert.** Detection accuracy is not a study question, so a freshening cohort buys nothing for these outcomes at x1.6 cows and double the duration. | Gerard, 2026-09-10. |
 | Primary question | **Does it pay?** Net margin per alerted cow, arm 1 v arm 3. Clinical outcomes explain the economics rather than standing alone. | Gerard, 2026-09-10. |
-| Enrolment target | **~6,000 across three arms**, set by the composite margin endpoint. 4,300 leaves the margin CI straddling break-even. 4-5 herds over a year. | Pilot economics; see §5. |
+| Enrolment target | **~6,000 across three arms**, powered on a 1.0 kg observed milk contrast. Culling followed 365 days and reported with its interval - the study ESTIMATES whether it pays, it does not prove it. | Pilot economics and simulation; see §5. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
 
