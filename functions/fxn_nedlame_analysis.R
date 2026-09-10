@@ -829,6 +829,29 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     select(id_animal, hist_date = date_event) |>
     distinct()
   
+  # This function picks its population by matching a level NAME, so a caller
+  # using different vocabulary hands it zero rows - and BOTH partition
+  # assertions further down pass on an empty set, because 0 + 0 + 0 == 0. Every
+  # count then comes back zero and nothing complains. That is exactly the Round
+  # 26 workbook bug, which spent a round silently zeroing every verdict.
+  #
+  # The lesson, since we kept getting this half right: asserting the partition
+  # is necessary and not sufficient. It proves the parts add up to the whole and
+  # says nothing about whether the whole is the right size - and it is weakest
+  # precisely when the whole has collapsed to nothing. Guard the population too.
+  #
+  # This needs the FULL report's detection vocabulary. The farm report collapses
+  # to two categories and never emits this label, deliberately.
+  miss_level <- "Flagged, but no alert in time"
+  vocab <- unique(c(levels(q4_sensor$detection_group_3way),
+                    as.character(q4_sensor$detection_group_3way)))
+  if (!miss_level %in% vocab) {
+    stop("fxn_build_pipeline_by_design(): q4_sensor has no \"", miss_level,
+         "\" category, so every count would come back zero. Categories present: ",
+         paste(sort(vocab), collapse = " | "),
+         ". This function needs the full report's detection vocabulary.")
+  }
+
   pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, but no alert in time")
   
   # Which alert type(s) actually fired within the lookback window for each

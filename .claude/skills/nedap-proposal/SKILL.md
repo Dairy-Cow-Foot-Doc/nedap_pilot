@@ -22,6 +22,16 @@ Read, in this order:
 **Never retype a figure from a report into the proposal.** Every number the pilot produced is computed by `functions/fxn_nedlame_analysis.R`. To get a fresh one, write a script that sources that file and calls the builders in order (`fxn_build_cohort` -> `fxn_build_lame_history` -> `fxn_build_enrolled_ids` -> `fxn_build_q4` -> ...), the way `scripts/step3_pipeline_losses.R` does. Copy its header for the setup.
 
 Sample-size inputs already computed are in the `project-nedap-3arm-proposal` memory. Recompute rather than trusting them if the data has been refreshed since.
+There is also groundwork already built for the follow-up, from Round 5:
+
+- `mcp_server/knowledge/lessons-learned.md` — the four analysis bugs and their root causes, plus the design choices that look like bugs but are deliberate. Written explicitly to be read before building the 3-arm analysis.
+- `mcp_server/knowledge/methodology-patterns.md` — ten patterns already generalised to N arms (group-code drift, lactation-safe vs lifetime joins, rolling lookback for a monitor with a go-live date, KM faceting, same-day diagnoses).
+- `mcp_server/` — an MCP server exposing both as resources, plus `generate_treatment_group_r_code`, which takes an arm-label map of any size. Register with `claude mcp add`; see its README.
+
+One design proposal is already on record, from Round 8: **instrument the Nedap-to-DairyComp integration from day one** — log every raw flag with a timestamp, independent of the DC import — rather than reconstructing pipeline losses afterwards from cowcard spot-checks. That is the same conclusion the pilot reached the hard way, and it should be a design feature of the next study rather than a data request.
+
+**What is NOT anywhere:** a definition of the third arm. It is referred to throughout as "the 3-arm follow-up" without ever being specified. Ask.
+
 
 ## The design constraints the pilot exposed
 
