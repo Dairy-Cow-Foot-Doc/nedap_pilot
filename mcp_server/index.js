@@ -185,6 +185,38 @@ server.registerTool(
             check: "Are you reporting p-values/significance tests at a stage where the study intends descriptive/discussion-only results?",
             why: "The 2-arm report deliberately removed p-values at the discussion stage to avoid over-interpreting a small, early sample.",
           },
+          {
+            check: "For any comparison against a category NAME (== \"Some Label\", filter on a level, a case_when arm): if that string stopped matching tomorrow, would anything fail? Assert the category is PRESENT, not just that the parts sum to the whole.",
+            why: "Four silent failures in the 2-arm project, every one rendering a clean page with wrong numbers. A partition assertion is necessary and not sufficient - it is trivially satisfied by an empty set, since 0 + 0 + 0 == 0, which is exactly the state a mismatched label produces.",
+          },
+          {
+            check: "When renaming a category, did you search the BARE label text rather than the quoted literal, and check both quote styles?",
+            why: "R treats 'Label' and \"Label\" identically but a find-and-replace does not. A rename that matched the double-quoted spelling left a single-quoted site behind and blanked a set of percentages.",
+          },
+          {
+            check: "Is any outcome you are comparing across arms dependent on how often each arm gets INSPECTED?",
+            why: "The 2-arm pilot's headline benefit - 58 more cows with a lesion found - was entirely ascertainment: 90.4% of one arm was trimmed against 49.8% of the other, and randomisation makes true incidence equal by construction. Confirmed by the trim-level rates running the other way.",
+          },
+          {
+            check: "Before believing a pattern in a hand-picked set of cases, have you computed the same rate herd-wide?",
+            why: "Two convincing leads died to this in one round. A 38.5% rate in the problem cases looked like proof until the herd rate came back 30.4%.",
+          },
+          {
+            check: "To size the effect of a change that can only push cases one way across a boundary, are you measuring on the population that could CROSS it, rather than on the group already sitting on one side?",
+            why: "A gate fix was quantified as changing 0 of 43 flags, measured on the set defined by nothing having blocked them. Measured on the population that could actually move, it changed 18 cases.",
+          },
+          {
+            check: "Does a timestamp in this data mean when the thing was OBSERVED or when it was LOADED?",
+            why: "The Nedap import runs ~05:00 and stamps the load date, so an attention after 05:00 on day D appears as D+1. This decides whether a same-day alert counts as advance warning, and it moved several headline numbers.",
+          },
+          {
+            check: "Does every number in the prose come from a computed object, and does any number appearing in two documents come from ONE shared function?",
+            why: "Hand-typed figures in prose, table titles and code comments went stale repeatedly, including a table title that contradicted the table beneath it.",
+          },
+          {
+            check: "Have you read the RENDERED output, not just the code and the fact that it rendered?",
+            why: "Two defects shipped as valid code producing prose that was false about the data - a sentence explaining an empty category, and percentages rendering as blanks. Neither a static check nor a successful render catches this class.",
+          },
         ],
         null,
         2

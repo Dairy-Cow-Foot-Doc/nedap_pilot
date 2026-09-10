@@ -74,3 +74,144 @@ This bit the 2-arm report **twice**, independently, in two different chunks:
 - **A rolling (not fixed) lookback window is used wherever a "did the alert catch it in time" question reaches back before the alerting system existed.** A fixed N-day lookback isn't fair to cases found shortly after the alert system went live — there simply wasn't N days of alert history yet. Cap the lookback at `min(N, days since alert-system go-live)` for any similar "did the alert fire in time" analysis in the 3-arm study.
 - **Every "first occurrence" rule is deliberate, not an oversight.** Wherever this report looks for "the" trim, diagnosis, staff check, or alert for a cow, it uses her first qualifying occurrence in the relevant window, not every occurrence, so a cow flagged/diagnosed repeatedly doesn't get double-counted or over-weighted.
 - **Multiple *different* lesion types coded on the same day count as separate entries in the lesion-type breakdown chart; the same type coded twice on one day counts once.** This depends on the `fxn_collapse_lesions()` fix above actually being applied — verify it before reusing that chart pattern.
+
+---
+
+# Rounds 14-30 (added 2026-09-10)
+
+Everything above was written at Round 13. The pilot ran to Round 30 and the
+findings below matter more to a follow-up study than most of what precedes them,
+because several are **design** lessons rather than coding ones.
+
+## The biggest one: ascertainment, not disease
+
+The pilot's most quotable result — **58 more cows with a lesion found in the
+trimmed arm** (170/397 vs 127/452) — measures **who got inspected**, not who got
+sick. TX cows were trimmed 90.4% of the time by protocol; Control cows 49.8%.
+Allocation was random, so true lesion incidence is equal by construction.
+
+Checked rather than assumed: among cows actually trimmed, **Control found a
+lesion more often** (53.8% vs 45.1%), which is the signature of a
+suspicion-driven population, not a healthier one.
+
+**For an N-arm design: any "lesions found" outcome is confounded by inspection
+rate unless the arms share a common inspection schedule.** Either impose one, or
+choose outcomes that do not depend on being looked at (milk, culling,
+time-to-event). This is a design constraint, not a limitation to note.
+
+## `DSNLM` is an EXCLUSION, and I had it backwards twice
+
+`DSNLM=90-1` on the `Low` route and `DSNLM=7-1` on the declines **excludes** cows
+already alerted in that window, so the cowcard does not fill with duplicate
+alarms. It is not "there was an alarm, therefore enroll."
+
+Two separate rounds got this wrong in opposite directions by reasoning from the
+syntax. **Ask the farm what a DairyComp command means. Do not infer it.**
+
+## The daily batch stamps the LOAD date, not the observation date
+
+The Nedap-to-DairyComp import runs about 05:00. An attention after ~05:00 on day
+D is written with date D+1. Established empirically: no attention in the whole
+export occurs before 05:00, 84% fall 18:00-24:00, and 61% of matched
+attention/NEDLAME pairs are exactly +1 day apart.
+
+Consequences that any similar study inherits:
+
+- A `NEDLAME` dated ON the lesion day came from the **previous** day's attention
+  and IS advance warning. `NEDLAME` is written before trimming on trim day.
+- An **attention** on the lesion day cannot have produced an alert in time, so
+  the sensor window must be strictly before the lesion date, `[d - N, d)`.
+- Alerts landing 1-7 days after a trim are mostly the camera reacting to the
+  trimmed cow. The pilot excluded 162 of them.
+
+**Specify the timestamp semantics in the protocol.** They changed several
+headline numbers here.
+
+## An alert outside the window is still an alert
+
+A cow flagged before the lookback opened, and never trimmed between that alert
+and her lesion, is **not** a camera miss — the warning arrived and nobody used
+it. That is a response failure.
+
+This was not a corner case: 28 of 339 apparent misses, 26 of them never trimmed
+in between, **21 of the 28 in the Control arm**. Recategorising them moved the
+Control miss rate from 27.9% to 11.5% while barely touching TX.
+
+The guard that keeps it honest: if she **was** trimmed after that alert, the
+later lesion is a new episode the camera did not warn about, and she stays a
+miss.
+
+**The lookback window is a judgement call that moves the answer. Pre-specify it,
+and pre-specify how out-of-window alerts are treated.**
+
+## Comparing a level NAME is the most reliable way to lose data silently
+
+Four instances in this project, every one silent — no error, no warning, a page
+that renders with wrong numbers:
+
+1. `detection_group` tested `"Never Alerted"` against a column holding
+   `"Never Alerted (Not in Pilot Cohort)"`.
+2. A standalone script filtered `"Flagged, Lost in Pipeline"` after the shared
+   function moved to `"Flagged, but no alert in time"` — every verdict zeroed.
+3. A `case_when()` and its `factor(levels=)` are two lists that must agree; one
+   was edited.
+4. A site still tested `'Never Flagged (True Miss)'` after the rename, putting
+   every cow in one group and rendering blanks where percentages belonged.
+
+**Two rules.** First, when renaming, search the **bare label text**, not the
+quoted literal — a find-and-replace over `"Label"` will not match `'Label'`,
+though R treats them identically.
+
+Second, and this is the part we got half-right for several rounds:
+
+> **Asserting the partition is necessary and NOT sufficient.** A partition
+> assertion proves the parts sum to the whole and says nothing about whether the
+> whole is the right size — and it is at its weakest exactly when the whole has
+> collapsed to nothing. `0 + 0 + 0 == 0` passes.
+
+**Guard the population as well as the partition.** Assert the expected category
+is present in the input's vocabulary, so the error names the cause instead of
+the symptom.
+
+## Compute the base rate before believing a pattern in a hand-picked set
+
+Two convincing leads died to this in one round. Five of thirteen problem cows
+had a staff check on the matching foot within 4 days of a camera flag — which
+looked like proof the flag reached the farm, until the herd-wide rate turned out
+to be 30.4% against 38.5% here. Likewise "June startup teething" evaporated once
+weekly volumes were plotted.
+
+Related: **do not measure a change on the group that is defined by the outcome.**
+A gate change that can only ever move cases one way was sized on the set defined
+by "nothing blocked them", which is close to guaranteed to return zero. Measured
+on the population that could actually cross the boundary, it moved 18 cases.
+
+## Things the data could not answer, and what to demand up front
+
+- **Score at flag is not in the export.** 69 pipeline cases were permanently
+  unjudgeable because a `Low` flag on a cow scoring 31-69 who was correctly
+  declined is indistinguishable from a lost flag. **Ask for score at flag.**
+- **The daily file-in payload is not in the export.** 119 of 313 misses were
+  cows the camera flagged whose alert never reached DairyComp, and the mechanism
+  could not be identified from episode start/end/completion alone. **Ask for the
+  file-in log**, or instrument the integration independently from day one.
+- **`FTDAT` is a cow-level lifetime date**, not lactation-scoped. Scoping the
+  lookup to the current lactation hid prior-lactation trims and left 18 cases
+  wrongly unexplained.
+- **`MNFRS` cannot be used to check cohort membership** — it is pre-assigned
+  herd-wide, and 6,141 cows carry a value having never received a `NEDLAME`.
+  Enrollment requires an actual alert event.
+
+## Reporting rules that came out of review
+
+- **Never state a null as a finding.** "No real impact is seen" over 53 culling
+  events became "too few events to answer either way".
+- **Never let a headline number travel without its caveat.** The 58-cow figure
+  reads as a treatment effect to anyone meeting it alone.
+- **Interpolate every number**; a figure typed into prose or a table title goes
+  stale on the next rebuild, and did.
+- **Read the rendered page, not just the code.** Two defects this project shipped
+  were valid code producing prose that was false about the data — invisible to
+  static checks and to a successful render.
+- **A number appearing in two documents will go stale in one of them.** Compute
+  it once, in a shared function, and have both read it.
