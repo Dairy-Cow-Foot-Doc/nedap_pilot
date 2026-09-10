@@ -7,7 +7,7 @@ description: Use when writing or revising the proposal to Nedap for the full thr
 
 The NEDLAME pilot (two arms: TX auto-trim off alert, Control staff discretion) is finished. This proposal asks Nedap to fund a full three-arm study. It must carry the pilot's lessons and use the pilot's data for sample sizes.
 
-**The third arm has never been specified. Ask before drafting.** Do not invent it.
+**A draft proposal exists** and specifies all three arms: trim within 1 week of the alert, trim 4 weeks after, and alerted-but-untreated. Google Doc `19Cv3DgZs1M8cfupfozrFqdKHfhrFoVcqSivO9JGlrXo`, "NEDAP Proposal Idea". Read it first. **Sample size is the open section**, due by Feb 6 per the draft.
 
 ## Before writing anything
 
@@ -30,7 +30,7 @@ There is also groundwork already built for the follow-up, from Round 5:
 
 One design proposal is already on record, from Round 8: **instrument the Nedap-to-DairyComp integration from day one** — log every raw flag with a timestamp, independent of the DC import — rather than reconstructing pipeline losses afterwards from cowcard spot-checks. That is the same conclusion the pilot reached the hard way, and it should be a design feature of the next study rather than a data request.
 
-**What is NOT anywhere:** a definition of the third arm. It is referred to throughout as "the 3-arm follow-up" without ever being specified. Ask.
+**Answered since this skill was written:** the third arm is the 4-week-delayed trim. What remains open is the sample size section.
 
 
 ## The design constraints the pilot exposed
