@@ -692,7 +692,7 @@ stopifnot(n_truly_never + n_pipeline == n_misses)
 
   - Following those up against the camera's own records, **`r n_truly_never` were truly never flagged** - the camera saw nothing on them. The remaining **`r n_pipeline` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem being worked through with Nedap rather than a limit of the camera.
 
-  - A further `r n_warned_not_acted` cows **were alerted** and so are not counted as misses at all. The camera flagged them a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days before the lesion turned up, and they were not trimmed in between. The warning arrived and nothing was done with it, which is not a camera failure. Most are Control cows, where nobody was asked to act on an alert.
+  - A further `r n_warned_not_acted` cows **were alerted and are counted as such**. The camera flagged them a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days before the lesion turned up and they were not trimmed in between, so the warning arrived and nothing was done with it. Whether that alert was about this lesion cannot be told from the data - lesions build over weeks, so it may well have been - and there is no case for scoring it against the camera either way. Most are Control cows, where nobody was asked to act.
 
   - One thing to hold against that number: `r n_truncated_lookback` of the `r nrow(q4)` had less than the full `r params$q4_lookback_days` days for the camera to spot them, because their lesion fell close to the camera going live. They are still counted. Cows trimmed in the `r params$recent_trim_suppression_days` days before their lesion are already left out (`r n_excluded_recent_trim` of them), since the DairyComp set-up could not have alerted on those.
 
@@ -700,9 +700,8 @@ stopifnot(n_truly_never + n_pipeline == n_misses)
 
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
-- **Flagged, caught in time** - an alert reached DairyComp in the days before the lesion. The camera got there first.
-- **Alerted earlier, no action taken** - the camera did flag her before the lesion, but too far ahead to count as a warning for this case, and she was not trimmed in between.
-- **No warning from the camera** - no alert reached DairyComp in time. Either the camera never picked her up, or it flagged her and the alert did not arrive early enough to act on. From the farm's side those look the same, so they are counted together here. The split between them, and what happened to the flags that went astray, is in the detailed report.
+- **Camera alerted her** - a `NEDLAME` alert reached DairyComp before the lesion was found. For most of these it arrived within days; for `r n_warned_not_acted` it came further ahead and was not acted on.
+- **No warning from the camera** - no alert reached DairyComp before the lesion. Either the camera never picked her up, or it flagged her and the alert did not arrive. From the farm's side those look the same, so they are counted together here; the split is in the bullets above.
 
 ```{r}
 #| label: q4-lesion-types
@@ -715,13 +714,17 @@ q4_sensor <- q4_group |>
   mutate(in_coverage = date_event <= nedap_coverage_end)
 
 q4_sensor <- q4_sensor |>
+  # Two categories only: did an alert arrive before the lesion, or not. The
+  # earlier three split 'caught in time' from 'alerted too far ahead to count',
+  # which asserted that a 35-day-old alert was not about this lesion. Gerard's
+  # call, and he is right that the data cannot support that - lesions develop
+  # over weeks, so an earlier alert may well have been about this one.
   mutate(detection_group_3way = factor(case_when(
-    !in_coverage           ~ "No Data (Outside Coverage)",
-    caught_by_nedap        ~ "Flagged, Caught in Time",
-    warned_not_acted       ~ "Alerted earlier, no action taken",
-    TRUE                   ~ "No warning from the camera"
-  ), levels = c("Flagged, Caught in Time", "Alerted earlier, no action taken",
-                "No warning from the camera", "No Data (Outside Coverage)")))
+    !in_coverage                       ~ "No Data (Outside Coverage)",
+    caught_by_nedap | warned_not_acted ~ "Camera alerted her",
+    TRUE                               ~ "No warning from the camera"
+  ), levels = c("Camera alerted her", "No warning from the camera",
+                "No Data (Outside Coverage)")))
 
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
@@ -730,10 +733,17 @@ invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environme
 # 'what does a miss tend to be' rather than 'how often is DD missed'.
 checkable <- q4_sensor |>
   filter(in_coverage) |>
-  mutate(camera = if_else(detection_group_3way == 'Never Flagged (True Miss)',
+  mutate(camera = if_else(detection_group_3way == 'No warning from the camera',
                           'Camera never flagged', 'Camera flagged her'))
 n_cam_miss <- sum(checkable$camera == 'Camera never flagged')
 n_cam_flag <- sum(checkable$camera == 'Camera flagged her')
+# Both groups must be non-empty. This block matched 'Never Flagged (True Miss)'
+# after that level was renamed, which put every cow in one group, sent the
+# percentages to NaN and still rendered - the page just had blanks where the
+# numbers should be. A level name compared as a string needs a check that the
+# comparison actually matched something.
+stopifnot(n_cam_miss > 0, n_cam_flag > 0,
+          n_cam_miss + n_cam_flag == sum(q4_sensor$in_coverage))
 
 lesion_by_camera <- lame_lesion_recent |>
   select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
@@ -779,14 +789,14 @@ invisible(list2env(fxn_build_staff_catch(q4, chklame), environment()))
 # no alert arrived' - Gerard's call: from the farm's side both mean no warning
 # turned up, and the pipeline detail is a Nedap question. The full report keeps
 # the split.
-n_no_warning         <- sum(q4_sensor$detection_group_3way == 'No warning from the camera')
-n_outside_coverage   <- sum(q4_sensor$detection_group_3way == 'No Data (Outside Coverage)')
-n_warned_earlier     <- sum(q4_sensor$detection_group_3way == 'Alerted earlier, no action taken')
+n_no_warning       <- sum(q4_sensor$detection_group_3way == 'No warning from the camera')
+n_camera_alerted   <- sum(q4_sensor$detection_group_3way == 'Camera alerted her')
+n_outside_coverage <- sum(q4_sensor$detection_group_3way == 'No Data (Outside Coverage)')
 # the buckets must partition the lesion cases exactly; a mistyped level would
 # otherwise drop cows silently out of every count and plot on this page
 stopifnot(n_no_warning + n_outside_coverage == nrow(staff_catch),
           nrow(staff_catch) == n_misses,
-          n_warned_earlier == n_warned_not_acted,
+          n_camera_alerted == sum(q4$caught_by_nedap) + n_warned_not_acted,
           !any(is.na(q4_sensor$detection_group_3way)))
 
 ```
