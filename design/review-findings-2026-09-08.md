@@ -334,7 +334,7 @@ only 225 of 452 Control cows (49.8%) were *ever* trimmed in the observation wind
 can only come from the far tail of the KM curve where very few cows remain at risk. The
 full report makes no such claim.
 
-### ☑ ~~T13. Day-30 milk caveat weakened in a way that changes its meaning~~ — PARTLY ADDRESSED 2026-09-09 — Gerard wrote his own wording; the selection half is still open, see note
+### ☑ ~~T13. Day-30 milk caveat weakened in a way that changes its meaning~~ — DONE 2026-09-09 (`f3ee7e6`), after a first pass that addressed only half of it
 Farm: *"more variability at those time points"* — implies wider error bars on the same
 estimate. The full report says something stronger: the day-30 point rests on a
 **different, non-random subset** (553 of 828, the earlier-alerting cows) and the estimate
@@ -530,11 +530,13 @@ Nothing else is affected — the phantom is always a left front, so rear counts 
 
 ## G. Found checking the 13 genuine pipeline losses against Gerard's cowcards, 2026-09-09
 
+> **NUMBERS IN SECTIONS G AND H ARE COMMIT-STAMPED AND SOME ARE NOW STALE.** They were true at the commit each paragraph names, and are left as written so the reasoning stays auditable. `f6d5df6` then reclassified 26 warned-but-never-acted-on cows out of the misses, which moved everything downstream. **Current as of `f6d5df6`:** 579 = 240 caught + 26 warned-not-acted + **313 missed (54.1%)**; the 313 split 194 never flagged / **119** flagged-no-alert; pipeline **119 → 39 by design / 69 cannot tell / 11 genuine**. Mapping from the older figures: 339→313, 208→194, 131→119, 50→39, 12→11; the 69 cannot-tell is unchanged.
+
 Gerard supplied cowcards for all 13 `CHECK FIRST` cases plus their `MNFRS` and `UPLAM` values from DairyComp. Full write-up in the plan doc, Round 25. Most of what the cowcards tested came back **clean** — the `low_only` restriction on the injury exclusion is correct (`UPLAM<>1` is only on the `Low` route, and all 13 had a decline flag fire), `MNFRS` is pre-assigned herd-wide so it cannot contradict "not in pilot cohort", and `leg_abovefoot_injury_history` reproduces the `UPLAM` field exactly. Two things did not.
 
 ---
 
-### ☐ T23. A cow alerted *before* the lookback opens is scored as a genuine pipeline loss ✅ verified
+### ☑ ~~T23. A cow alerted *before* the lookback opens is scored as a genuine pipeline loss ✅ verified~~ — SUBSUMED 2026-09-09 (`f6d5df6`), not applied — right about the case, too narrow about the cause
 
 **`functions/fxn_nedlame_analysis.R`, `fxn_build_pipeline_by_design()`**
 
@@ -546,7 +548,17 @@ Gerard supplied cowcards for all 13 `CHECK FIRST` cases plus their `MNFRS` and `
 
 Why it matters: these 13 are the cases being taken to Nedap. One of them is a cow who was alerted, enrolled and monitored. That is the single weakest item in the set, and it is the kind of thing that costs credibility in the room.
 
-**Fix:** add a fifth term, `alert_arrived_before_window` — any `NEDLAME` for that cow-lactation strictly before `date_event - lookback_days_used`. **Genuine drops 12 → 11** and the split becomes **51 / 69 / 11**. The `stopifnot` on the three-way sum already guards the arithmetic, and the exclusive `reason` `case_when` added in `6422356` needs the new term slotted into its precedence — alongside `alert_arrived_late`, since it is the same family (*an alert did arrive*), not a *working as designed* suppression. Note this is a **labelling** fix, not a `caught_by_nedap` change: an alert 25 days out did not prevent the lesion, so her detection status should not move and she stays in the 339. Both the report and `pipeline_losses.xlsx` call `fxn_build_pipeline_by_design()` now, so the workbook picks this up for free.
+**DISPOSITION — subsumed by a broader rule, and the finding was too narrow.** The fix proposed here was a fifth `by_design` term that would have *relabelled* 10581 inside the pipeline population. Gerard pushed harder than the finding did: *"a warning 25 days isn't a miss as she was in the control group... the 21 day window is a bit arbitrary are there other cows we exclude because of that"* — which is the right question, and one this finding did not ask.
+
+Measured before changing anything: **28 of the 339 misses had a `NEDLAME` outside the 21-day lookback.** Widening recovers 9 at 28 days, 20 at 42, all 28 by 90, and nothing after. **26 of the 28 were never trimmed between that alert and the lesion, and 21 of the 28 are Control.** The window was doing nearly all its work in the one arm where nobody was obliged to act — Control missed 27.9% at 21 days against 10.7% unbounded, while TX barely moves (12.4% → 10.1%).
+
+So the rule that landed is not about the window at all: **a cow alerted at any distance before her lesion, with no `TRIM`/`LAME`/`FOOTRIM` in between, is not a camera miss** — she was warned and nothing was done, which is a *response* failure, not a detection failure. The trim check is the guard: if she *was* trimmed after the alert, the later lesion is a new episode and she stays a miss (2 of the 28).
+
+**10581 leaves the pipeline population entirely rather than being relabelled inside it**, so the 11 this finding predicted falls out on its own and the `alert_arrived_before_window` term is not needed. The general rule covers her case *and* 25 others the term would have missed. Verified independently against `f6d5df6`: 579 = 240 caught + 26 warned-not-acted + 313 missed (54.1%), pipeline 119 → 39 / 69 / 11, and 10581 is no longer in the pipeline population.
+
+**Worth keeping as a reasoning lesson:** the finding correctly identified the *case* and then proposed the narrowest possible fix for it — a special-case term for one cow. Asking instead what the arbitrary parameter was costing across the whole population turned one relabelled cow into a category worth 26, and moved the headline. When a finding is a special case of a parameter's arbitrariness, fix the parameter's role, not the case.
+
+**One caveat recorded, not an objection.** The new rule is unbounded in principle — empirically capped at 90 days, since nothing is recovered past that. For the longest-gap cows, calling an alert three months earlier a "warning" about *this* lesion is generous to the camera. The never-trimmed guard is what makes it defensible: the farm did not look, so nobody can say what was there. Gerard has seen the distribution and made the call.
 
 ---
 
@@ -578,9 +590,9 @@ The finding asked only that an invalid limb-distribution inference be dropped. G
 
 **This retires what Rounds 19–21 treated as the report's headline finding.** Anyone returning to this project should not go looking for the DD-on-hind-foot conjunction; it was removed deliberately, not lost. Verified in the working tree: no `conj_` and no "bilateral" remain in either `_fx` report.
 
-### T13 — only half addressed, and the open half is the one the finding was about
+### T13 — closed on the second pass; the first pass fixed the wrong half
 
-Gerard rewrote the day-30 milk caveat himself. His text is a **precision** caveat ("more variability... the true impact is not certain yet"). The finding was about **selection** — that the cows behind the day-30 point are the earlier-alerting ones, so the figure describes a non-random subset rather than a noisy estimate of the whole. His wording, his call, and the concurrent session correctly did not overwrite it. Logged so the distinction is not quietly lost: **the selection point is still unmade.**
+Gerard rewrote the day-30 milk caveat himself, but his first wording was a **precision** caveat ("more variability... the true impact is not certain yet") where the finding was about **selection** — that the cows behind the day-30 point are the earlier-alerting ones, so the figure describes a non-random subset rather than a noisy estimate of the whole. That gap was logged here rather than papered over, and it was then closed properly in `f3ee7e6`: *"the day-30 end is not the same cows as the day-0 end — it is the ones alerted earliest in the study."* **Worth noting as a process point:** the distinction survived only because it was written down as a half-closure instead of ticked off. A binary checkbox would have lost it.
 
 ### T10 and T12 — deviations Gerard directed
 
@@ -602,4 +614,4 @@ Both fixed; it now reproduces 131 → 50 by design / 81 not. **The second is the
 
 ### Still open
 
-**T13** (selection half, above) and **T23** (awaiting Gerard). **T24** is unfixed but quantified at zero impact.
+**T24** only — unfixed, but quantified at zero impact for the cases in hand. T13 and T23 are both closed (see their entries; T23 was subsumed rather than applied).
