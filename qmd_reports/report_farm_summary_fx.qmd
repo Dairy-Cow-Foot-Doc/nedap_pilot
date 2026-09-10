@@ -218,9 +218,9 @@ This results in
 
 The tables below describe the cows enrolled by treatment group
 
+::: panel-tabset
 ## By Alert Type
 
-::: panel-tabset
 ```{r}
 #| label: overview-table
 

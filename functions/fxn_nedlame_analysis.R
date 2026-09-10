@@ -737,7 +737,7 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
 # Shares are within each lesion type, not counts: on a count axis a common lesion
 # looks like a detection problem simply because it is common.
 fxn_build_q4_groups <- function(q4_sensor, lame_lesion_recent) {
-  # Computation half of what used to be the q4-lesion-types chunk. The plot
+  # Computation half of what used to be the fig-q4-lesion-types chunk. The plot
   # half stays in each report, so they can present it differently.
   #
   # Takes q4_group, which already carries detection_group from fxn_build_q4.
