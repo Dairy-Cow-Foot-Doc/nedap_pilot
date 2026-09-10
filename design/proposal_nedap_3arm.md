@@ -40,7 +40,7 @@ All three arms sit on a common floor: **if farm staff identify a cow as lame, sh
 | Arm | Intervention |
 |---|---|
 | **1. Early treatment** | Trim chute for evaluation and treatment within **1 week** of the alert. |
-| **2. Delayed treatment** | Trim chute for evaluation and treatment at **4 weeks** after the alert. |
+| **2. Delayed treatment** | Trim chute for evaluation and treatment at **4 weeks** after the alert - or sooner if the routine round or farm staff pick her up first. She is not held back. |
 | **3. Alert only** | Alerted, recorded, **not** acted on. Treated only if staff find her. |
 
 ### Two things the reviewer's questions expose about this structure
@@ -339,13 +339,42 @@ Three things fall out of this.
 
 #### Better outcomes than milk for the cost of waiting
 
-Milk over 28 days answers the question but is not the only, or the sharpest, measure. Three others are available, and two exploit inspection points the study is standardising anyway:
+Milk over 28 days answers the question but is not the sharpest measure. The follow-up trim gives two better ones, and both use inspection points the study is standardising anyway.
 
-- **Lesion severity at the trim itself.** Arm 1 is examined at week 1 and arm 2 at week 4, so comparing what is found is a direct measure of whether the lesion progressed while waiting — depth, block required, more than one claw affected. No extra data collection: it is the trim record.
-- **Cure at the standardised recheck.** Since rechecks are being standardised across arms, this is a clean common inspection point. Did the lesion resolve, and did waiting four weeks make it less likely to?
-- **Recurrence within 365 days.** Well-powered (~406 index cases per arm for a 20% relative reduction) and the outcome with the clearest clinical meaning: if delay lets a lesion establish, it should show up here.
+#### Cure at the recheck — and it can be estimated after all
 
-▶ **Recommendation: make lesion severity at trim and cure at recheck the primary measures of what waiting costs**, with 28-day milk as the economic translation. Severity and cure are measured at points both arms actually pass through, they need no additional window choice, and they are not diluted by catch-up.
+▶ *Gerard expected there would be too little data to size this. There is enough, once the outcome is built the way he described: **look at the LAME event after the initial trim, and read cure off whether the follow-up trim came back trim-only.***
+
+Note first that **there is no hoof recheck event in this data.** `RECK` exists with 4,524 records but it is reproductive — its remarks are `LUT2CLEAN`, `CYSTIC`, `TWINS`, `NOCL`. Cure has to be read from the next foot exam.
+
+- Index: a `LAME` with a lesion.
+- Follow-up: the next `LAME` / `FOOTRIM` / `TRIM`.
+- **Cured**: that exam is trim-only. **Not cured**: it finds a lesion.
+
+| Window | Index cases re-examined | Cure rate among those re-examined |
+|---|---|---|
+| 30 days | 19% | 28.8% |
+| **60 days** | **35%** | **40.4%** |
+| 90 days | 40% | 40.3% |
+| 180 days | 61% | 44.3% |
+
+Sample size on the 60-day cure rate, baseline 40.4%:
+
+| Improvement | Re-examined cows per arm |
+|---|---|
+| +5 points (to 45%) | 1,537 |
+| **+10 points (to 50%)** | **388** |
+| +15 points (to 55%) | 173 |
+
+**Standardising the recheck is worth about three times the sample size on this outcome.** In current practice only 35% of index cases are re-examined within 60 days, so 388 *re-examined* cows per arm means enrolling roughly 1,100 per arm. If every treated cow gets a protocol recheck — which is what is already planned — re-examined equals enrolled and the requirement stays at 388.
+
+▶ **Two caveats on the 40.4% baseline.** It is measured on cows who happened to be re-examined, which is a selected group: a cow looked at again within 60 days was probably looked at *because* something was wrong, so the true cure rate under a standardised recheck should be **higher** than 40.4%, and the sample sizes above correspondingly conservative. And "trim-only at the next exam" is a proxy for cure, not a clinical cure assessment — the study can do better by recording lesion resolution directly at a scheduled recheck.
+
+#### Not lesion severity
+
+▶ *Dropped on Gerard's objection: severity is not standardisable across farms.* A depth or severity score depends on the trimmer, and with several herds and multiple trimmers per herd the between-observer variation would swamp the treatment effect. **Cure at a standardised recheck is the better instrument** — it is closer to binary, and it survives being measured by different people.
+
+▶ **Recommendation: make cure at a standardised recheck the primary measure of what waiting costs**, with recurrence within 365 days as the longer-run clinical outcome and 28-day milk as the economic translation. Cure is measured at a point both arms pass through, needs no window chosen for it, is not diluted by catch-up, and unlike severity it survives being scored by different trimmers on different farms.
 
 ### Economics: what is the system worth?
 
@@ -467,4 +496,4 @@ Without these the study measures the camera and the integration together and can
 | 8 | Number of herds and expected alerts per herd per week. |
 | 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
 | 10 | Confirm different measurement windows per contrast: 0-28 d for arm 1 v 2, 60-90 d for arm 1 v 3. |
-| 11 | Confirm lesion severity at trim and cure at recheck as the primary measures of what waiting costs. |
+| 11 | Confirm cure at a standardised recheck as the primary measure of what waiting costs (severity dropped - not standardisable across farms). |
