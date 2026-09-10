@@ -2,7 +2,7 @@
 
 **Draft 1 — 2026-09-10.** Builds on the "NEDAP Proposal Idea" outline, a colleague's review comments, and the completed two-arm NEDLAME pilot. Every figure attributed to the pilot is computed from its data; nothing here is an estimate unless it says so.
 
-**Open items are marked ▶ and are genuine decisions, not placeholders.**
+**Open decisions are marked ▶ and collected in §8. Everything else has been settled — §8 lists those too, with the basis for each.**
 
 ---
 
@@ -25,7 +25,7 @@ Randomised controlled trial, **three arms**, **one year**, **multiple herds**.
 
 ### Enrollment is rolling, not cross-sectional
 
-▶ *This answers the reviewer's first question and it needs confirming, because the outline did not say.*
+*This answers the reviewer's first question; the outline did not say.*
 
 A cow enters the study **at her first SmartSight alert**, not at study start. Randomisation happens at that moment. Consequences:
 
@@ -100,7 +100,7 @@ Handle history instead by:
 
 ### The chronicity × lactation interaction
 
-▶ *The reviewer asked whether this was ever looked at. It was not, until now.*
+*The reviewer asked whether this was ever looked at. It was not, until now.*
 
 Two observations from the pilot, both **hypothesis-generating and not conclusive**:
 
@@ -114,7 +114,7 @@ Two observations from the pilot, both **hypothesis-generating and not conclusive
 
 **Cows with lameness history appear to be missed by the camera more often.** Among alerted cows who were later found with a lesion, the share the camera gave no useful warning for was **17.3% with history against 3.0% without**. The cell counts are small (156 and 135 cases) and this is exactly the kind of pattern the pilot learned to distrust before checking base rates, so it is offered as a question for the full study rather than a finding.
 
-Both argue for **powering the interaction rather than adjusting it away.** ▶ That doubles the sample size - verified, not estimated; see the simulation section in §5. A deliberate purchase, not a side effect.
+Both argue for **powering the interaction rather than adjusting it away.** That doubles the sample size - verified, not estimated; see the simulation section in §5. A deliberate purchase, not a side effect.
 
 ---
 
@@ -137,13 +137,13 @@ Two things the protocol must get right, both found in the data:
 - **It is a window, not a day.** Trims cluster **21 to 7 days *before*** dry-off. A ±7-day definition catches only 9.6% of them; a −45 to +7 day window catches about 90%.
 - **Coverage is ~90%, not 100%**, so the ~10% who miss it need a pre-specified handling rule.
 
-▶ **Recommendation: make lesion status at the dry-off trim a primary outcome.** It is the only lesion measure in this design that is not confounded by arm, and it directly answers "did acting on alerts leave cows with healthier feet at the end of lactation".
+**Lesion status at the dry-off trim is a primary outcome.** It is the only lesion measure in this design that is not confounded by arm, and it directly answers "did acting on alerts leave cows with healthier feet at the end of lactation".
 
 ### Primary outcomes
 
 1. **Daily milk production**, from **before** the alert through 2–3 months after.
 
-   ▶ *The reviewer asked why the pre-detection period was not included. It should be, for two reasons.* Each cow's own pre-alert production is the baseline the post-alert curve is normalised against — the pilot used the mean of the 7 days before the alert, because cows at different lactation stages are not comparable in absolute terms. Beyond that, the pre-alert slope is informative in itself: it shows how much production was already being lost before the camera fired, which is part of the value case.
+   *The reviewer asked why the pre-detection period was not included. It should be, for two reasons.* Each cow's own pre-alert production is the baseline the post-alert curve is normalised against — the pilot used the mean of the 7 days before the alert, because cows at different lactation stages are not comparable in absolute terms. Beyond that, the pre-alert slope is informative in itself: it shows how much production was already being lost before the camera fired, which is part of the value case.
 
 2. **Lesion status at the dry-off trim** (see above).
 
@@ -153,15 +153,15 @@ Two things the protocol must get right, both found in the data:
 
 ### Secondary outcomes
 
-- **Whether staff also detected her, and when.** ▶ *The reviewer is right that this is entangled with treatment.* In arm 1 the cow is trimmed within a week, so staff rarely get the chance — time-to-staff-detection is censored by the intervention itself. It is interpretable in arms 2 and 3, and in arm 1 only as "did staff beat the protocol". State that rather than reporting one number across arms.
+- **Whether staff also detected her, and when.** *The reviewer is right that this is entangled with treatment.* In arm 1 the cow is trimmed within a week, so staff rarely get the chance — time-to-staff-detection is censored by the intervention itself. It is interpretable in arms 2 and 3, and in arm 1 only as "did staff beat the protocol". State that rather than reporting one number across arms.
 
-- **Share of trims finding a treatable lesion.** ▶ *The reviewer's point here is the sharpest in the review and it changes the interpretation.* If early treatment prevents lesions, arm 1 will show *fewer* lesions per trim. Read as diagnostic accuracy that looks like poor sensitivity; read as clinical effect it is the study succeeding. **The design cannot have it both ways, so it must declare which reading applies:** lesions-per-trim is reported as a *description of the trims*, and the efficacy question is answered by the dry-off prevalence and the recurrence outcomes instead.
+- **Share of trims finding a treatable lesion.** *The reviewer's point here is the sharpest in the review and it changes the interpretation.* If early treatment prevents lesions, arm 1 will show *fewer* lesions per trim. Read as diagnostic accuracy that looks like poor sensitivity; read as clinical effect it is the study succeeding. **The design cannot have it both ways, so it must declare which reading applies:** lesions-per-trim is reported as a *description of the trims*, and the efficacy question is answered by the dry-off prevalence and the recurrence outcomes instead.
 
-- **Reproductive outcomes.** ▶ Not powered as primary without a stated effect size.
+- **Reproductive outcomes.** Not powered as primary without a stated effect size.
 
 ### Outcomes needing an external reference standard
 
-▶ **Is the camera validated? What do locomotion scores add?**
+**Is the camera validated? What do locomotion scores add?**
 
 Honest answer: the pilot had **no reference standard at all**. It could compare the camera against what the farm happened to find, which is not the same as truth. It established that the camera missed 54.1% of lesion cases and that digital dermatitis was over-represented among misses (42% of what it never flagged against 21% of what it caught), but it could not distinguish "the cow was not lame" from "the camera did not see it".
 
@@ -237,12 +237,12 @@ At 69 alerts per week, 2,584 cows is 37 weeks at one farm — or about 7 weeks o
 
 **Criterion B — show the benefit covers the system's cost.** This is the question that matters, and it cannot be answered by powering against a fixed threshold: a confidence bound only clears a threshold if the estimate sits above it with room to spare, so making that the design target assumes the answer.
 
-▶ **The economics section below replaces this with a better framing** — fix the sample size, then report what the system is worth with an interval. It also shows why the *demonstrable* lower bound on milk value stays small at any feasible n, which is the same point Criterion B was groping at, expressed in dollars instead of kilograms.
+**The economics section below replaces this with a better framing** — fix the sample size, then report what the system is worth with an interval. It also shows why the *demonstrable* lower bound on milk value stays small at any feasible n, which is the same point Criterion B was groping at, expressed in dollars instead of kilograms.
 
 
-▶ **Two caveats that cut the other way, and they are not small.**
+**Two caveats that cut the other way, and they are not small.**
 
-1. **The pilot's contrast is probably the right one, not a diluted one.** Its Control arm was trimmed 49.8% of the time by the routine round - which is what arm 3 *is*. An earlier draft of this document argued arm 3 would be a genuinely untreated comparator and so reveal a larger effect; that was wrong. **1.05 kg is a reasonable estimate of the arm-1-versus-arm-3 contrast**, and the study should be sized for an effect of about that magnitude rather than hoping for more.
+1. **The pilot's contrast is probably the right one, not a diluted one.** Its Control arm was trimmed 49.8% of the time by the routine round - which is what arm 3 *is*. So **1.05 kg is a reasonable estimate of the arm-1-versus-arm-3 contrast**, and the study should be sized for an effect of about that magnitude rather than a larger one.
 
 2. **The pilot measured 30 days; this study measures 60–90.** If the benefit of early treatment accumulates, a longer window sees more of it.
 
@@ -250,7 +250,7 @@ The simulation has now been re-run with those components. Results below.
 
 **On "can milk alone pay for it".** Not on its own - see the economics section below, which answers this with the herd's measured new-case incidence rather than an assumed break-even. Milk is worth about $0.36-0.53 per cow per month at the pilot's effect size, against a price of $0.65-0.80.
 
-▶ Needed to firm this up: system cost per cow per day, milk price, cull value, cost per trim.
+▶ Needed to firm this up: IOFC per kg, cull value, cost per trim. System cost is known at $0.65-0.80 per cow per month.
 
 
 #### The simulation, re-run with measured inputs
@@ -302,7 +302,7 @@ This is the quantitative answer to the open question of whether to power the chr
 
 ### What does waiting four weeks cost? — and the window decides the answer
 
-▶ *Gerard's proposal: treat the benefit/cost of waiting as an outcome in its own right, with the expectation that milk differences run 1v3 > 2v3 > 1v2.*
+*Gerard's proposal: treat the benefit/cost of waiting as an outcome in its own right, with the expectation that milk differences run 1v3 > 2v3 > 1v2.*
 
 **That ordering is correct, but only for windows of 90 days or more.** It reverses at shorter windows, and the reversal is a design lever rather than a curiosity.
 
@@ -329,7 +329,7 @@ Three things fall out of this.
 
 **1. The cost of waiting must be measured over the delay window, not the study window.** Arm 2's entire disadvantage is realised in the first four weeks, and every week of measurement after that is arm 2 catching up and washing the signal out. Over 28 days the contrast is the *full* effect and costs about **2,000 cows**; over 90 days it is a third of the effect and costs **20,000**. Measuring the value of early treatment on a 90-day window is a tenfold mistake, and it is the natural mistake to make if one window is chosen for the whole study.
 
-▶ **Recommendation: define the arm-1-versus-arm-2 comparison on cumulative milk over days 0–28**, and the arm-1-versus-arm-3 comparison on 60–90 days. Different questions, different windows, both pre-specified.
+**The arm-1-versus-arm-2 comparison is defined on cumulative milk over days 0–28**, and the arm-1-versus-arm-3 comparison on 60–90 days. Different questions, different windows, both pre-specified.
 
 **2. Arm 1 versus arm 3 barely cares about the window** — 2,982 to 3,228 cows from 28 to 180 days. That contrast is robust, and it should carry the primary efficacy claim.
 
@@ -343,7 +343,7 @@ Milk over 28 days answers the question but is not the sharpest measure. The foll
 
 #### Cure at the recheck — and it can be estimated after all
 
-▶ *Gerard expected there would be too little data to size this. There is enough, once the outcome is built the way he described: **look at the LAME event after the initial trim, and read cure off whether the follow-up trim came back trim-only.***
+*Gerard expected there would be too little data to size this. There is enough, once the outcome is built the way he described: **look at the LAME event after the initial trim, and read cure off whether the follow-up trim came back trim-only.***
 
 Note first that **there is no hoof recheck event in this data.** `RECK` exists with 4,524 records but it is reproductive — its remarks are `LUT2CLEAN`, `CYSTIC`, `TWINS`, `NOCL`. Cure has to be read from the next foot exam.
 
@@ -368,12 +368,12 @@ Sample size on the 60-day cure rate, baseline 40.4%:
 
 **Standardising the recheck is worth about three times the sample size on this outcome.** In current practice only 35% of index cases are re-examined within 60 days, so 388 *re-examined* cows per arm means enrolling roughly 1,100 per arm. If every treated cow gets a protocol recheck — which is what is already planned — re-examined equals enrolled and the requirement stays at 388.
 
-▶ **Two caveats on the 40.4% baseline**, before the lesion-type breakdown below sharpens them further. It is measured on cows who happened to be re-examined, and a cow looked at again within 60 days was probably looked at because something was wrong - so the true rate under a standardised recheck should be **higher**, and these sample sizes are conservative. And "trim-only at the next exam" is a proxy for cure, not a clinical assessment.
+**Two caveats on the 40.4% baseline**, before the lesion-type breakdown below sharpens them further. It is measured on cows who happened to be re-examined, and a cow looked at again within 60 days was probably looked at because something was wrong - so the true rate under a standardised recheck should be **higher**, and these sample sizes are conservative. And "trim-only at the next exam" is a proxy for cure, not a clinical assessment.
 
 
 ##### Rechecks are lesion-selected, and that changes how the baseline can be used
 
-▶ *Gerard: rechecks typically happen for specific lesions, not DD or foot rot.* Correct for DD, and strikingly so. Within 60 days of the index case:
+*Gerard: rechecks typically happen for specific lesions, not DD or foot rot.* Correct for DD, and strikingly so. Within 60 days of the index case:
 
 | Index lesion | Index cases | Re-examined | Cure rate among those re-examined |
 |---|---|---|---|
@@ -395,14 +395,14 @@ Sample size on the 60-day cure rate, baseline 40.4%:
 
 **3. Foot rot is a partial exception to the expectation** - re-examined 52.2% of the time, not rarely. Its 15.5% cure rate turns out to be a recording artifact rather than a clinical finding; see below.
 
-▶ **The consequence for the study, and it is a real one.** DD is simultaneously the lesion the camera misses most (42% of what it never flagged, against 21% of what it caught) and the lesion with the least recheck data (13.4%). **Standardising rechecks across all lesion types would generate genuinely new information exactly where the pilot is blindest** — but it also means the DD cure baseline is the least certain input in this design, resting on a 13.4% selected sample.
+**The consequence for the study, and it is a real one.** DD is simultaneously the lesion the camera misses most (42% of what it never flagged, against 21% of what it caught) and the lesion with the least recheck data (13.4%). **Standardising rechecks across all lesion types would generate genuinely new information exactly where the pilot is blindest** — but it also means the DD cure baseline is the least certain input in this design, resting on a 13.4% selected sample.
 
-▶ **Recommendation.** Make cure the primary measure of what waiting costs **for white line and sole ulcer**, where the baseline is well estimated and rechecks are standard practice. Exclude foot rot (artifact, below). Collect DD opportunistically rather than by standardised recheck, which is not feasible.
+**Recommendation.** Make cure the primary measure of what waiting costs **for white line and sole ulcer**, where the baseline is well estimated and rechecks are standard practice. Exclude foot rot (artifact, below). Collect DD opportunistically rather than by standardised recheck, which is not feasible.
 
 
 ##### Foot rot's low cure rate is a recording artifact
 
-▶ *Gerard: the trimmer enters a foot rot, then farm staff enter another foot rot treatment when the drug is actually given.* The data agrees. Of the 171 foot rot index cases whose follow-up "found a lesion":
+*Gerard: the trimmer enters a foot rot, then farm staff enter another foot rot treatment when the drug is actually given.* The data agrees. Of the 171 foot rot index cases whose follow-up "found a lesion":
 
 | Gap to follow-up | 0–1 d | 2–3 d | 4–7 d | 8–14 d | 15–30 d | 31–60 d |
 |---|---|---|---|---|---|---|
@@ -410,11 +410,26 @@ Sample size on the 60-day cure rate, baseline 40.4%:
 
 **60% fall within 7 days**, the median gap is 7 days, and **46% of those follow-ups are themselves coded foot rot.** That is one episode entered twice, not a treatment failure. The 15.5% cure rate is an artifact and foot rot must be excluded from the cure outcome.
 
-▶ **This generalises into a design rule.** Any cure outcome needs a **minimum gap between the index diagnosis and the exam that scores it** — otherwise the same episode is counted as a failure. Pre-specify it: no follow-up inside 14 days counts as a cure assessment, and a scheduled recheck at a fixed interval avoids the problem entirely.
+**The gap rule applies to foot rot, not generally.** *Gerard: for other lesions the hoof trimmer diagnoses and treats at the same visit, so a return the next week means the treatment did not work.* The data separates the two cases cleanly. Among follow-ups that found a lesion:
+
+| Index lesion | Within 7 days | Median gap | Cure, all follow-ups | Cure, excluding <14 days |
+|---|---|---|---|---|
+| Foot rot | **60%** | 7 d | 12.4% | 29.4% |
+| Other | **47%** | 8 d | 25.8% | 39.9% |
+| Injury | 35% | 14 d | 20.5% | 30.7% |
+| DD | 19% | 28 d | 39.2% | 35.9% |
+| Sole ulcer | 11% | 29 d | 47.0% | 52.9% |
+| **White line** | **10%** | **35 d** | 48.6% | 53.6% |
+
+Foot rot's non-cures pile up in the first week — the duplicate-entry signature. **White line and sole ulcer show nothing of the kind**: a tenth within a week, medians of a month, and imposing a 14-day gap moves their cure rates by only about 5 points. Those early returns are treatment failures and must be counted.
+
+So: **exclude foot rot from the cure outcome, and impose no minimum gap on white line or sole ulcer.**
+
+▶ **One thing that was not raised and looks like the same artifact.** "Other" — mostly corkscrew claw — has 47% of its non-cures inside 7 days and 22% re-coded as the same type. That is closer to foot rot's pattern than to white line's, and a 14-day gap moves its cure rate 14 points. Worth a view on whether corkscrew is being double-entered too, or whether something else explains it. It is not on the critical path, since "other" is not part of the value case.
 
 ##### Digital dermatitis: no evidence it sets cows up for white line or sole ulcer
 
-▶ *Gerard's hypothesis: the camera's value probably runs through white line and sole ulcer, with DD contributing little — unless an ignored DD lesion predisposes to WLD/SU.*
+*Gerard's hypothesis: the camera's value probably runs through white line and sole ulcer, with DD contributing little — unless an ignored DD lesion predisposes to WLD/SU.*
 
 Tested on the pilot. Index = a cow's first foot exam, excluding cows already found with WLD or SU; outcome = WLD or sole ulcer within 365 days:
 
@@ -425,11 +440,11 @@ Tested on the pilot. Index = a cow's first foot exam, excluding cows already fou
 
 Risk ratio **1.00**, risk difference **0.0 points**, 95% CI −1.9 to +2.0, p = 1.0. **A precise null, not an underpowered one** — the interval excludes anything larger than a two-point difference in either direction.
 
-▶ **But it does not test the hypothesis as stated, and the distinction matters.** Every DD case in these records was *diagnosed*, and diagnosis at this farm means treatment. So this shows that **DD found and treated** does not raise later WLD/SU risk. Gerard's hypothesis is about DD that is **ignored** — and undiagnosed DD, by construction, cannot appear in diagnosis records. It is unobservable here.
+**But it does not test the hypothesis as stated, and the distinction matters.** Every DD case in these records was *diagnosed*, and diagnosis at this farm means treatment. So this shows that **DD found and treated** does not raise later WLD/SU risk. Gerard's hypothesis is about DD that is **ignored** — and undiagnosed DD, by construction, cannot appear in diagnosis records. It is unobservable here.
 
 **That gives arm 3 a specific scientific purpose beyond being a control.** By leaving alerted cows to regular practice, the study creates the untreated-DD condition that no observational dataset can supply, and the DD → WLD/SU pathway becomes testable for the first time. It is worth stating as a secondary objective rather than leaving it implicit.
 
-▶ **Design consequences, taking these together with the recheck selection above.**
+**Design consequences, taking these together with the recheck selection above.**
 
 - **Standardising DD rechecks is not feasible** (Gerard) and should not be proposed. DD is scored at whatever exam the cow next has.
 - **The camera's value case rests on white line and sole ulcer.** They are the lesions the camera detects well — white line is 16% of what it missed against 48% of what it caught — they are the block-and-recheck lesions with well-estimated cure rates, and they carry the milk and culling consequences.
@@ -437,13 +452,13 @@ Risk ratio **1.00**, risk difference **0.0 points**, 95% CI −1.9 to +2.0, p = 
 
 #### Not lesion severity
 
-▶ *Dropped on Gerard's objection: severity is not standardisable across farms.* A depth or severity score depends on the trimmer, and with several herds and multiple trimmers per herd the between-observer variation would swamp the treatment effect. **Cure at a standardised recheck is the better instrument** — it is closer to binary, and it survives being measured by different people.
+*Dropped on Gerard's objection: severity is not standardisable across farms.* A depth or severity score depends on the trimmer, and with several herds and multiple trimmers per herd the between-observer variation would swamp the treatment effect. **Cure at a standardised recheck is the better instrument** — it is closer to binary, and it survives being measured by different people.
 
-▶ **Recommendation: make cure at a standardised recheck the primary measure of what waiting costs**, with recurrence within 365 days as the longer-run clinical outcome and 28-day milk as the economic translation. Cure is measured at a point both arms pass through, needs no window chosen for it, is not diluted by catch-up, and unlike severity it survives being scored by different trimmers on different farms.
+**Cure at a standardised recheck is the primary measure of what waiting costs**, with recurrence within 365 days as the longer-run clinical outcome and 28-day milk as the economic translation. Cure is measured at a point both arms pass through, needs no window chosen for it, is not diluted by catch-up, and unlike severity it survives being scored by different trimmers on different farms.
 
 ### Economics: what is the system worth?
 
-▶ **Recommended framing, and it replaces break-even.** Rather than fixing a break-even and powering to clear it, **fix a feasible sample size and report what the system is worth, with an interval.** There is no threshold to assume, so the study cannot be unfalsifiable, and the output is the number a farm or Nedap actually needs.
+**The framing, replacing break-even.** Rather than fixing a break-even and powering to clear it, **fix a feasible sample size and report what the system is worth, with an interval.** There is no threshold to assume, so the study cannot be unfalsifiable, and the output is the number a farm or Nedap actually needs.
 
 $$\text{affordable \$/cow/month} = \frac{\text{milk gain (kg/day)} \times \text{days} \times \text{IOFC (\$/kg)} \times \text{new-case incidence}}{12}$$
 
@@ -547,18 +562,36 @@ Without these the study measures the camera and the integration together and can
 
 ---
 
-## 8. Open decisions
+## 8. Decisions
 
-| ▶ | Decision |
-|---|---|
-| 1 | Confirm rolling enrollment at first alert. |
-| 2 | Drop the "no lameness history" restriction and stratify instead — recommended. |
-| 3 | Power the chronicity x lactation interaction, or adjust only. **Now quantified: the interaction costs exactly 2x the sample size.** |
-| 4 | Adopt lesion-at-dry-off as a primary outcome — recommended. |
-| 5 | Include locomotion scoring or a second camera as reference standard, and at what frequency. |
-| 6 | IOFC per kg, cull value, cost per trim. Incidence is measured (27.1 new cases/100 cow-years, this herd at the high end). |
-| 7 | Confirm: sample size from recurrence (~2,850 enrolled), economics reported as an affordability estimate with an interval rather than a break-even verdict. |
-| 8 | Number of herds and expected alerts per herd per week. |
-| 9 | Re-run the existing simulation with measured variance components, sweeping true effect 1.0-3.2 kg. |
-| 10 | Confirm different measurement windows per contrast: 0-28 d for arm 1 v 2, 60-90 d for arm 1 v 3. |
-| 11 | Confirm cure at a standardised recheck as the primary measure of what waiting costs, sized on white line and sole ulcer; DD secondary. Severity dropped - not standardisable across farms. |
+### Settled
+
+| | Decision | Basis |
+|---|---|---|
+| Arms | Three: trim within 1 week, trim at 4 weeks, regular farm practice. | Gerard's outline. |
+| Arm 2 | Treated at 4 weeks **or sooner** if the routine round or staff pick her up. She is not held back. | Gerard, 2026-09-10. |
+| Arm 3 | **Regular farm practice**, including routine trimming — not an untreated arm. Its coverage varies by farm, is only partly standardisable, and must be recorded per herd and carried in the model. | Gerard, 2026-09-10. |
+| Enrollment | Rolling, at each cow's first SmartSight alert. | Cross-sectional would randomise mostly cows who never get alerted. |
+| Common inspection point | Routine **dry-off trim** — coverage does not differ by arm in the pilot (88.6% vs 92.7%, p = 0.62). Defined as a window of −45 to +7 days, not a day. | Measured; see §4. |
+| Cure outcome | Read from the follow-up trim coming back trim-only. **Sized on white line and sole ulcer**; foot rot excluded as a recording artifact; DD collected opportunistically. | Gerard + pilot data. |
+| DD rechecks | **Not standardised** — not feasible on farm. | Gerard, 2026-09-10. |
+| Minimum gap for cure | Applies to **foot rot only**. White line and sole ulcer keep their early returns, which are genuine failures. | Gap distributions differ sharply by lesion; see §4. |
+| Lesion severity | **Dropped** as an outcome — not standardisable across farms and trimmers. | Gerard, 2026-09-10. |
+| Value case | Rests on **white line and sole ulcer**, the lesions the camera detects well. DD is a secondary question. | Gerard; supported by the pilot's detection split. |
+| Measurement windows | **Different windows per contrast**: 0–28 days for arm 1 v 2, 60–90 days for arm 1 v 3. | The 1v2 contrast is 10× cheaper at 28 days; see §5. |
+| Economic framing | Report **what the system is worth**, with an interval — not a pass/fail against a break-even. | Gerard's inversion; avoids assuming the answer. |
+| Incidence input | Measured: **27.1 new cases per 100 cow-years**, this herd at the **high end** of a range. Definition is `status_lesion == "New"`. | Gerard's definition + validated denominator. |
+| System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
+| Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
+| `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
+
+### Open
+
+| | Decision | What it turns on |
+|---|---|---|
+| 1 | Drop the "no lameness history" eligibility restriction and stratify instead. **Recommended.** | It removes 54.8% of lactation 3+ cows against 15.8% of first-lactation, skewing the sample young. The reviewer argues the same on external validity. |
+| 2 | Buy the chronicity × lactation interaction at 2× the sample size, or adjust only. | Recurrence rises 34% → 52% across parity, so there is real reason to think it matters. Purely a budget decision now that the price is known. |
+| 3 | Include locomotion scoring or a second camera as a reference standard, and at what frequency. | Without one, sensitivity and specificity are not estimable and lameness duration cannot be measured. The pilot had no reference standard at all. |
+| 4 | Number of herds, and expected alerts per herd per week. | Drives whether the recurrence target (~2,850 enrolled) fits inside a year. This farm alone produces ~69 alerts/week. |
+| 5 | IOFC per kg, cull value, cost per trim. | The affordability figures scale directly with all three. |
+| 6 | Whether "other"/corkscrew is being double-entered like foot rot. | 47% of its non-cures fall inside 7 days. Not on the critical path — "other" is outside the value case. |
