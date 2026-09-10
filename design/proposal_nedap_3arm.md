@@ -189,7 +189,7 @@ Baseline 365-day recurrence after an index lesion, counting only lesions 14+ day
 | 30% (48.7 → 34.1) | 177 | 531 |
 | 40% (48.7 → 29.2) | 98 | 294 |
 
-These count **cows with an index lesion**. About 43% of alerted cows developed one in the pilot, so 406 index cases per arm needs roughly **950 enrolled per arm, ~2,850 total** — about 41 weeks at one farm's 69 alerts/week, comfortable inside a year across several herds.
+These count **cows with an index lesion**. 35.0% of alerted cows had a lesion found in the pilot - 42.8% in the trimmed arm, 28.1% in Control - so 406 index cases per arm needs roughly **1,161 enrolled per arm, ~3,483 total** — about 41 weeks at one farm's 69 alerts/week, comfortable inside a year across several herds.
 
 ### Milk
 
@@ -485,6 +485,69 @@ Risk ratio **1.00**, risk difference **0.0 points**, 95% CI −1.9 to +2.0, p = 
 
 **Cure at a standardised recheck is the primary measure of what waiting costs**, with recurrence within 365 days as the longer-run clinical outcome and 28-day milk as the economic translation. Cure is measured at a point both arms pass through, needs no window chosen for it, is not diluted by catch-up, and unlike severity it survives being scored by different trimmers on different farms.
 
+
+### What the numbers count, and what to inflate them by
+
+Every sample size quoted above counts a different thing, which makes them not directly comparable. Converted to the only operational quantity — **cows enrolled, i.e. alerts** — using the pilot's own conversion rates:
+
+- **35.0%** of alerted cows have a lesion found (42.8% in the trimmed arm, 28.1% in Control).
+- **35.7%** of index lesions are re-examined within 60 days under current practice.
+
+| Outcome | The published *n* counts | Per arm | **Enrolled per arm** | **Enrolled, 3 arms** |
+|---|---|---|---|---|
+| Milk, arm 1 v 3, 60–90 d | enrolled cows | 1,046 | 1,046 | **3,138** |
+| Milk, arm 1 v 2, 0–28 d | enrolled cows | 656 | 656 | **1,968** |
+| Recurrence 365 d, −20% relative | cows *with a lesion* | 406 | 1,161 | **3,483** |
+| Cure at 60 d, +10 points — current practice | cows *re-examined* | 388 | 3,107 | **9,321** |
+| Cure at 60 d, +10 points — **recheck standardised** | cows *with a lesion* | 388 | 1,110 | **3,330** |
+
+**Standardising the recheck takes the cure outcome from 9,321 enrolled cows to 3,330** — a 2.8× saving, and the strongest practical argument for doing it.
+
+#### Attrition: inflate the milk outcome by about 1.28
+
+Measured on the pilot cohort, from the alert:
+
+| | By day 60 | By day 90 |
+|---|---|---|
+| Culled | 5.8% | 6.2% |
+| Dried off | 14.4% | 15.8% |
+| **Either — milk outcome lost** | **19.9%** | **21.7%** |
+
+Drying off is the larger loss, not culling, and it is easy to overlook. **Inflate the milk sample sizes by ×1.25 at 60 days or ×1.28 at 90.** Culling alone would only be ×1.07.
+
+Recurrence and cure are less exposed: a culled cow cannot recur, so she is a competing risk to be handled in the analysis rather than a sample-size inflation, and dry-off does not end follow-up for either.
+
+#### Herd clustering: much smaller than it looks, because randomisation is within herd
+
+▶ **A cluster-randomised design effect does not apply here and would badly over-inflate the study.** Cows are randomised to arms *within* each herd, so herd is a **blocking factor**. Blocking removes between-herd variance from the contrast rather than adding to it — the usual `1 + (m−1)·ICC` inflation is for studies that randomise whole herds, which this does not.
+
+What does inflate is **treatment-effect heterogeneity**: the effect genuinely differing between farms. Then `Var(effect) = σ²/n + τ²/k`, with `k` the number of herds:
+
+| τ (between-herd SD of the effect) | 5 herds | 10 herds |
+|---|---|---|
+| 0 | ×1.00 | ×1.00 |
+| 0.25 kg | ×1.05 | ×1.02 |
+| 0.50 kg | ×1.21 | ×1.10 |
+| 0.75 kg | ×1.65 | ×1.24 |
+| 1.00 kg | ×3.31 | ×1.54 |
+
+Routine-trim coverage varying between roughly 10% and 60% across farms implies the diluted effect varies by about 0.3–0.5 kg, so **τ ≈ 0.15–0.25 and the inflation is ×1.02–1.05.** Negligible.
+
+▶ **But the table shows where it stops being negligible.** At τ = 1.0 kg with 5 herds the requirement more than triples, and doubling to 10 herds cuts that to ×1.54. **More herds buy protection against heterogeneity far more efficiently than more cows do** — and since routine-trim practice is the main thing that differs between farms and cannot be standardised, heterogeneity is a live risk rather than a theoretical one.
+
+#### Putting it together
+
+| Outcome | Enrolled, 3 arms | × attrition | × heterogeneity | **Target** |
+|---|---|---|---|---|
+| Milk, arm 1 v 3 | 3,138 | 1.28 | 1.05 | **~4,200** |
+| Milk, arm 1 v 2 (28 d) | 1,968 | 1.25 | 1.05 | **~2,600** |
+| Recurrence | 3,483 | 1.00 | 1.05 | **~3,700** |
+| Cure, recheck standardised | 3,330 | 1.00 | 1.05 | **~3,500** |
+
+**About 4,200 enrolled cows covers every outcome except the arm-1-versus-arm-3 milk contrast at its own precision target, which is the binding one.** At the pilot farm's ~69 alerts a week that is 61 farm-weeks — comfortably inside a year across three or four herds, and the herd count should be set by the heterogeneity argument above rather than by accrual alone.
+
+---
+
 ### Economics: what is the system worth?
 
 **The framing, replacing break-even.** Rather than fixing a break-even and powering to clear it, **fix a feasible sample size and report what the system is worth, with an interval.** There is no threshold to assume, so the study cannot be unfalsifiable, and the output is the number a farm or Nedap actually needs.
@@ -611,6 +674,7 @@ Without these the study measures the camera and the integration together and can
 | Economic framing | Report **what the system is worth**, with an interval — not a pass/fail against a break-even. | Gerard's inversion; avoids assuming the answer. |
 | Incidence input | Measured: **27.1 new cases per 100 cow-years**, this herd at the **high end** of a range. Definition is `status_lesion == "New"`. | Gerard's definition + validated denominator. |
 | System cost | $0.65–0.80 per cow per month. | Gerard's quotes. |
+| Enrolment target | ~4,200 cows across three arms, set by the arm-1-v-3 milk contrast, after x1.28 for attrition and x1.05 for herd heterogeneity. All outcome-specific n converted to enrolled cows. | Pilot conversion rates. |
 | Chronicity interaction | Costs **exactly 2×** the sample size — verified, not estimated. | Simulation + direct test; see §5. |
 | `RECK` events | Dead end — reproductive, not hoof. | Confirmed in the data. |
 
