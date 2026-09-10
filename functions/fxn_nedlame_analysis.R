@@ -1083,47 +1083,44 @@ fxn_build_control_trim_drivers <- function(next_events, cohort, events_formatted
 
 # How many MORE cows had a lesion found in TX than in Control.
 #
-# This is an ascertainment difference, not a disease difference, and the report
-# has to say so: the arms were randomised, so true lesion incidence is the same.
-# What differs is who got looked at - TX trimmed 90% of its arm by protocol,
-# Control about half. Checked rather than assumed: among cows actually trimmed,
-# Control found lesions MORE often (54% vs 45%), because Control only trimmed
-# cows someone already suspected. So the extra cows are lesions found, not
-# lesions caused.
+# Derived from q2_lesion and q2_any, the SAME objects behind the survival curves
+# above it in the report, rather than recomputed from lame_data. The first
+# version did recompute - counting any LAME-with-lesion event in the window -
+# and gave 184/133 where the report's own lesion curve gives 170/127 and the
+# trim-only table gives 162/121. Three defensible definitions, three numbers,
+# and a section that contradicted the table above it. Gerard caught it. Reading
+# the report's existing objects is the only way this stays aligned.
+#
+# This is an ASCERTAINMENT difference, not a disease difference, and the report
+# has to say so: the arms were randomised, so true lesion incidence is equal by
+# construction. What differs is who got looked at. The supporting percentages
+# are all returned rather than written into this comment, because a hand-typed
+# figure in a comment is exactly the thing that goes stale silently.
 #
 # Rate-adjusted rather than a raw subtraction, because the arms are different
-# sizes (397 TX vs 452 Control): it asks how many TX cows had a lesion found
-# above what Control's rate would have produced in a group that size.
-fxn_build_lesion_yield <- function(cohort, lame_data) {
-  lesions <- lame_data |>
-    filter(event == 'LAME', lesion == 1) |>
-    select(id_animal, lact_number, les_date = date_event) |>
-    distinct()
+# sizes: it asks how many TX cows had a lesion found above what Control's rate
+# would have produced in a group of that size.
+fxn_build_lesion_yield <- function(q2_lesion, q2_any) {
+  arm <- function(d) {
+    d |> group_by(tx_group) |>
+      summarize(cows = n(), n_event = sum(event_occurred),
+                pct = round(100 * mean(event_occurred), 1), .groups = 'drop')
+  }
+  yield_by_arm <- arm(q2_lesion)
+  trimmed_by_arm <- arm(q2_any)
+  stopifnot(nrow(yield_by_arm) == 2, nrow(trimmed_by_arm) == 2)
 
-  lesion_yield <- cohort |>
-    select(id_animal, lact_number, tx_group, first_nedlame_date, date_obs_end) |>
-    left_join(lesions, by = c('id_animal', 'lact_number'), relationship = 'many-to-many') |>
-    mutate(hit = !is.na(les_date) & les_date >= first_nedlame_date & les_date <= date_obs_end) |>
-    group_by(id_animal, lact_number, tx_group) |>
-    summarize(found_lesion = any(hit), .groups = 'drop')
+  pick <- function(d, ctl) d[if (ctl) d$tx_group == 'Control' else d$tx_group != 'Control', ]
+  tx <- pick(yield_by_arm, FALSE); ctl <- pick(yield_by_arm, TRUE)
+  ttx <- pick(trimmed_by_arm, FALSE); tctl <- pick(trimmed_by_arm, TRUE)
 
-  yield_by_arm <- lesion_yield |>
-    group_by(tx_group) |>
-    summarize(cows = n(), with_lesion = sum(found_lesion),
-              pct = round(100 * mean(found_lesion), 1), .groups = 'drop')
-  tx  <- yield_by_arm[yield_by_arm$tx_group != 'Control', ]
-  ctl <- yield_by_arm[yield_by_arm$tx_group == 'Control', ]
-  stopifnot(nrow(tx) == 1, nrow(ctl) == 1)
-
-  n_lesion_tx      <- tx$with_lesion
-  n_lesion_ctl     <- ctl$with_lesion
-  pct_lesion_arm_tx  <- tx$pct
-  pct_lesion_arm_ctl <- ctl$pct
-  n_extra_lesion_cows <- round(tx$with_lesion - tx$cows * ctl$with_lesion / ctl$cows)
-
-  list(lesion_yield = lesion_yield, yield_by_arm = yield_by_arm,
-       n_lesion_tx = n_lesion_tx, n_lesion_ctl = n_lesion_ctl,
-       pct_lesion_arm_tx = pct_lesion_arm_tx, pct_lesion_arm_ctl = pct_lesion_arm_ctl,
-       n_extra_lesion_cows = n_extra_lesion_cows)
+  list(yield_by_arm = yield_by_arm, trimmed_by_arm = trimmed_by_arm,
+       n_cows_tx = tx$cows, n_cows_ctl = ctl$cows,
+       n_lesion_tx = tx$n_event, n_lesion_ctl = ctl$n_event,
+       pct_lesion_arm_tx = tx$pct, pct_lesion_arm_ctl = ctl$pct,
+       n_trimmed_tx = ttx$n_event, n_trimmed_ctl = tctl$n_event,
+       pct_trimmed_tx = ttx$pct, pct_trimmed_ctl = tctl$pct,
+       n_extra_lesion_cows = round(tx$n_event - tx$cows * ctl$n_event / ctl$cows))
 }
+
 
