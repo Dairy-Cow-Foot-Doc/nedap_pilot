@@ -215,3 +215,127 @@ on the population that could actually cross the boundary, it moved 18 cases.
   static checks and to a successful render.
 - **A number appearing in two documents will go stale in one of them.** Compute
   it once, in a shared function, and have both read it.
+
+---
+
+# Designing the follow-up: lessons from the proposal work (2026-09-10)
+
+These come from sizing the three-arm study, not from the pilot analysis. Several
+are the kind of error that produces a confident wrong number rather than a crash.
+
+## Denominator discipline: convert every sample size to ONE unit before comparing
+
+Sample sizes were quoted in three different units and read as though comparable:
+enrolled cows, cows with a lesion, and cows re-examined. Converted properly, the
+cure outcome went from an apparent 3,330 enrolled to 9,321 — the same figure,
+three times further from the truth each time the denominator was skipped.
+
+**Rule: publish every sample size in the unit the study actually enrols, and show
+the conversion factors.** Here they were 35.0% of alerted cows having a lesion
+found and 60.2% of white-line/sole-ulcer index cases being re-examined.
+
+## Within-herd randomisation is NOT cluster randomisation
+
+The instinct is to apply a design effect of `1 + (m-1)·ICC` for herds. **That is
+wrong when cows are randomised to arms within each herd.** Herd is then a
+*blocking* factor, and blocking *removes* between-herd variance from the contrast
+rather than adding to it. Applying a cluster design effect would have inflated
+this study several-fold for no reason.
+
+What *does* inflate is **treatment-effect heterogeneity**: `Var = σ²/n + τ²/k`,
+with `k` the number of herds. At a plausible τ of 0.5 kg, four herds cost ×1.96
+and six cost ×1.49. **More herds buy protection against heterogeneity far more
+efficiently than more cows do** — and at τ = 0.75, four herds cannot reach the
+target at *any* sample size while six still can.
+
+## An interaction term doubles the sample size, and the multiplier is not universal
+
+`treatment * covariate` makes the reported treatment coefficient the effect
+*within one stratum*, estimated from half the cows. Verified by fitting both
+models to identical data:
+
+| Model | SE | Estimate |
+|---|---|---|
+| `treatment * history` | 0.844 | 1.945 (one stratum) |
+| `treatment + history` | 0.597 | 2.27 (average) |
+
+SE ratio **1.414 — exactly √2 — so exactly ×2** on a linear model. But the
+logistic cure model gave **1.59×**, not 2×. **Simulate the penalty for the model
+you are actually fitting; do not carry it across from another.**
+
+This also explains apparent disagreements between a closed-form calculation and
+a simulation: the formula gives the *average* effect, the interaction model's
+coefficient gives a *stratum* effect. They answer different questions and neither
+is wrong.
+
+## The measurement window changes which contrast is cheapest, and can flip the ordering
+
+For a design with immediate, delayed and control arms, contrast sizes as a
+fraction of the full effect:
+
+| Window | 1 v 3 | 2 v 3 | 1 v 2 |
+|---|---|---|---|
+| 28 days | 0.81 | **−0.19** | **1.00** |
+| 60 days | 0.78 | 0.33 | 0.44 |
+| 90 days | 0.77 | 0.46 | 0.31 |
+| 180 days | 0.76 | 0.61 | 0.15 |
+
+**Different questions want different windows in the same study.** The delayed-arm
+contrast is ten times cheaper at 28 days than at 90, because the delayed arm
+spends the rest of the window catching up. Choosing one window for everything is
+the natural mistake.
+
+Note the negative at 28 days: the delayed arm looks *worse than doing nothing*
+early on, because it is protocol-bound to wait while the control arm can be
+picked up at any time. **An early interim analysis will show that, and it needs
+saying before someone reads it as harm.**
+
+## A window shorter than the process can give the WRONG SIGN
+
+The pilot's three-month culling figure showed lame cows culled *less* than
+non-lame (5.0% vs 7.0%). On the herd's multi-year records the association is the
+other way and grows with the window:
+
+| Window | No early lesion | Early lesion | Gap |
+|---|---|---|---|
+| 90 days | 28.1% | 33.0% | +4.9 |
+| 365 days | 45.0% | 52.3% | **+7.3** |
+
+**Before reporting a null from a short window, check whether the process being
+measured is slower than the window.** A cow diagnosed and treated in week one is
+not culled in week eight.
+
+## A composite endpoint is not automatically cheaper
+
+Pooling outcomes into one dollar figure looks like it should help. It does not
+when one component is a rare-but-expensive binary: a $1,500 event at 46%
+prevalence has an SD of $748 per cow, which swamps a milk signal worth $76.
+Sizing on the composite needed 43,000 cows against 5,800 on milk alone.
+
+**A composite is the right thing to report and often the wrong thing to power on.**
+
+## Do not size a change on the group defined by its outcome
+
+To size a gate change that can only ever move cases one way, measure on the
+population that **could cross the boundary** — never on the group already sitting
+on one side. Sizing on "cases nothing blocked" returns approximately zero by
+construction.
+
+## dplyr `summarize()` evaluates sequentially — do not reuse the input column name
+
+```r
+summarize(n_trim = sum(trimmed), pct = 100 * mean(trimmed))   # correct
+summarize(trimmed = sum(trimmed), pct = 100 * mean(trimmed))  # WRONG
+```
+
+The second makes `mean()` see the sum, not the logical vector. It produced
+"35,900% trimmed" once — obvious — and a plausible-looking wrong percentage twice
+more. **Hit three times in one project.** Never name a summarised column after the
+column being summarised.
+
+## Read the model's source before reproducing its assumptions
+
+The break-even calculator's IOFC turned out to be `milk_price − feed_cost /
+conversion` = $0.254/kg, which matched the assumption in use — but the *cost*
+side had no trimming term at all, which changed the break-even by 41%. Fetching
+the rendered page showed the inputs; only the source showed what was missing.

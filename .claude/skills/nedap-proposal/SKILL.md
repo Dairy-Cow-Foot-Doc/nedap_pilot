@@ -5,9 +5,9 @@ description: Use when writing or revising the proposal to Nedap for the full thr
 
 # Writing the Nedap three-arm study proposal
 
-The NEDLAME pilot (two arms: TX auto-trim off alert, Control staff discretion) is finished. This proposal asks Nedap to fund a full three-arm study. It must carry the pilot's lessons and use the pilot's data for sample sizes.
+The NEDLAME pilot is finished and **a full draft proposal exists**: `design/proposal_nedap_3arm_draft.md`. Read it first. The working document `design/proposal_nedap_3arm.md` holds every derivation, check and correction behind its figures.
 
-**A draft proposal exists** and specifies all three arms: trim within 1 week of the alert, trim 4 weeks after, and alerted-but-untreated. Google Doc `19Cv3DgZs1M8cfupfozrFqdKHfhrFoVcqSivO9JGlrXo`, "NEDAP Proposal Idea". Read it first. **Sample size is the open section**, due by Feb 6 per the draft.
+**The design is settled.** Three arms - trim within a week, trim at four weeks, regular farm practice. Enrol at the alert. Six herds of 2,000-5,000 cows across three regions, four as a minimum. **6,000 cows enrolled**, powered on a 0.98 kg/day observed milk contrast between arms 1 and 3. Enrolment closes in 3-6 months; the 365-day culling follow-up sets the 15-18 month duration.
 
 ## Before writing anything
 
@@ -51,6 +51,27 @@ These are not caveats to mention — they determine whether the study can answer
 **Specify the timestamp semantics.** The ~5am batch stamps each alert with its load date, so an attention after 5am on day D is logged as D+1. The pilot needed a post-trim exclusion (162 alerts) and a strictly-before window because of this.
 
 **Do not frame DD detection as a defect to be fixed.** Locomotion scoring detects digital dermatitis poorly and the camera scores locomotion; DD is 42% of what it never flagged against 21% of what it caught, while white line runs the other way. If DD matters to the study, that argues for a second modality, not for expecting more from this one.
+
+
+## What is settled, and what it rests on
+
+| Decision | Settled as | Because |
+|---|---|---|
+| Enrolment point | At the alert | Freshening costs x1.6 cows and double the time, and buys nothing unless detection accuracy is a question. It is not. |
+| Primary outcome | Milk, arm 1 v arm 3, 90 days | The only milk contrast powerable at a realistic size and the one insensitive to window choice. |
+| Cure comparison | Arms 1 v 2 primary, arm 3 descriptive | Both of 1 and 2 are protocol-trimmed so the contrast is clean; arm 3's cure is measured on farm-detected lesions that may be more severe. |
+| Chronicity | Blocked in randomisation, interaction explored not powered | Powering it doubles the study to 11,500. The price is in the draft should Nedap want it. |
+| Culling follow-up | 365 days | The gap is still widening at six months - 6.8 points against 7.3 at twelve. |
+| Reproduction | Dropped | The herd's records show a one-day difference in days to first service. Nothing to power against. |
+| Economics | Reported, not powered | The inputs do not affect the sample size, so a reader can substitute their own without changing precision. |
+
+## The one thing to be honest about
+
+**The study estimates whether the system pays; it does not prove it.** Break-even needs about 1 percentage point of avoided culling, and the design's interval on culling is +/-5.2 points. Detecting 1 point would take on the order of 200,000 cows. This is stated in the draft's §4 and should not be softened - a good estimate with honest uncertainty is what a purchasing decision needs, but it is not a hypothesis test.
+
+## If the numbers need recomputing
+
+Everything traces to `functions/fxn_nedlame_analysis.R`. The economic model is `C:/Github/camera_math/app.R`, which now carries trim cost and an optional avoided-culling credit. Sample-size and simulation scripts from this work were scratch files, not committed - the draft's appendix lists every pilot figure used, so they can be re-derived from the shared functions rather than recovered.
 
 ## What Gerard will push back on
 

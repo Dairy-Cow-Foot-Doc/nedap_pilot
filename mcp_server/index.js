@@ -217,6 +217,34 @@ server.registerTool(
             check: "Have you read the RENDERED output, not just the code and the fact that it rendered?",
             why: "Two defects shipped as valid code producing prose that was false about the data - a sentence explaining an empty category, and percentages rendering as blanks. Neither a static check nor a successful render catches this class.",
           },
+          {
+            check: "Are the sample sizes you are comparing all expressed in the SAME unit - enrolled animals, not a mix of enrolled, affected, and assessed?",
+            why: "Three different denominators were quoted as comparable while designing the follow-up; converting them properly moved one outcome's requirement from 3,330 to 9,321 enrolled.",
+          },
+          {
+            check: "If randomisation happens WITHIN herd, have you resisted applying a cluster design effect?",
+            why: "Herd is then a blocking factor and blocking REMOVES between-herd variance. The 1 + (m-1)*ICC inflation is for designs that randomise whole herds; applying it here would inflate the study several-fold for nothing. What does inflate is treatment-effect heterogeneity, tau^2/k, which more herds fix more cheaply than more cows.",
+          },
+          {
+            check: "Does the primary model carry a treatment x covariate interaction? If so, is the doubled sample size a deliberate purchase?",
+            why: "An interaction makes the reported treatment coefficient a within-stratum effect estimated from half the cows. Verified at exactly 2x on a linear model (SE ratio sqrt(2)) but 1.59x on a logistic one - simulate the penalty for the model you are fitting rather than carrying it across.",
+          },
+          {
+            check: "For a design with immediate and delayed treatment arms: have you chosen the measurement window PER CONTRAST rather than one window for the study?",
+            why: "The delayed-arm contrast is ten times cheaper at 28 days than at 90, because the delayed arm spends the rest of the window catching up. The ordering of the three contrasts flips at about 90 days, and at 28 days the delayed arm looks worse than doing nothing - an artifact that will alarm anyone reading an early interim.",
+          },
+          {
+            check: "Before reporting a null: is the measurement window shorter than the process being measured?",
+            why: "A three-month culling window showed lame cows culled LESS than non-lame. Over a year the association reverses and grows to 7.3 points. A cow diagnosed and treated in week one is not culled in week eight.",
+          },
+          {
+            check: "If pooling outcomes into a composite: does any component have a large variance relative to its effect?",
+            why: "A composite is not automatically cheaper. Adding a $1,500 event at 46% prevalence (SD $748/cow) to a milk signal worth $76 raised the requirement from 5,800 to 43,000 cows. A composite is often the right thing to report and the wrong thing to power on.",
+          },
+          {
+            check: "In dplyr summarize(), have you avoided naming an output column after the column it summarises?",
+            why: "summarize(trimmed = sum(trimmed), pct = mean(trimmed)) makes mean() see the sum. Evaluation is sequential. Hit three times in this project; one instance produced an obviously absurd 35,900% and two produced plausible wrong numbers.",
+          },
         ],
         null,
         2
