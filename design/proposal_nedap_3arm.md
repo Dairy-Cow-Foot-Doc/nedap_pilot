@@ -34,14 +34,6 @@ A cow enters the study **at her first SmartSight alert**, not at study start. Ra
 - **Cross-sectional enrollment would not work here.** Randomising every cow at study start means most of the sample never gets alerted, and the arms would differ only among those who do — a much larger study for the same information.
 
 
-##### Cure at the dry-off trim: considered and dropped
-
-Attractive on coverage — 74.8% of index white line and sole ulcer cases reach a dry-off trim, better than the 60.2% a recheck currently achieves, and it needs no standardisation because the dry-off trim already happens for ~90% of cows with no difference between arms.
-
-**Dropped on timing.** The gap from index lesion to dry-off trim has a median of 154 days and an interquartile range of 22 to 247 — a cow whose lesion appeared at 250 DIM is assessed three weeks later, one at 50 DIM eight months later. That is not one outcome; it mixes acute cure with durable resolution, and no amount of adjustment makes those the same question.
-
-The dry-off trim stays in the design as **lesion prevalence at dry-off**, which is a legitimate end-of-lactation outcome in its own right and is arm-independent. It is just not a cure measure.
-
 ##### Enrolling at freshening instead of at the alert
 
 ▶ *Raised as the alternative that makes timing clean, at the cost of a longer study.* Worth quantifying rather than assuming.
@@ -580,6 +572,34 @@ Correcting the same error changes the sample size materially. **Only 18.3% of al
 For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a week, so three to four herds over a year. 7,100 is about 103 farm-weeks, which needs five or more.
 
 
+
+##### Chronic cows cure worse — and the distinction between a main effect and an interaction is worth £
+
+▶ *Expected: chronic cure rates worse than new. Confirmed, for white line and sole ulcer at 60 days:*
+
+| Chronicity at the index lesion | Assessed | Cured | Re-examination rate |
+|---|---|---|---|
+| New | 1,089 | **51.9%** | 60.1% |
+| Chronic | 631 | **45.0%** | 60.7% |
+| Repeat | 26 | — | 54.2% |
+
+**A 6.9-point gap, p = 0.007, 95% CI −11.9 to −1.9.** Re-examination rates are the same in both groups, so this is not a selection artifact — chronic cows really do cure less often.
+
+**But this is a main effect, and a main effect is free.** Adjusting for chronicity costs nothing; if anything it removes variance and improves precision. What costs 2× is an **interaction** — the treatment *benefit* differing by chronicity, so that early trimming helps new cows more (or less) than chronic ones. Those are different claims:
+
+| | Claim | Cost |
+|---|---|---|
+| Main effect | Chronic cows cure less often **regardless of arm** | free — adjust for it |
+| Interaction | **Early trimming helps chronic cows less** than new ones | ×2 sample size |
+
+**The pilot can establish the first and cannot test the second**, because it has no randomised treatment contrast on cure — only observational cure rates. Whether the *benefit* differs by chronicity is a genuine open hypothesis.
+
+▶ **It is a plausible hypothesis, and arguably the most clinically interesting question in the study.** If chronic cows cure worse whatever you do, early intervention may buy less in them — which would mean targeting the camera's alerts at new cases. If instead early intervention is what *prevents* a new case becoming chronic, the benefit runs the other way and the value is concentrated exactly where the pilot says the camera performs (white line, sole ulcer).
+
+**What it costs to answer.** The interaction penalty was verified exactly (×2) for the linear milk model. For the logistic cure model it is being simulated rather than assumed, since the two need not agree. On the closed-form expectation, powering the cure interaction at +15 points would take the enrolment target from ~4,300 to somewhere near 8,600.
+
+▶ **So the chronicity question forces the same decision twice** — once on milk, once on cure — and it is the same decision: buy the interaction at roughly double, or adjust for chronicity and report the interaction as exploratory. Given that the pilot shows recurrence rising 34% → 52% across parity *and* cure falling 7 points in chronic cows, the case for buying it is stronger than it looked before these numbers existed.
+
 ##### The cure outcome, simulated
 
 ▶ *Worth simulating rather than trusting the two-proportion formula, because the closed form ignores three things this design has: the multi-stage selection from enrolled to lesion to assessed, herd-level variation in the cure rate, and arm-2 contamination.* 300 replicates per cell, mixed-effects logistic with a herd random effect, arm-2 modelled with a third of cows treated before its protocol week.
@@ -589,10 +609,8 @@ For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a we
 | Improvement | Assessment route | 2,000 | 3,000 | **4,300** | 6,000 | 9,000 |
 |---|---|---|---|---|---|---|
 | **+10 points** | current practice (60%) | 24 | 31 | 39 | 51 | 73 |
-| | dry-off trim (75%) | 26 | 34 | 47 | 62 | 82 |
 | | scheduled recheck (95%) | 31 | 45 | **62** | 75 | 87 |
 | **+15 points** | current practice (60%) | 42 | 64 | 76 | 87 | 97 |
-| | dry-off trim (75%) | 53 | 66 | 86 | 91 | 99 |
 | | scheduled recheck (95%) | 55 | 79 | **93** | 98 | 100 |
 | **+20 points** | scheduled recheck (95%) | 87 | 97 | 100 | 100 | 100 |
 
@@ -606,7 +624,6 @@ For scale: 4,300 cows is about 62 farm-weeks at the pilot farm's ~69 alerts a we
 
 2. **Standardising the recheck is worth having but is not transformative.** At +15 points it moves power from 76% to 93% — the difference between inadequate and comfortable, but the study is not impossible without it.
 
-3. **The dry-off route would have worked on power** (86% at +15 points, between the other two, as its 75% coverage implies). It was dropped for the timing reason above, not because it lacked power — worth recording so the option is not rediscovered and re-rejected on the wrong grounds.
 
 #### Attrition: inflate the milk outcome by about 1.28
 
