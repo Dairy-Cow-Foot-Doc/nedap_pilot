@@ -667,13 +667,32 @@ invisible(list2env(fxn_build_q4(
   events_formatted = events_formatted, events_all = events_all,
   animal_lactations = animal_lactations, enrolled_ids = enrolled_ids,
   nedlame_start_date = nedlame_start_date, params = params), environment()))
+
+# Did the camera flag her at all, checked against the raw sensor feed rather
+# than against what reached DairyComp. Used only for the follow-up bullet -
+# the figure below deliberately keeps the two together, because from the farm's
+# side both mean no warning arrived.
+miss_sensor_check <- q4 |>
+  filter(is_miss, date_event <= nedap_coverage_end) |>
+  select(id_animal, lact_number, date_event, lookback_days_used) |>
+  left_join(attentions_resolved |> select(id_animal, lact_number, attention_date),
+            by = c('id_animal', 'lact_number'), relationship = 'many-to-many') |>
+  mutate(hit = !is.na(attention_date) & attention_date < date_event &
+           attention_date >= date_event - lookback_days_used) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(sensor_fired = any(hit), .groups = 'drop')
+n_truly_never <- sum(!miss_sensor_check$sensor_fired)
+n_pipeline    <- sum(miss_sensor_check$sensor_fired)
+stopifnot(n_truly_never + n_pipeline == n_misses)
 ```
 
 - A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`).
 
   - Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera** - either it never flagged them, or it did but no alert reached DairyComp before the lesion was found.
 
-  - Another `r n_warned_not_acted` are left out of that count on purpose. The camera *had* flagged them, a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days before the lesion, and they were not trimmed in between. The warning came and nothing was done with it, so it would be wrong to score that against the camera. Most are Control cows, where nobody was asked to act on an alert.
+  - Following those up against the camera's own records, **`r n_truly_never` were truly never flagged** - the camera saw nothing on them. The remaining **`r n_pipeline` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem being worked through with Nedap rather than a limit of the camera.
+
+  - A further `r n_warned_not_acted` cows **were alerted** and so are not counted as misses at all. The camera flagged them a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days before the lesion turned up, and they were not trimmed in between. The warning arrived and nothing was done with it, which is not a camera failure. Most are Control cows, where nobody was asked to act on an alert.
 
   - One thing to hold against that number: `r n_truncated_lookback` of the `r nrow(q4)` had less than the full `r params$q4_lookback_days` days for the camera to spot them, because their lesion fell close to the camera going live. They are still counted. Cows trimmed in the `r params$recent_trim_suppression_days` days before their lesion are already left out (`r n_excluded_recent_trim` of them), since the DairyComp set-up could not have alerted on those.
 
@@ -682,7 +701,7 @@ invisible(list2env(fxn_build_q4(
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
 - **Flagged, caught in time** - an alert reached DairyComp in the days before the lesion. The camera got there first.
-- **Alerted earlier, no action taken** - the camera flagged her further back than `r params$q4_lookback_days` days and she was not trimmed in between. Not scored against the camera.
+- **Alerted earlier, no action taken** - the camera did flag her before the lesion, but too far ahead to count as a warning for this case, and she was not trimmed in between.
 - **No warning from the camera** - no alert reached DairyComp in time. Either the camera never picked her up, or it flagged her and the alert did not arrive early enough to act on. From the farm's side those look the same, so they are counted together here. The split between them, and what happened to the flags that went astray, is in the detailed report.
 
 ```{r}
