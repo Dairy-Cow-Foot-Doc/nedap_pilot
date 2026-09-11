@@ -232,3 +232,22 @@ The hour histogram is close to flat — hourly counts run 836 to 2,302 across al
 
 **And it carries a protocol requirement into the proposal.** Adding `EDAY=LMSFD` to the `ENTER` command stamps the camera's detection date rather than the command's run date, which removes this whole line of reasoning. §6 now states it as a precondition rather than a nice-to-have — the 68% is the argument for it, and it cannot be reconstructed after the fact.
 
+
+## A SECOND PROTOCOL REQUIREMENT: STALE LACTATION AT DIM 0 (2026-09-11)
+
+From a DairyComp log: cow 22408's `NEDLAME` was written at 05:32 and her `FRESH` was not keyed in until 07:26, so the alert carries the previous lactation. Not a DairyComp fault — the command used what existed when it ran.
+
+**Verified independently** (`scripts/proposal/p34_stale_lactation_check.R`), comparing each `NEDLAME`'s own `lact_number` against the lactation resolved by date:
+
+| | |
+|---|---|
+| NEDLAME events resolvable to a lactation | 1,608 |
+| Events whose lactation number is stale | **3**, in 3 distinct cows |
+| DIM at those events | 0, 0, 1 — all inside the calving window |
+| **Alerts at DIM 0-1 overall** | **8** |
+| **So the rate where it can happen at all** | **3 of 8** |
+
+Cows 21648, 22408 and 9616; the last two are the pair from the log. **The 3-in-1,608 framing understates it.** The exposure is not 0.19% of alerts, it is more than a third of alerts in the calving window — and a three-arm trial enrolling at the alert will put cows through that window continuously.
+
+**Why it is worse in a trial than it was here.** The pilot resolves lactation by date and is unaffected. But lactation group is a **randomisation block**, so a cow allocated on a stale lactation is enrolled into the wrong stratum, and an allocation error cannot be repaired by analysis. §6 now carries it alongside `EDAY=LMSFD`, with both remedies and Gerard's inference that **an attention is itself evidence the cow has calved**, because the camera only sees her once she is in the milking string.
+

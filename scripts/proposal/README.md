@@ -79,3 +79,8 @@ attentions. It exists because a commit justified the strictly-before alert windo
 with "no attention occurs before 05:00 and 84% are 18:00-24:00" — both false
 (15.4% and 25.5%; the histogram is nearly flat). The window change was still
 right, but for the modal-lag reason, not that one.
+
+`p34_stale_lactation_check.R` compares each NEDLAME's own `lact_number` against
+the lactation resolved by date. Three disagree, all at DIM 0-1 — but that is
+3 of the 8 alerts in that window, which is the rate a trial is exposed to, since
+lactation group is a randomisation block.
