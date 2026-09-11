@@ -5,7 +5,7 @@ suppressPackageStartupMessages(library(tidyverse))
 za <- qnorm(0.975); zb <- qnorm(0.80)
 var_cow <- 9.39^2 + 4.79^2 / 9
 n_per_arm <- function(d, mult = 1) ceiling(mult * 2 * var_cow * (za + zb)^2 / d^2)
-infl <- 1.28 * 1.05     # attrition x heterogeneity
+infl <- 1.28 * 1.09     # attrition x heterogeneity (tau = 0.25 kg, 6 herds)
 
 cat("=== MILK, arm 1 v arm 3 ===\n")
 for (d in c(0.8, 1.0, 1.2)) {

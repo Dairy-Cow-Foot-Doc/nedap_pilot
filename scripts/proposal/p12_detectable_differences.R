@@ -18,7 +18,7 @@ mdd_prop <- function(n, p1) {
 }
 cat("=== WHAT 6,000 ENROLLED DETECTS AT 80% POWER ===\n")
 cat("   (arm 1 v arm 3;", format(per_arm, big.mark=","), "cows per arm)\n\n")
-eff <- per_arm / 1.28 / 1.05     # after attrition and heterogeneity
+eff <- per_arm / 1.28 / 1.09     # after attrition and heterogeneity (tau = 0.25 kg, 6 herds)
 cat(sprintf("  MILK          %.2f kg/day observed contrast\n", mdd_cont(eff, var_cow)))
 n_les <- per_arm * P_LESION
 cat(sprintf("  RECURRENCE    %.1f points on a 48.7%% baseline (%.0f lame cows/arm)\n",

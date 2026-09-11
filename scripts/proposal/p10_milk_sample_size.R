@@ -53,7 +53,7 @@ cat("  Powering on an OBSERVED 1.0 kg arm-1-v-3 contrast:\n")
 cat(sprintf("    %s per arm, %s enrolled over three arms\n",
             format(n_per_arm(1.0), big.mark=","), format(3*n_per_arm(1.0), big.mark=",")))
 cat("  With x1.28 for attrition and x1.05 for herd heterogeneity:\n")
-cat(sprintf("    %s enrolled\n", format(ceiling(3*n_per_arm(1.0)*1.28*1.05/100)*100, big.mark=",")))
+cat(sprintf("    %s enrolled\n", format(ceiling(3*n_per_arm(1.0)*1.28*1.09/100)*100, big.mark=",")))
 cat("\n  If Gerard's stricter criterion is kept - lower bound clears break-even -\n")
 cat("  the requirement is far larger, which is the point made elsewhere: that\n")
 cat("  criterion assumes the answer.\n")
