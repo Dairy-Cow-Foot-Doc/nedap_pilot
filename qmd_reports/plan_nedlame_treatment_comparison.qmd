@@ -1327,3 +1327,28 @@ Written this round and extended twice, after each break got through. Eight check
 Check I reads what each `fxn_build_*()` returns from its closing `list(...)` — 115 names across 13 functions — so an inline `r obj` naming something that exists nowhere can be told from the many legitimate objects that arrive via `list2env()` and are never assigned in the `.qmd`. Validated in both directions on real failures.
 
 **The habit that matters more than the script: a clean exit code is not evidence.** Quarto exited 0 on a render that halted, on a render that emitted an unresolved-crossref warning, and on a page containing an empty figure. Read the log in full, and look at the picture.
+
+### Where the pipeline losses actually sit — two failure modes, not one
+
+Asked by the proposal session, because its §7 quotes "119 of 313 apparent misses were cows the camera did flag whose alert never reached DairyComp" and that 313 descends from the old pooled definition. Splitting it by population:
+
+| | flagged, no alert | never flagged |
+|---|---|---|
+| never enrolled | **107** | 175 |
+| pilot cohort | **12** | 19 |
+
+The 11 genuine losses split **9 never-enrolled / 2 cohort** (1 Control, 1 TX). By reason:
+
+- never enrolled: 35 FTDAT + 12 upper-leg + 5 late + 46 cannot-tell + **9 genuine** = 107
+- pilot cohort: 4 FTDAT + 1 upper-leg + 0 late + 5 cannot-tell + **2 genuine** = 12
+
+**So the §7 ask is under-specified rather than wrong — and both obvious corrections are also wrong.** Quoting 119 overstates the cohort integration problem roughly tenfold. Narrowing to "2 confirmed losses in the cohort" understates the real one, because the two groups fail in different ways:
+
+- **Cohort (2 genuine)** — the cow was already enrolled and the pipeline dropped a re-alert. Low consequence; she was already being watched.
+- **Never enrolled (9 genuine)** — a decline flag fired, no gate explains the silence, and no `NEDLAME` appeared, so **a cow who met the enrolment criteria never entered the study at all.** That is the serious one, and it is invisible from inside DairyComp: the cow simply never appears. It was only detectable because the raw attention export could be checked against what arrived.
+
+The sentence to put to Nedap is therefore not "you lost 119 alerts" but "**nine cows met your own enrolment criteria and your pipeline never enrolled them**". For a three-arm study that is a design risk rather than a pilot curiosity, since enrolment working is a precondition of the whole thing.
+
+Floors, not point estimates: the 46 and 5 "cannot tell" cases are LOW-only, and score-at-flag is not in this data.
+
+Also checked while answering, both clean: `fxn_build_q1()`'s denominator (all alerted cows, no lesion filter) does **not** leak into the full report — line 818 describes the Q1 population correctly and the report makes no kg claim. And the full report quotes no variance, SD or power figure from any model, so the proposal session's variance-components finding has no knock-on edits here.
