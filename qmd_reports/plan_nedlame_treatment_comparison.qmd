@@ -1432,3 +1432,23 @@ Two habits that made these findings cheap rather than expensive, both worth keep
 
 - **Check the consequence before reporting the error.** The `d40cca3` premise is false, but the exposure is 2 cases in 194, so the right advice was "fix the reasoning, keep the change" rather than a revert that would have moved the headline back for no gain.
 - **Widen the query before concluding.** Three wrong assertions about cow 20444 in a row came from windows that were too narrow — a −10/+3 day trim search that missed a trim at +8, and filters that returned empty without erroring. The cowcard was right every time.
+
+### Two hazards worth keeping: substring event matching, and results that are too clean
+
+**Never pattern-match event names.** `grepl("LAME|FOOTRIM|TRIM", Event)` looks equivalent to `Event %in% c("LAME","FOOTRIM","TRIM")` and is not:
+
+| | events |
+|---|---|
+| exact match | 59,201 |
+| substring match | 66,873 |
+| **wrongly included** | **7,672** |
+
+`CHKLAME` 4,589 · `NEDLAME` 2,422 · `LAMETX` 661.
+
+`LAME` is a substring of all three. The obvious half is that an alert matches itself; the dangerous half is **`CHKLAME`, which is 60% of the over-match** — a staff lameness *check* counted as a trim corrupts the `FTDAT` gate, the post-trim exclusion, `trims_all` and the Round 13 recent-trim test **simultaneously and invisibly**. Four derived quantities wrong at once, none of them visibly.
+
+Checked across the whole project: every analysis path uses exact matching, so nothing here is affected. **The one deliberate exception is `functions/fxn_event_type.R:96-97`**, which uses `str_detect` to classify events as `health` and is *supposed* to catch all four. Do not "fix" it by analogy with this warning — it is the case the warning does not apply to.
+
+**A result with no noise in it is evidence of a join error, not of a strong effect.** The tell for the bug above was a lesion-yield table reading **100% in every band** — not one implausible cell, a perfectly clean table. That heuristic finds match and join errors faster than reading the code does, and it generalises: this project has now produced three of them — the 100% table, the `NaN` percentages from a renamed factor level, and the empty figure from `limits=` dropping every row. Each looked like a result rather than an error.
+
+The version worth remembering: **suspicion should scale with how good the answer looks.** A clean number is more likely to be a bug than a finding, because real data on 579 cows is never that tidy.
