@@ -637,8 +637,29 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
     mutate(lookback_hit = !is.na(ned_date) & ned_date <= date_event & ned_date >= date_event - lookback_days_used) |>
     group_by(id_animal, lact_number, date_event, lookback_days_used) |>
     summarize(caught_by_nedap = any(lookback_hit), .groups = "drop") |>
-    left_join(cohort |> select(id_animal, lact_number, tx_group), by = c("id_animal", "lact_number")) |>
-    mutate(tx_group = if_else(is.na(tx_group), "Never Alerted (Not in Pilot Cohort)", tx_group))
+    # Cohort membership is TIME-DEPENDENT and must be evaluated at the lesion,
+    # not over the whole study. Joining on id_animal + lact_number alone stamped
+    # a cow's arm onto every lesion in that lactation, INCLUDING ones that
+    # happened before she was ever alerted - so a cow alerted in August was
+    # labelled "Control" for a June lesion the camera had had no chance to warn
+    # about, and duly counted as a Control miss. That is look-ahead bias: the
+    # label uses information from after the event it classifies.
+    #
+    # Gerard, 2026-09-11: "pilot cohort should only be defined at time of
+    # NEDLAME diagnosis not before. Before they should be non alerted cows."
+    #
+    # It mislabelled 30 of 291 cohort cases, all of them necessarily "missed"
+    # (no alert existed yet), which alone put the cohort miss rate at 10.7%.
+    # Evaluated at the lesion it is 1 of 261.
+    #
+    # `<=` not `<`, to match the lookback test above: an alert on the day of
+    # the lesion counts as having arrived.
+    left_join(cohort |> select(id_animal, lact_number, tx_group, first_nedlame_date),
+              by = c("id_animal", "lact_number")) |>
+    mutate(tx_group = if_else(is.na(tx_group) | is.na(first_nedlame_date) |
+                                first_nedlame_date > date_event,
+                              "Never Alerted (Not in Pilot Cohort)", tx_group)) |>
+    select(-first_nedlame_date)
   
   # A cow can have been warned and simply not acted on. If a NEDLAME landed
   # before the lookback opened and NOTHING was done between that alert and the

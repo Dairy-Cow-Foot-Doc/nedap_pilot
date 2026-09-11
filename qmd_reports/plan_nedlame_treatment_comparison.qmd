@@ -1373,3 +1373,39 @@ Which makes the pre-specification requirement narrower and more concrete than "d
 Method note, recorded because it cost nothing and paid twice: both figures the proposal had flagged as possibly stale (`27.9% -> 11.5%`, and the `119` pipeline count) turned out to be *exactly* right on recomputation — but checking is what established that. **Stale and wrong are different claims, and only the second justifies softening a sentence.**
 
 **What completes the argument, from the proposal side:** the three-arm study is powered to detect a **15-point cure effect**, so the definitional choice moves the contrast by about as much as the entire effect being sought (attributed to the proposal's power calculation, not independently checked here). That converts the finding from a methodological caution into a concrete failure mode — **the study could fail on a definition alone** — which is the version that survives a sponsor's reading.
+
+## Round 32: stamp the alert with the detection date, not the load date
+
+Gerard, after the same-day trim investigation: **"we need to add `EDAY=LMSFD` to the alert from NEDAP so we know the date the camera alerted her, not the date the command ran."**
+
+This is the single most consequential implementation lesson the pilot has produced, and it should be a precondition of the three-arm study rather than a recommendation.
+
+### What the current setup does
+
+The DairyComp `ENTER` commands run daily at ~05:00 after file-in and stamp each `NEDLAME` with **the day the command ran**. The underlying sensor attention can be up to a day earlier. Matching each `NEDLAME` to the attention that produced it:
+
+| lag (event date − attention date) | alerts |
+|---|---|
+| 0 days | 425 |
+| **1 day** | **896** |
+| 2 days | 13 |
+| 3 days | 11 |
+
+**68% of alerts carry a date at least one day after the camera actually detected the cow.** The event date is an artefact of batch scheduling, not an observation.
+
+### What it cost this pilot
+
+Nearly every boundary dispute in the misses analysis traces back to it:
+
+- The category **"An alert did arrive, one day too late"** exists only because of it. Those cows were detected *before* the lesion; the stamp moved them after it.
+- **`d40cca3`** narrowed the sensor window to strictly-before the lesion date specifically to work around the +1 stamp — and its stated justification (*"no attention occurs before 05:00 local, 84% are 18:00–24:00"*) does **not** hold: 15.4% of attentions are before 05:00 and only 25.5% fall in 18:00–24:00. Attentions are spread across the whole day. The change may still be right, but not for the reason recorded.
+- The **52 same-day trim-and-alert cows** could only be adjudicated by going back to `start_time_utc` in the raw export and reconstructing which attention the 05:00 batch would have picked up. That reconstruction showed the detections came *before* the trim — the opposite of the initial suspicion — but it should never have required forensics.
+- The `FTDAT` gate has to be evaluated at the attention date rather than the event date for the same reason (Round 18).
+
+### Why it matters for the three-arm study
+
+Every time-window question in the design — the lookback, the suppression gates, time-to-trim, whether an alert preceded or followed an intervention — depends on knowing *when the camera saw her*. With the load date, each of those is uncertain by a day, in a direction that is not random: it always moves the alert later, which systematically biases "did the alert come first?" against the camera.
+
+**Requirement for the proposal:** `EDAY=LMSFD` on the `ENTER` command, so the event carries the camera's own detection date. Then the raw attention export becomes a cross-check rather than the only source of truth, and none of the reconstruction above is needed.
+
+**Keep the raw export regardless.** It is what made every one of these findings visible, and without it the load-date problem would have been invisible rather than merely awkward.
