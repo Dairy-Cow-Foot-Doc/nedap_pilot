@@ -12,12 +12,79 @@
 
 Detection accuracy is not the question. The pilot establishes that the camera works after a fashion — of 579 lesion cases it flagged 240 in time and missed 194 outright, with a known blind spot in digital dermatitis. Measuring that more precisely needs a reference standard and a different design, and it is not what a farm deciding whether to buy is asking.
 
-Two comparisons serve the question:
+---
+
+## 2. Proposed design
+
+Randomised controlled trial, **three arms**, **365-day follow-up**, **six herds of 2,000–5,000 cows** across three regions — two each in New York, South Dakota/Kansas and the West Coast. **Four herds is a workable minimum**; §5 gives what that costs in both precision and calendar time.
+
+### Arms
+
+All three sit on a common floor: **if farm staff identify a cow as lame she is trimmed, regardless of arm.** This is not negotiable.
+
+| Arm | Protocol |
+|---|---|
+| **1. Early** | Trim chute within **1 week** of the alert. |
+| **2. Delayed** | Trim chute at **4 weeks** — or sooner if the routine round or staff reach her first. She is not held back. |
+| **3. Farm practice** | Alerted and recorded, not acted on. Treated only if staff or the routine round catch her. |
+
+**Arm 3 is regular farm practice, not an untreated arm.** In the pilot the equivalent group was trimmed 49.8% of the time, mostly by the routine round.
+
+**Arm 2 is contaminated by design and that must be handled.** Farm detection is heavily front-loaded — 66% of catches land inside four weeks, and week 1 alone is 31% — so about a third of arm 2 will be treated before its protocol week. Record each cow's **actual** treatment date; pre-specify a per-protocol analysis alongside intention-to-treat.
+
+### Enrolment
+
+A cow enters **at her first SmartSight alert** and is randomised at that moment, in **blocks by lameness history (new / chronic) and lactation group (1 / 2 / 3+)**. Blocking balances the arms on the two covariates most likely to modify the effect, costs nothing, and improves precision on the main comparison.
+
+Enrolling at freshening instead was considered and rejected. It does not change the treatment contrast — cows are still only treated when alerted — so it buys nothing for these outcomes, at ×1.6 the cows and roughly double the calendar time. It would only earn that if detection accuracy were a study question, and it is not.
+
+### Eligibility
+
+**Herds**
+
+**Six herds, three regions.** Two each in NY, SD/KS and the West Coast, run by collaborating investigators. Four is a workable minimum.
+
+**The geographic spread cuts both ways and the herd count is the answer to it.** Herds in different regions differ in housing, flooring, climate and trimming practice, which raises the between-herd variation in the treatment effect — the thing herd count protects against. Six herds is the right response to that spread, not a reason to narrow it:
+
+| Between-herd SD of the effect | 4 herds | **6 herds** | 10 herds |
+|---|---|---|---|
+| 0.25 kg | ×1.24 | **×1.16** | ×1.09 |
+| 0.50 kg | ×1.96 | **×1.49** | ×1.24 |
+| 0.75 kg | *no n suffices* | **×3.78** | ×1.79 |
+
+At a plausible 0.5 kg between-herd SD, six herds costs ×1.49 against four herds' ×1.96 — **a quarter less**. At 0.75 kg, four herds cannot deliver the target at any sample size and six still can. **Herds are cheaper insurance than cows.**
+
+
+**Each participating herd must have:**
+
+- **Reliable** hoof trimming data — complete and consistently coded, checkable before enrolment.
+- **Low routine-trimming frequency.** Power on the primary contrast more than doubles between a herd that trims routinely at 10% and one at 60% (75% versus 33% at identical enrolment). This is a bigger lever than sample size and is visible in existing records.
+- Trained trimming staff; daily milk weights; able to run SmartSight.
+
+**Cows**
+
+**No lameness-history restriction.** Excluding cows treated in the current lactation would remove 38.7% of the herd — but unevenly: **54.8% of lactation 3+ against 15.8% of first lactation**, skewing the study young, away from the cows the system is sold to manage. Handle history by stratifying randomisation on it and adjusting in every model.
+
+---
+
+## 3. What the design answers
+
+Now that the arms are defined, the comparisons they support:
 
 | | Comparison | Answers |
 |---|---|---|
 | **Primary** | Arm 1 v arm 3 | Does acting on alerts pay? |
 | **Secondary** | Arm 1 v arm 2 | Does acting *quickly* pay — and is the responsive protocol worth its cost? |
+
+**Arm 1 versus arm 3 is the primary comparison** and carries the efficacy claim. It is also the only milk contrast powerable at a realistic size, and the only one insensitive to how long production is measured for — see §4.
+
+**Arm 1 versus arm 2 answers the operational question a farm faces**, which is not usually whether to act but how fast. A one-week response costs more in labour and scheduling than a four-week one, and this comparison is what says whether that is worth buying.
+
+### Why the trial needs three arms rather than two
+
+A cow trimmed in arm 1 with no lesion found is **unidentifiable from that trim alone**. She is either a camera false positive, or a true positive whose lesion was prevented by early intervention. The two have opposite economic signs: the first is a wasted trim, the second is the system working.
+
+**Arm 2 separates them.** If a meaningful share of arm-2 cows show a visible lesion at four weeks where arm-1 cows had none at one week, the arm-1 empty trims were prevention rather than error. Since 54.9% of arm-1 trims are expected to find nothing, and extra trimming costs about $19 per lame cow, **this distinction moves the economic verdict by roughly the entire extra-trimming cost.**
 
 ### What the pilot already puts on the ledger
 
@@ -56,60 +123,7 @@ Stated explicitly, since the ledger depends on them:
 
 ---
 
-## 2. Design
-
-Randomised controlled trial, **three arms**, **365-day follow-up**, **six herds of 2,000–5,000 cows** across three regions - two each in New York, South Dakota/Kansas and the West Coast. **Four herds is a workable minimum**; §5 gives what that costs in both precision and calendar time.
-
-### Enrolment
-
-A cow enters **at her first SmartSight alert** and is randomised at that moment, in **blocks by lameness history (new / chronic) and lactation group (1 / 2 / 3+)**. Blocking balances the arms on the two covariates most likely to modify the effect, costs nothing, and improves precision on the main comparison.
-
-Enrolling at freshening instead was considered and rejected. It does not change the treatment contrast — cows are still only treated when alerted — so it buys nothing for these outcomes, at ×1.6 the cows and roughly double the calendar time. It would only earn that if detection accuracy were a study question, and it is not.
-
-### Arms
-
-All three sit on a common floor: **if farm staff identify a cow as lame she is trimmed, regardless of arm.** This is not negotiable.
-
-| Arm | Protocol |
-|---|---|
-| **1. Early** | Trim chute within **1 week** of the alert. |
-| **2. Delayed** | Trim chute at **4 weeks** — or sooner if the routine round or staff reach her first. She is not held back. |
-| **3. Farm practice** | Alerted and recorded, not acted on. Treated only if staff or the routine round catch her. |
-
-**Arm 3 is regular farm practice, not an untreated arm.** In the pilot the equivalent group was trimmed 49.8% of the time, mostly by the routine round.
-
-**Arm 2 is contaminated by design and that must be handled.** Farm detection is heavily front-loaded — 66% of catches land inside four weeks, and week 1 alone is 31% — so about a third of arm 2 will be treated before its protocol week. Record each cow's **actual** treatment date; pre-specify a per-protocol analysis alongside intention-to-treat.
-
-**Why arm 2 exists.** A cow trimmed in arm 1 with no lesion found is unidentifiable from the trim alone: she is either a camera false positive or a true positive whose lesion was prevented. **Arm 2 separates them**, and the answer moves the ledger by up to $19 per lame cow — the entire extra-trimming cost.
-
-### Eligibility
-
-**Herds**
-
-**Six herds, three regions.** Two each in NY, SD/KS and the West Coast, run by collaborating investigators. Four is a workable minimum.
-
-**The geographic spread cuts both ways and the herd count is the answer to it.** Herds in different regions differ in housing, flooring, climate and trimming practice, which raises the between-herd variation in the treatment effect - the thing herd count protects against. Six herds is the right response to that spread, not a reason to narrow it:
-
-| Between-herd SD of the effect | 4 herds | **6 herds** | 10 herds |
-|---|---|---|---|
-| 0.25 kg | ×1.24 | **×1.16** | ×1.09 |
-| 0.50 kg | ×1.96 | **×1.49** | ×1.24 |
-| 0.75 kg | *no n suffices* | **×3.78** | ×1.79 |
-
-At a plausible 0.5 kg between-herd SD, six herds costs ×1.49 against four herds' ×1.96 - **a quarter less**. At 0.75 kg, four herds cannot deliver the target at any sample size and six still can. **Herds are cheaper insurance than cows.**
-
-
-- **Reliable** hoof trimming data — complete and consistently coded, checkable before enrolment.
-- **Low routine-trimming frequency.** Power on the primary contrast more than doubles between a herd that trims routinely at 10% and one at 60% (75% versus 33% at identical enrolment). This is a bigger lever than sample size and is visible in existing records.
-- Trained trimming staff; daily milk weights; able to run SmartSight.
-
-**Cows**
-
-**No lameness-history restriction.** Excluding cows treated in the current lactation would remove 38.7% of the herd — but unevenly: **54.8% of lactation 3+ against 15.8% of first lactation**, skewing the study young, away from the cows the system is sold to manage. Handle history by stratifying randomisation on it and adjusting in every model.
-
----
-
-## 3. Outcomes
+## 4. Outcomes
 
 ### Primary
 
@@ -169,7 +183,7 @@ The pilot's own three-month figure had the *wrong sign* — lame cows culled les
 
 ---
 
-## 4. Sample size
+## 5. Sample size
 
 **Target: 6,000 cows enrolled across three arms.**
 
@@ -212,7 +226,6 @@ Participating herds are expected to run **2,000 to 5,000 cows**. At the pilot fa
 Shortening the follow-up to six months would cut the study to 9–12 months, but at the cost of the culling outcome: the lameness–culling gap is still widening at six months (6.8 points against 7.3 at twelve), so a six-month endpoint understates the effect the economics depends on.
 
 
-
 **Herd heterogeneity is ×1.05**, not a cluster design effect. Randomisation is *within* herd, so herd is a blocking factor and blocking *removes* between-herd variance. The `1 + (m−1)·ICC` inflation applies to studies that randomise whole herds; this does not.
 
 ### What this design detects
@@ -241,17 +254,17 @@ Smallest difference detectable at 80% power at 6,000 enrolled (2,000 per arm), a
 
 ---
 
-## 5. Analysis
+## 6. Analysis
 
-**Milk.** Mixed linear model on weekly averages: arm, DIM spline, lactation group, lesion history, breed, herd as fixed effects; cow random intercept. **Arm enters as a main effect.** The `arm x history` interaction is **estimated and reported, but the study is not powered for it** - see below.
+**Milk.** Mixed linear model on weekly averages: arm, DIM spline, lactation group, lesion history, breed, herd as fixed effects; cow random intercept. **Arm enters as a main effect.** The `arm × history` interaction is **estimated and reported, but the study is not powered for it** — see below.
 
 **Cure and lesion at dry-off.** Mixed logistic, same covariates, herd random effect.
 
 ### The chronicity interaction: explored, not powered
 
-Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 34% -> 48% -> 52% across parity, and cure falls from 51.9% in new cows to 45.0% in chronic ones (p = 0.007). Those are **main effects**, and adjusting for them is free. Whether the *treatment benefit* also differs by chronicity is untested - the pilot has no randomised treatment contrast to test it with.
+Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 34% → 48% → 52% across parity, and cure falls from 51.9% in new cows to 45.0% in chronic ones (p = 0.007). Those are **main effects**, and adjusting for them is free. Whether the *treatment benefit* also differs by chronicity is untested — the pilot has no randomised treatment contrast to test it with.
 
-**The study will estimate that interaction and report it with its interval, without being sized for it.** At 6,000 enrolled the interaction term carries a 95% interval of about +/-0.83 kg/day against +/-0.59 kg for the main effect, so only a large difference between new and chronic cows would reach significance. The estimate is still worth having: it is what would tell a follow-up study whether to target one group.
+**The study will estimate that interaction and report it with its interval, without being sized for it.** At 6,000 enrolled the interaction term carries a 95% interval of about ±0.83 kg/day against ±0.59 kg for the main effect, so only a large difference between new and chronic cows would reach significance. The estimate is still worth having: it is what would tell a follow-up study whether to target one group.
 
 **If Nedap wants it powered**, the cost is available and it is substantial:
 
@@ -261,8 +274,7 @@ Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 3
 | Cure, WLD/SU +15 points | ~3,000 | ~4,700 |
 | Accrual at 69 alerts/week | 84 farm-weeks | 167 farm-weeks |
 
-Milk binds in both cases. Powering the interaction is **2.0x the study** - roughly two years of accrual across four herds rather than one - because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00x on the linear milk model and 1.59x on the logistic cure model.
-
+Milk binds in both cases. Powering the interaction is **2.0× the study** — roughly two years of accrual across four herds rather than one — because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00× on the linear milk model and 1.59× on the logistic cure model.
 
 **Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culled cows are a competing risk for recurrence, not an attrition adjustment.
 
@@ -279,7 +291,7 @@ Milk binds in both cases. Powering the interaction is **2.0x the study** - rough
 
 ---
 
-## 6. What we need from Nedap
+## 7. What we need from Nedap
 
 1. **Score at flag, in the export.** Its absence left 69 pilot cases permanently unjudgeable, because a `Low` flag on a cow outside the enrollment score range who was correctly declined is indistinguishable from a lost flag.
 
@@ -289,13 +301,13 @@ Without these the study measures the camera and the integration together and can
 
 ---
 
-## 7. Decisions taken
+## 8. Decisions taken
 
-**Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §5 should Nedap want it: 11,500 enrolled rather than 5,800.
+**Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §6 should Nedap want it: 11,500 enrolled rather than 5,800.
 
-**Settled:** **six herds** across three regions, two each, with four as a stated minimum. Six is the right count for a geographically spread study, not merely a convenient one - see §2 and §5.
+**Settled:** **six herds** across three regions, two each, with four as a stated minimum. Six is the right count for a geographically spread study, not merely a convenient one — see §2 and §5.
 
-**Settled:** the **economic inputs are stated assumptions**, listed in §1. They do not affect the sample size, since the study is powered on milk, so a reader who prefers different figures can substitute them without changing the study's precision.
+**Settled:** the **economic inputs are stated assumptions**, listed in §3. They do not affect the sample size, since the study is powered on milk, so a reader who prefers different figures can substitute them without changing the study's precision.
 
 **Settled:** cure is targeted at **+15 points**. §5 states what the design detects on every outcome rather than only the powered one.
 
