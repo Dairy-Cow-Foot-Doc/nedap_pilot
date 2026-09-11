@@ -1371,3 +1371,5 @@ The whole 16-point Control swing is the **20 Control cows** alerted earlier with
 Which makes the pre-specification requirement narrower and more concrete than "define a miss": **define what counts as a miss for a cow who was alerted and never examined, before unblinding.** That single decision is doing all the work.
 
 Method note, recorded because it cost nothing and paid twice: both figures the proposal had flagged as possibly stale (`27.9% -> 11.5%`, and the `119` pipeline count) turned out to be *exactly* right on recomputation — but checking is what established that. **Stale and wrong are different claims, and only the second justifies softening a sentence.**
+
+**What completes the argument, from the proposal side:** the three-arm study is powered to detect a **15-point cure effect**, so the definitional choice moves the contrast by about as much as the entire effect being sought (attributed to the proposal's power calculation, not independently checked here). That converts the finding from a methodological caution into a concrete failure mode — **the study could fail on a definition alone** — which is the version that survives a sponsor's reading.
