@@ -1352,3 +1352,22 @@ The sentence to put to Nedap is therefore not "you lost 119 alerts" but "**nine 
 Floors, not point estimates: the 46 and 5 "cannot tell" cases are LOW-only, and score-at-flag is not in this data.
 
 Also checked while answering, both clean: `fxn_build_q1()`'s denominator (all alerted cows, no lesion filter) does **not** leak into the full report — line 818 describes the Q1 population correctly and the report makes no kg claim. And the full report quotes no variance, SD or power figure from any model, so the proposal session's variance-components finding has no knock-on edits here.
+
+### The miss definition moves the arm contrast, not just the levels
+
+Followed up from the proposal side, and it is the sharpest thing to come out of the definition change.
+
+Whether a cow alerted well before her lesion and never examined counts as a camera miss is a **definitional choice, not a measurement**. Scoring her as missed against scoring her as a response failure gives:
+
+| | Control | TX | contrast |
+|---|---|---|---|
+| old definition (warned counted as a miss) | 27.9% | 12.4% | **15.4 pts** |
+| current definition (warned excluded) | 11.5% | 10.1% | **1.4 pts** |
+
+The whole 16-point Control swing is the **20 Control cows** alerted earlier with no action taken; TX has only 4. So the choice does not move two rates independently — **it swings the between-arm contrast by 14 points**, from "Control misses 15 points more" to "the arms are within 1.4 points of each other". Same cows, same window, and the choice was made after seeing the data.
+
+**This is a property of the design, not of this pilot.** Wherever one arm is obliged to act and another has discretion, a cow alerted and never examined is an *outcome* in one arm and a *protocol deviation* in the other — so any definition treating those differently moves the comparison rather than the levels. A three-arm study with a protocol arm and a discretionary arm inherits it directly.
+
+Which makes the pre-specification requirement narrower and more concrete than "define a miss": **define what counts as a miss for a cow who was alerted and never examined, before unblinding.** That single decision is doing all the work.
+
+Method note, recorded because it cost nothing and paid twice: both figures the proposal had flagged as possibly stale (`27.9% -> 11.5%`, and the `119` pipeline count) turned out to be *exactly* right on recomputation — but checking is what established that. **Stale and wrong are different claims, and only the second justifies softening a sentence.**
