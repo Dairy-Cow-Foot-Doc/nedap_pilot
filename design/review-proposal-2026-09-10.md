@@ -259,3 +259,14 @@ The other session rebuilt the miss section so cohort membership is judged AT THE
 **The correction strengthens the ask rather than weakening it.** There are not two failure modes; there is one. A lost alert is precisely what prevents enrolment, so the failure and its consequence are the same event - which is why the cohort figure is zero. Section 7 now says that, and states the confirmed-genuine count as a floor without a number pending re-confirmation under the new definition.
 
 **A standing habit worth keeping, since the denominator was the finding twice in one day:** when a rate looks reassuringly small, check whether its denominator includes cases where the failure was structurally impossible. Added to the pre-specification list in section 6, using the stale-lactation example - 0.19% of all alerts against 37% of alerts in the calving window.
+
+## A THIRD PROTOCOL REQUIREMENT: SAVE THE TRIM LIST (2026-09-11)
+
+Gerard: print or save the farm's trim list on every trim day. The reasoning is that a trim event is a record of execution and the list is a record of intent, and the pilot only has the first.
+
+**I tried to size the gap with `CHKLAME` and the result argued against my framing, which turned out to be the useful part** (`scripts/proposal/p36_trim_list_gap.R`). Staff checks convert to trims almost automatically: 82.5% within one day, 92.0% within a week, 96.6% within two, median gap **1 day**, only 5 of 3,634 never trimmed.
+
+So `CHKLAME` is **not a trim list**. At this farm it is recorded at the trim, documenting something that happened rather than a cow who was booked. **The pilot has no prospective record of intent at all** — which is the argument for capturing one, not against it. The quantity we want (how often a cow meant to be trimmed was not) is precisely the quantity this data cannot see, and the 3.4% that did not convert inside two weeks is a floor on it rather than an estimate.
+
+Added to §6 with the trial-specific reason: **compliance is an outcome**. “Not trimmed within a week” is the protocol failing if she was never listed, and an execution miss if she was listed and not caught — only the first is about the system under test. It also gives §4's arm-3 route recording directly, as a row rather than an inference from event codes.
+

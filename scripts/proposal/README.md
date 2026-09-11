@@ -84,3 +84,9 @@ right, but for the modal-lag reason, not that one.
 the lactation resolved by date. Three disagree, all at DIM 0-1 — but that is
 3 of the 8 alerts in that window, which is the rate a trial is exposed to, since
 lactation group is a randomisation block.
+
+`p36_trim_list_gap.R` asks whether `CHKLAME` can stand in for a trim list. It
+cannot: 82.5% of staff checks are followed by a trim within one day, median gap
+1 day, so it records a trim that happened rather than a cow who was booked. The
+pilot has no prospective record of intent, which is the argument for capturing
+the farm's trim list in the trial.
