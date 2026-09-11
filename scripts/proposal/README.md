@@ -67,3 +67,9 @@ figure did).
 
 See `design/review-proposal-2026-09-10.md` for what the independent review found,
 what was verified, and the two decisions left open.
+
+`p32_budget_xlsx.R` writes `design/budget_nedap_3arm.xlsx` — the same budget as a
+live workbook. Every figure is an Excel formula referring to named cells on the
+Inputs sheet, so changing a yellow cell recalculates everything. The workbook is
+an output: re-running the script overwrites it, so change defaults in the script,
+not in Excel, if they need to persist.

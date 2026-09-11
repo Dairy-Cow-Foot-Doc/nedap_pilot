@@ -1,6 +1,6 @@
 # Preliminary budget — three-arm SmartSight study
 
-**Draft 2026-09-10.** Every figure here comes from `scripts/proposal/p30_budget.R`; change an input at the top of that script and the whole budget re-costs. Travel is deliberately liberal.
+**Draft 2026-09-11.** Every figure here comes from `scripts/proposal/p30_budget.R`; change an input at the top of that script and the whole budget re-costs. Travel is deliberately liberal.
 
 ------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ If Nedap charges only for study cows the data line falls by \$12,960. Worth aski
 ## What is not in here yet
 
 - **The camera subscription itself**, and whether Nedap supplies hardware for the study herds or the budget carries it. At \$0.65-0.80/cow/month across 18,000 cows for 18 months this is \$210,000-260,000 — larger than everything above combined, so it needs settling early.
-- **Extra trimming.** The protocol causes about one extra trim per lame cow. At 271 new lesion cases per 1,000 cows and \$18 a trim, that is roughly \$5,300 per 1,000 cows per year — about \$29,000 a year across six 3,000-cow herds. **Who pays this is an open question**: it is a real cost the arms do not share equally, and farms will ask.
+- **Extra trimming.** The protocol trims cows in arms 1 and 2 who would not otherwise have been trimmed. In the pilot the trimmed arm was trimmed 90.4% of the time against the control arm's 49.8%, so **0.406 extra trims per enrolled cow**. Across the 4,000 cows in the two protocol arms at \$18 a trim that is about **\$29,232 for the whole study** — not a whole-herd cost, and not annual. **Who pays it is an open question**: it is a real cost the arms do not share equally, and farms will ask.
 - Farm compensation or incentive payments.
 - Publication and open-access charges.
 - Statistical consulting beyond the analysis days above.
