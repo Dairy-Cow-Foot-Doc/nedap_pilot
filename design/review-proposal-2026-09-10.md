@@ -212,3 +212,23 @@ By design, never enrolled: 35 FTDAT + 12 upper-leg + 5 late + 46 cannot-tell + 9
 
 **Also resolved, and it produced a better number than either of the originals.** The 27.9% / 11.5% figures were rechecked against current data and are exactly right — control n=122 splits 88 caught / 20 alerted-earlier-no-action / 14 missed, so 34/122 against 14/122, and the whole 16-point gap is those 20 cows. **But the figure that matters is the contrast, not the levels:** the same choice moved control minus trimmed from **15.4 points to 1.4**, a 14-point swing, because the control arm had twenty such cows and the trimmed arm four. The same cows over the same window support either “control misses fifteen points more” or “the arms are within a point and a half”, and the choice was made after seeing the data. That swing is comparable to the 15-point cure effect this study is powered for. §6 now states it as a structural property of the design rather than a pilot anecdote: **wherever one arm is obliged to act and another is not, a cow alerted and never examined is an outcome in the first and a protocol deviation in the second**, so the three-arm design inherits the exposure directly through arm 3.
 
+
+------------------------------------------------------------------------
+
+## A JUSTIFICATION THAT DID NOT HOLD (2026-09-11)
+
+Commit `d40cca3` justified the strictly-before alert window with "no attention in the whole export occurs before 05:00 local and 84% are 18:00-24:00". **Both halves are wrong**, verified here directly against `data/nedap_attentions_2026-08-27.csv` (40,193 rows, UTC converted to America/Chicago as the loader does):
+
+| Claim | Actual |
+|---|---|
+| No attention before 05:00 | **15.4%** are (6,177 of 40,193) |
+| 84% fall in 18:00-24:00 | **25.5%** do |
+
+The hour histogram is close to flat — hourly counts run 836 to 2,302 across all 24 hours. Attentions are not an evening phenomenon.
+
+**The change itself stands; only its stated basis was wrong.** The other session bounded the exposure at **2 cases out of 194**: 74 lesion cases have an attention on the lesion day, 13 of those have no earlier attention in the window, and 2 of those had the same-day attention before 05:00.
+
+**The defensible argument is the modal lag**, which does not depend on time of day: matching each alert to the attention that produced it gives lag 0 for 425 and lag 1 for 896, so **68% are stamped at least a day after detection**. §6 now says that instead.
+
+**And it carries a protocol requirement into the proposal.** Adding `EDAY=LMSFD` to the `ENTER` command stamps the camera's detection date rather than the command's run date, which removes this whole line of reasoning. §6 now states it as a precondition rather than a nice-to-have — the 68% is the argument for it, and it cannot be reconstructed after the fact.
+

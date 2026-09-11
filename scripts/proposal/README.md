@@ -73,3 +73,9 @@ live workbook. Every figure is an Excel formula referring to named cells on the
 Inputs sheet, so changing a yellow cell recalculates everything. The workbook is
 an output: re-running the script overwrites it, so change defaults in the script,
 not in Excel, if they need to persist.
+
+`p33_attention_hour_check.R` checks the hour-of-day distribution of raw
+attentions. It exists because a commit justified the strictly-before alert window
+with "no attention occurs before 05:00 and 84% are 18:00-24:00" — both false
+(15.4% and 25.5%; the histogram is nearly flat). The window change was still
+right, but for the modal-lag reason, not that one.
