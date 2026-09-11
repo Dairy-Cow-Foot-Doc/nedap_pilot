@@ -1277,14 +1277,14 @@ The full report now reports the two populations separately, with a `stopifnot` t
 
 Worth restating, because it looks like one: design decision 5 deliberately set Q4's denominator to *all* lesion-bearing `LAME` events, not just cohort cows, precisely so the analysis would surface cows the camera never alerted on. That decision stands. What changed is only that the two groups are no longer averaged into one rate.
 
-### `cork` dropped from the lesion set, `sole_fracture` kept — the distinction matters
+### `cork` and `sole_fracture` both dropped - empty by construction, not by chance
 
-Both columns had zero cases. Only one was removed, and the reason is the same one that governs the empty `DSNLM` bucket:
+Both columns had zero cases, and **both were removed** - but only after Gerard confirmed *why* each was empty, which is the question that decides it:
 
-- **`cork` is empty by construction.** `fxn_code_lesions()` matches it on `TRMC`/`NONC`/`Cork`, but this farm codes corkscrew claw in a way that lands in `other` (confirmed by Gerard). It can never populate here, so listing it implies a category the reader will never find — and it made the prose claim *"other is typically corkscrew"* look contradicted by the data when it is in fact correct farm knowledge.
-- **`sole_fracture` is empty by chance.** Round 20 settled that a category is not deleted for being currently empty, because the feeds leapfrog and buckets refill.
+- **Both are empty by construction.** `fxn_code_lesions()` matches `cork` on `TRMC`/`NONC`/`Cork` and `sole_fracture` on `NONF`/`Fracture`, but this farm folds corkscrew claw *and* sole fracture into `other`. Neither column can ever populate here, so listing them implies categories the reader will never find - and it made the correct prose claim *"other is typically corkscrew"* look contradicted by the data.
+- **A category empty by *observation* would stay**, per Round 20 - the feeds leapfrog and buckets refill. **My first pass got this wrong**: I kept `sole_fracture` on the assumption it was empty by chance, which is exactly the inference a domain expert can make and a reader of the code cannot. Gerard corrected it. The lesson is narrower than "delete empty categories" and wider than Round 20: **ask why a bucket is empty before deciding, and the answer is usually not in the data.**
 
-A `stopifnot` now asserts `cork` really is zero, so if this farm ever does code one, the render fails loudly instead of silently dropping those cases from every lesion figure.
+A `stopifnot` now asserts both really are zero, so if this farm ever does code one the render fails loudly instead of silently dropping those cases from every lesion figure.
 
 ### A review agent's findings, and what survived checking
 
