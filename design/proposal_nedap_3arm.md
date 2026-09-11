@@ -763,6 +763,9 @@ Correcting the same error changes the sample size materially. **Only 18.3% of al
 | +15 points (49→64%) | 171 | **2,952** |
 | +20 points (49→69%) | 94 | 1,623 |
 
+
+> **Superseded 2026-09-10.** The ×1.05 used here assumed τ = 0.20 kg. The heterogeneity table below was recomputed and was wrong; the settled planning value is **τ = 0.25 kg, ×1.09 at six herds**, and the final target is **6,000 enrolled** on a 1.0 kg arm-1-v-3 contrast. See the draft.
+
 **Revised enrolment picture**, with ×1.28 attrition on the milk outcomes and ×1.05 for herd heterogeneity throughout:
 
 | Outcome | Target enrolled, 3 arms |
@@ -851,19 +854,23 @@ Recurrence and cure are less exposed: a culled cow cannot recur, so she is a com
 
 What does inflate is **treatment-effect heterogeneity**: the effect genuinely differing between farms. Then `Var(effect) = σ²/n + τ²/k`, with `k` the number of herds:
 
-| τ (between-herd SD of the effect) | 5 herds | 10 herds |
-|---|---|---|
-| 0 | ×1.00 | ×1.00 |
-| 0.25 kg | ×1.05 | ×1.02 |
-| 0.50 kg | ×1.21 | ×1.10 |
-| 0.75 kg | ×1.65 | ×1.24 |
-| 1.00 kg | ×3.31 | ×1.54 |
+| τ (between-herd SD of the effect) | 4 herds | **6 herds** | 10 herds |
+|---|---|---|---|
+| 0 | ×1.00 | **×1.00** | ×1.00 |
+| 0.15 kg | ×1.05 | **×1.03** | ×1.02 |
+| **0.25 kg** *(planning value)* | ×1.14 | **×1.09** | ×1.05 |
+| 0.50 kg | ×1.96 | **×1.49** | ×1.24 |
+| 0.75 kg | *no n suffices* | **×3.79** | ×1.79 |
+| 1.00 kg | *no n suffices* | *no n suffices* | ×4.65 |
 
-Routine-trim coverage varying between roughly 10% and 60% across farms implies the diluted effect varies by about 0.3–0.5 kg, so **τ ≈ 0.15–0.25 and the inflation is ×1.02–1.05.** Negligible.
+Routine-trim coverage varying between roughly 10% and 60% across farms moves the diluted arm-1-v-3 contrast from 1.23 kg to 0.79 kg — a range of 0.44 kg. **The τ that implies depends on how herds distribute across that range:** 0.13 kg if the contrast is uniform over it, 0.16 kg if herds sit evenly across the coverage levels simulated, 0.31 kg if they split between the two extremes. At six herds that is ×1.02 to ×1.15. **The study is planned at τ = 0.25 kg, ×1.09** — above the middle of that range, and deliberately so, because routine trimming is only one source of heterogeneity: housing, flooring, climate, trimmer skill and herd milk level all vary too, and none of them are in this sweep. **So τ from routine trimming is a lower bound, not an estimate.**
 
-▶ **But the table shows where it stops being negligible.** At τ = 1.0 kg with 5 herds the requirement more than triples, and doubling to 10 herds cuts that to ×1.54. **More herds buy protection against heterogeneity far more efficiently than more cows do** — and since routine-trim practice is the main thing that differs between farms and cannot be standardised, heterogeneity is a live risk rather than a theoretical one.
+▶ **But the table shows where it stops being negligible.** At τ = 0.75 kg four herds cannot reach the target at any sample size, six need ×3.79 and ten need ×1.79; at τ = 1.0 kg only ten herds can deliver it at all. **More herds buy protection against heterogeneity far more efficiently than more cows do** — and since routine-trim practice is the main thing that differs between farms and cannot be standardised, heterogeneity is a live risk rather than a theoretical one.
 
 #### Putting it together
+
+
+> **Superseded 2026-09-10.** The ×1.05 used here assumed τ = 0.20 kg. The heterogeneity table below was recomputed and was wrong; the settled planning value is **τ = 0.25 kg, ×1.09 at six herds**, and the final target is **6,000 enrolled** on a 1.0 kg arm-1-v-3 contrast. See the draft.
 
 | Outcome | Enrolled, 3 arms | × attrition | × heterogeneity | **Target** |
 |---|---|---|---|---|
