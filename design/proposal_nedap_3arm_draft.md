@@ -331,7 +331,7 @@ Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 3
 | Cure, WLD/SU +15 points   | \~3,000            | \~4,700             |
 | Accrual at 69 alerts/week | 87 farm-weeks      | 174 farm-weeks      |
 
-Milk binds in both cases. Powering the interaction is **2.0× the study** — roughly two years of accrual across four herds rather than one — because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00× on the linear milk model and 1.59× on the logistic cure model.
+Milk binds in both cases. Powering the interaction is **2.0× the study** — about 29 weeks of accrual across six herds rather than 15 — because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00× on the linear milk model and 1.59× on the logistic cure model.
 
 **Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culled cows are a competing risk for recurrence, not an attrition adjustment.
 

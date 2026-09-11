@@ -1,0 +1,200 @@
+# Proposal review, 2026-09-10
+
+An independent reviewer went through `proposal_nedap_3arm_draft.md` against the
+scripts in `scripts/proposal/`. **Its findings were not taken on trust** — the
+consequential ones were re-derived here, and this document records which
+survived. Two did not get applied because they change the study's conclusion or
+its size, and those are Gerard's calls.
+
+------------------------------------------------------------------------
+
+## TWO OPEN DECISIONS
+
+### D1. The ledger mixes denominators, and fixing it reverses its headline
+
+**Verified.** The §3 ledger is labelled *per lame cow*. Two rows honour that:
+
+- Camera `$28.78` = `$0.65 x 12 / 0.271` — cost per cow-year over **new lesion
+  cases** per cow-year. Correct.
+- Extra trimming `$19.40` = `0.97 x $20`, and `p15` derives the 0.97 by scaling
+  alerted cows to lame cows (`x2.40`). Correct.
+
+The milk row does not. `1.05 kg x 90 d x $0.254 = $24.00` is the benefit **per
+alerted cow**, because `fxn_build_q1()` (functions/fxn_nedlame_analysis.R:451)
+applies **no lesion filter** — the 1.05 kg contrast is measured over the whole
+alerted cohort. Confirmed by reading the function.
+
+Applying the same `x2.40` the trim row uses:
+
+| Per lame cow | Draft | Corrected |
+|---|---:|---:|
+| Milk at 1.05 kg over 90 d | $24.00 | **$57.66** |
+| Milk at 1.50 kg over 90 d | $34.29 | **$82.37** |
+
+Per 1,000 cows per year: 651 alerts x $24.00 = **$15,624** of milk against
+$7,800 camera + $5,258 extra trims = **$13,058**. Net **+$2,566**, not the
+shortfall the draft reports.
+
+**So "Milk alone does not cover the cost" is not supported by the ledger as
+computed**, and "0.9 to 1.5 percentage points of avoided culling would close it"
+has nothing to close. That sentence is load-bearing: it justifies the 365-day
+culling follow-up and the "estimates but cannot prove" framing in §5.
+
+**But the correction is not simply good news.** The 1.05 kg was measured at
+**days 25-30** of a 30-day window and is extrapolated flat across 90 days. Over
+30 days the milk benefit is $5,208 per 1,000 cows and the system loses. So the
+ledger is wrong in one direction on the denominator and optimistic in the other
+on the window.
+
+**The honest position is that the sign is unresolved**, which is a different and
+more defensible thing to say than either "it does not pay" or "it does". It also
+changes what the study is for: from *finding the culling benefit that rescues a
+losing case* to *resolving a genuinely open question*. That is a better proposal
+and a more fundable one, but it is a change of argument, not a number.
+
+**Decision needed:** how to present it. Recommend stating both the corrected
+denominator and the window caveat, and letting the conclusion be "unresolved".
+
+### D2. The study may be sized on the wrong variance, by a factor of about two
+
+**Verified by refitting on the pilot data** (`scripts/proposal/v01` equivalent,
+826 cows, 3,599 post-alert weekly records):
+
+| Model | Between-cow SD | Var of a 9-week mean | n/arm at 1.0 kg | Enrolled |
+|---|---:|---:|---:|---:|
+| **A. As `p01` fits it — no baseline term** | 9.58 | 94.2 | 1,479 | **6,200** |
+| **B. Plus the cow's own pre-alert baseline** | 5.57 | 33.5 | 526 | **2,300** |
+| **C. Outcome as change from baseline** | 6.54 | 45.2 | 710 | **3,000** |
+
+Cow-level correlation between pre-alert baseline and post-alert mean is
+**r = 0.845**. Model A reproduces the planning figure the draft uses.
+
+The problem: **§4 defines the outcome as "normalised to each cow's own pre-alert
+baseline"** and the pilot itself measured it that way (`pct_of_baseline`), but
+the planning variance comes from a model with no baseline term, and §6's model
+omits one too. All three disagree with each other.
+
+If the trial adjusts for pre-alert baseline — which it should, and which §4
+already says it will — **a 1.0 kg contrast needs roughly 2,300-3,000 enrolled,
+not 6,000.**
+
+**The caveat that stops this being a free win.** This was measured over days
+1-30, the only window the pilot has. The trial's primary window is 90 days, and
+the correlation between a 7-day baseline and milk at day 90 will be weaker than
+at day 30. The true gain sits somewhere between model A and model B, and **the
+pilot cannot say where**, because it has no 90-day follow-up.
+
+**A second consequence:** if milk falls to ~3,000, milk stops being the binding
+outcome. Cure (~3,000) and recurrence (~3,700) become binding, and the design
+total lands nearer 4,000 than 6,000. The whole sizing section needs re-deriving,
+not patching.
+
+**Decision needed:** whether to re-size. Options are (a) keep 6,000 and justify
+it as conservative against baseline-correlation decay, (b) re-size on a
+conservative interpolation, (c) re-size on model C and make recurrence the
+binding outcome. **(a) is defensible and cheapest to write; (b) is the most
+honest; (c) is the most efficient study.**
+
+------------------------------------------------------------------------
+
+## APPLIED
+
+- **§6 accrual arithmetic.** "Roughly two years of accrual across four herds
+  rather than one" was wrong — 174 farm-weeks across four herds in parallel is
+  43.5 weeks, not two years. Now "about 29 weeks across six herds rather than
+  15", which also stops it reverting to four herds after §2 and §8 settled six.
+  Fixed in the draft and in `p14`.
+
+------------------------------------------------------------------------
+
+## VERIFIED, NOT YET APPLIED
+
+Held because D1 and D2 move the same tables.
+
+1. **`p12` mixes inflated and uninflated bases.** The milk row divides by
+   `1.28 x 1.09`; every other row uses the raw 2,000 per arm. A design cannot
+   have both 1,433 and 2,000 analysable cows per arm. On a consistent 1,433:
+   cure becomes 12.4 points (not 10.5), dry-off 5.7 (not 4.9). On a consistent
+   2,000, milk becomes 0.84 kg. **Confirmed by reading `p12`.**
+2. **`p14`'s intervals use 2,000/arm uninflated** while §5's detectable
+   differences use 1,433. A reader checking §5's 1.00 kg against §6's +/-0.59 kg
+   finds they cannot both hold. Same defect, different section.
+3. **Trim price is $18 in the assumptions table and $20 in the ledger.** At $18
+   the ledger rows become $17.46 / $46.24 / $52.88. Entangled with D1.
+4. **§5's "1.3 points" descends from a superseded $1,500 net cull value.** At
+   the settled $1,650 it is 1.21 points. §3 already quotes the correct range.
+5. **The dry-off row ignores the ~90% coverage the same section verifies**
+   (88.6%/92.7%), and its 4.9 points assumes a 30% baseline that appears nowhere
+   else, unlike every other row which states its baseline.
+
+------------------------------------------------------------------------
+
+## THE BEST STRUCTURAL POINT THE REVIEWER MADE
+
+**§6's model cannot express the heterogeneity §5 inflates for.** The stated
+model is "arm, DIM spline, lactation group, lesion history, breed, **herd as
+fixed effects**; cow random intercept" — there is no `arm | herd` random slope.
+A model with herd fixed and no arm-by-herd term produces a standard error that
+ignores tau entirely. The study would inflate by `x1.09` to protect against
+heterogeneity and then analyse it with a model that cannot see it.
+
+**Either §6 needs `(1 + arm | herd)` — or a two-stage per-herd estimate pooled
+by random effects — or the `x1.09` in §5 is decorative.** This is correct and is
+a one-line fix to §6. Recommend applying it.
+
+------------------------------------------------------------------------
+
+## JUDGEMENT CALLS WORTH READING
+
+- **Conditioning on "cows with a lesion" is a collider.** §5 sizes recurrence and
+  culling on 2,000 x 0.35 = 700 per arm. But 0.35 is a property of the *trimmed*
+  arm: arm 1 trims 90.4% of cows and finds lesions in 35%; arm 3 trims 49.8% so
+  finds them in ~19%. Restricting to cows with a found lesion conditions on a
+  post-randomisation variable the treatment causes. §4 is careful about exactly
+  this for cure and demotes arm 3 to descriptive; §5 then does it anyway for
+  recurrence and culling. **Culling should be ITT on all enrolled** — 4.4 points
+  detectable at 2,000/arm against 7.5 on the conditioned subset, and unbiased.
+- **§5's corroboration of the 1.0 kg target is circular.** The simulation maps a
+  1.5 kg true effect to a 1.01 kg observed contrast; the draft then maps the
+  pilot's 1.05 kg back to 1.5 kg by inverting the same model and presents the two
+  as independent confirmations. The working document (lines 422, 983) already
+  retracted this: **arm 3 is what the pilot's control arm was, so the pilot's
+  1.05 kg *is* the arm-1-v-3 quantity.** Simpler and not circular.
+- **The accrual rate is a start-up rate.** 69 alerts/week is the first-alert rate
+  over the camera's first 97 days, which drains the herd's prevalent pool of lame
+  cows. `p08`'s own hazard estimate implies a steady-state rate 1.6x lower.
+  Enrolment closing in "three to six months" becomes four to nine.
+- **Low-routine-trimming eligibility trades away external validity.** If arm 3 is
+  trimmed 10% rather than 50%, the trial measures acting-versus-nearly-nothing,
+  which is a bigger effect and **not the decision a commercial farm faces** —
+  which is the decision the title asks about.
+- **The culling ledger treats an association as recoverable.** The 7.3 points is
+  observational: lame cows leave more partly because they are older and lower
+  producing, which a trim does not change. The pilot work is scrupulous about
+  exactly this failure mode ("58 extra lesions is ascertainment"), so the
+  omission stands out.
+- **Arm 1 v 2 on milk over 0-28 days needs only ~1,967 cows** per the working
+  document, comfortably inside the design. §3 says arm 1 v 2 is the operational
+  question a farm faces; §4 then declines to measure it on the primary outcome.
+
+------------------------------------------------------------------------
+
+## CHECKED AND CORRECT
+
+Stated so nobody re-spends effort: the within-herd blocking argument; all nine
+cells of the §2 heterogeneity table, and the 8,200 / 10,800 figures; the 2.00x
+linear and 1.59x logistic interaction multipliers; attrition `x1.28`; the §5
+sizing table; the culling-window table and the reproduction null; the +/-5.2
+culling interval and the ~200,000-cow figure; week 1 at 31.1%, weeks 1-4 at
+65.8%, and a third of arm 2 caught early; cure at 15 points reaching 98% power.
+
+------------------------------------------------------------------------
+
+## ALSO FROM THE PILOT SIDE
+
+The other session split the headline miss rate: cohort 31/291 = **10.7%**,
+never-enrolled 282/288 = **97.9%**, pooled 313/579 = 54.1%. **If the proposal
+ever quotes a pilot miss rate, 54.1% is the wrong one to carry forward.** The
+draft does not quote it as a headline, but two figures should be rechecked
+against the new split: §6's "21 days versus unbounded moved the control miss rate
+from 27.9% to 11.5%", and §7's "119 of 313 apparent misses".

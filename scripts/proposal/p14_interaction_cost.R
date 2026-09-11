@@ -33,7 +33,7 @@ cat(sprintf("  difference                : %s more cows, %.1fx\n",
             format(i - b, big.mark=","), i/b))
 cat(sprintf("\n  at 69 alerts/week that is %.0f farm-weeks against %.0f - so about\n",
             i/69, b/69))
-cat("  two years of accrual across four herds rather than one.\n")
+cat("  29 weeks of accrual across six herds rather than 15.\n")
 
 cat("\n=== AND WHAT THE EXPLORATORY VERSION CAN STILL SAY ===\n")
 cat("  At the 6,000-cow design, the interaction term is estimated with an SE\n")
