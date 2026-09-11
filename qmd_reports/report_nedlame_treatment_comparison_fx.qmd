@@ -967,59 +967,86 @@ km_cull |>
 
 ## What cows were missed by the system?
 
-This section looks at cows with lesion regardless of treatment group.
+This section looks at every cow with a lesion, regardless of treatment group.
 
-Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window.
+Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether a `NEDLAME` alert had reached DairyComp in the lookback window before it.
 
-A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged.
+A "miss" means **no useful warning reached DairyComp before the lesion was found** - either the camera never flagged her, or it flagged her and the alert never arrived.
 
-There are 3 reasons cows can be considered missed:
-
-1.  Alerted, on trim list but not trimmed
-
-2.  Alerted by camera but alert did not get into DairyComp
-
-3.  Never Alerted
-
-- A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`).
+- A total of `r nrow(q4)` lesion cases were diagnosed after the project start date (`r params$history_after_date`), across `r n_distinct(q4$id_animal)` cows.
 
   - **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera**
 
-  - Following those up against the camera's own records, **`r n_true_miss` were truly never flagged** - the camera saw nothing on them.
+Those `r nrow(q4)` cases divide three ways:
 
-  - The remaining **`r n_pipeline_loss` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem due to filters we set up or problems in the file in rather than a limit of the camera.
+1.  **`r sum(q4$caught_by_nedap)` caught in time** - an alert reached DairyComp inside the window before the lesion was found.
 
-A break down of these misses by treatment
+2.  **`r n_warned_not_acted` alerted earlier, with no action taken** - the camera warned about her further ahead and she was never examined in between. Counted separately rather than as a miss: the warning arrived, nobody acted on it.
 
-### Alert Check: True Misses vs. Pipeline Losses
+3.  **`r n_misses` missed.** These divide two further ways:
 
-The figure above only answers "did a `NEDLAME` land in DairyComp in time". It cannot tell a true miss from a cow the camera flagged whose flag never arrived. Raw Nedap flag data separates them, for `r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`.
+    1.  **`r n_pipeline_loss` the camera flagged, but no alert reached DairyComp in time.** A pipeline problem - the filters we set up, or the daily file-in - rather than a limit of the camera.
 
-The figure below compares among lesions what the reasons for not being flagged were. Some pipeline issues exist (likely low alerts with a score \>30) but in the never alerted section the majority are ones that where never flagged.
+    2.  **`r n_true_miss` the camera never flagged at all.**
+
+Telling those last two apart needs the raw Nedap flag export rather than DairyComp alone, which covers `r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`. DairyComp on its own can only answer "did a `NEDLAME` land in time"; it cannot tell a cow the camera never saw from one it flagged whose alert never arrived.
+
+A breakdown of these cases by treatment group:
+
+Each bar is one group of lesion cases, scaled to 100% so the four outcomes can be compared; the case count is printed above each bar, because the groups are very different sizes. The third group is **not a treatment arm** - it is every lesion case in a cow the pilot never enrolled, and it is the largest of the three.
 
 ```{r}
 #| label: fig-q4-sensor-plot
-#| fig-height: 4
+#| fig-height: 4.4
+
+n_by_arm <- q4_sensor |> count(tx_group, name = "n_cases")
+
+# Quoted below, so the prose cannot drift from the figure.
+arm_caught <- q4_sensor |>
+  group_by(tx_group) |>
+  summarize(pct = round(100 * mean(detection_group_3way == "Flagged, Caught in Time")),
+            .groups = "drop")
+pct_caught_arm <- function(a) arm_caught$pct[grepl(a, arm_caught$tx_group, fixed = TRUE)]
+n_arm <- function(a) n_by_arm$n_cases[grepl(a, n_by_arm$tx_group, fixed = TRUE)]
+arm_split <- q4_sensor |>
+  group_by(tx_group) |>
+  summarize(pct_warned = round(100 * mean(detection_group_3way == "Alerted earlier, no action taken")),
+            pct_any    = round(100 * mean(detection_group_3way %in%
+                          c("Flagged, Caught in Time", "Alerted earlier, no action taken"))),
+            .groups = "drop")
+pct_warned_arm <- function(a) arm_split$pct_warned[grepl(a, arm_split$tx_group, fixed = TRUE)]
+pct_any_arm    <- function(a) arm_split$pct_any[grepl(a, arm_split$tx_group, fixed = TRUE)]
+
+# Cows in the "not in pilot cohort" bar that nonetheless carry a NEDLAME. They
+# were alerted and then dropped from the cohort by the post-trim rule, so the
+# bucket name is true of ENROLMENT, not of the camera. Named in the prose so a
+# reader who spots the sliver is not left guessing.
+n_unenrolled_alerted <- sum(grepl("Never Alerted", q4_sensor$tx_group) &
+                              (q4_sensor$caught_by_nedap | q4_sensor$warned_not_acted))
 
 q4_sensor |>
   count(tx_group, detection_group_3way) |>
   ggplot(aes(x = tx_group, y = n, fill = detection_group_3way)) +
   geom_col(position = "fill") +
-  scale_y_continuous(labels = scales::percent) +
+  geom_text(data = n_by_arm, inherit.aes = FALSE,
+            aes(x = tx_group, y = 1.04, label = paste0("n=", n_cases)),
+            size = 3, colour = "grey30") +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 1, 0.25)) +
+  coord_cartesian(ylim = c(0, 1.08), clip = "off") +
   scale_fill_viridis_d() +
   guides(fill = guide_legend(nrow = 2)) +
   theme_minimal() +
-  labs(x = NULL, y = "% of Lesion Cases", fill = "Alert Status") +
+  labs(x = NULL, y = "% of lesion cases in that group", fill = "Alert Status") +
   theme(legend.position = "bottom")
 ```
 
-Further investigation of the missed cows showed:
+Two of the four outcomes come from DairyComp alone - *Flagged, Caught in Time* and *Alerted earlier, no action taken*. The other two can only be told apart using the raw Nedap export: without it there is no way to distinguish a flag that never arrived from a cow the camera never saw.
 
-- Of the `r nrow(misses_in_coverage)` DC-recorded misses that fall within the raw sensor's coverage window, `r n_pipeline_loss` (`r pct_pipeline_loss`%) actually had an alert within the lookback window.
+Within the pilot, the two arms differ far less than the bars suggest. A `NEDLAME` reached DairyComp before the lesion in `r pct_any_arm("Control")`% of Control cases and `r pct_any_arm("TX")`% of TX cases - effectively the same. **Read those two figures as a comparison, not as a sensitivity.** A cow enters either arm by having received a `NEDLAME` at some point, so a high prior-alert rate is partly built into how the cohort is defined; what that selection does not explain is the difference *between* the arms, since both are selected the same way. **And what differs is whether anyone acted.** `r pct_caught_arm("TX")`% of TX cases were caught in time against `r pct_caught_arm("Control")`% of Control, because a Control alert nobody acted on falls into *alerted earlier, no action taken* - `r pct_warned_arm("Control")`% of Control cases against `r pct_warned_arm("TX")`% of TX. That gap is protocol compliance, not detection, which is the same distinction the trimming section draws. The third bar is different in kind rather than degree: almost all of it is *never flagged* or *flagged, but no alert in time*, because a cow outside the cohort has no `NEDLAME` by construction. **That bar is therefore not a pipeline failure rate** - those are cows the camera did see, in a study that never enrolled them.
 
-  - The flag never got into DairyComp as a `NEDLAME` event (potential pipeline issue)
+One wrinkle, since it is visible as a thin sliver on that third bar: `r n_unenrolled_alerted` of the `r n_arm("Never Alerted")` unenrolled cases do carry a `NEDLAME`. They were alerted and then dropped from the cohort by the post-trim rule, so "not in pilot cohort" describes enrolment, not the camera.
 
-- The remaining `r n_true_miss` had no flag at all in that window, a true miss.
+### How solid are those two numbers?
 
 `r if (n_misses_outside_coverage > 0) paste0("- The other ", n_misses_outside_coverage, " misses were diagnosed after ", format(nedap_coverage_end), ", which the current export can't see. These are left unclassified rather than assumed.") else paste0("Every miss here is checkable against the raw sensor feed: the analysis stops at ", format(analysis_end), ", the last day the Nedap export covers.")`
 
@@ -1100,47 +1127,65 @@ les_pal <- setNames(c("#0072B2", "#009E73", "#CC79A7", "#56B4E9", "#D55E00",
 caught_lab <- rate_by_lesion |> filter(status == STATUS_LEV[1]) |>
   mutate(lab = paste0(round(pct), "%"))
 
+# Best at the TOP: coord_flip() puts the first factor level at the bottom, so
+# the display order is reversed here rather than in the ordering logic above.
+rate_by_lesion <- rate_by_lesion |> mutate(lt = factor(lt, levels = rev(les_ord)))
+n_by_lesion    <- n_by_lesion    |> mutate(lt = factor(lt, levels = rev(les_ord)))
+caught_lab     <- caught_lab     |> mutate(lt = factor(lt, levels = rev(les_ord)))
+
 p_lesion_rate <- ggplot(rate_by_lesion, aes(x = lt, y = pct, fill = fct_rev(status))) +
   geom_col(width = 0.72) +
   geom_text(data = caught_lab, inherit.aes = FALSE,
             aes(x = lt, y = pct / 2, label = lab), colour = "white", size = 3.4) +
   geom_text(data = n_by_lesion, inherit.aes = FALSE,
-            aes(x = lt, y = 103, label = paste0("n=", n_cases)),
-            size = 3, colour = "grey30") +
+            aes(x = lt, y = 102, label = paste0("n=", n_cases)),
+            hjust = 0, size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
   scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
-                     limits = c(0, 110), expand = expansion(mult = c(0, 0))) +
+                     limits = c(0, 116), expand = expansion(mult = c(0, 0))) +
   scale_fill_viridis_d(drop = FALSE, direction = -1,
                        guide = guide_legend(reverse = TRUE, nrow = 2)) +
   theme_minimal() +
   labs(x = NULL, y = "% of cases with that lesion", fill = NULL,
        title = "A. How often is each lesion caught?",
-       subtitle = "Within each lesion type, best on the left. The figure inside each bar is the share caught in time.") +
+       subtitle = "Within each lesion type, best at the top. The figure inside each bar is the share caught in time.") +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
-        axis.text.x = element_text(colour = les_pal[les_ord], face = "bold"),
-        panel.grid.major.x = element_blank())
+        axis.text.y = element_text(colour = rev(les_pal[les_ord]), face = "bold"),
+        panel.grid.major.y = element_blank())
 
 n_by_status   <- les_base |> count(status, name = "n_cases")
 mix_by_status <- les_long |> count(status, lt) |>
   left_join(n_by_status, by = "status") |>
-  mutate(pct = 100 * n / n_cases, lt = factor(lt, levels = les_ord))
+  # rev() so that after coord_flip() the within-group order reads top-to-bottom
+  # in the same order as the legend; guide_legend(reverse) keeps the two aligned.
+  mutate(pct = 100 * n / n_cases, lt = factor(lt, levels = rev(les_ord)))
+
+# Outcomes best-to-worst reading DOWN the axis. The previous vertical version
+# claimed an order the reader could not see: the x-axis was ordered, but the eye
+# went to the dodged bars inside each group, whose heights are not monotonic.
+mix_by_status <- mix_by_status |>
+  mutate(status = factor(as.character(status), levels = rev(STATUS_LEV)))
+n_by_status   <- n_by_status   |>
+  mutate(status = factor(as.character(status), levels = rev(STATUS_LEV)))
 
 p_lesion_mix <- ggplot(mix_by_status, aes(x = status, y = pct, fill = lt)) +
   geom_col(width = 0.78, position = position_dodge(width = 0.85)) +
   geom_text(aes(label = round(pct)), position = position_dodge(width = 0.85),
-            vjust = -0.35, size = 2.7, colour = "grey25") +
+            hjust = -0.25, size = 2.7, colour = "grey25") +
   geom_text(data = n_by_status, inherit.aes = FALSE,
-            aes(x = status, y = -3.5, label = paste0("n=", n_cases)),
+            aes(x = status, y = -4.5, label = paste0("n=", n_cases)),
             size = 3, colour = "grey30") +
+  coord_flip(clip = "off") +
   scale_y_continuous(labels = function(x) paste0(x, "%"),
-                     expand = expansion(mult = c(0.06, 0.10))) +
-  scale_fill_manual(values = les_pal, guide = guide_legend(nrow = 1)) +
+                     expand = expansion(mult = c(0.10, 0.10))) +
+  scale_fill_manual(values = les_pal, guide = guide_legend(nrow = 1, reverse = TRUE)) +
   scale_x_discrete(labels = function(x) gsub(", ", ",\n", x)) +
   theme_minimal() +
   labs(x = NULL, y = "% of cases in that status", fill = NULL,
        title = "B. What does each outcome tend to be?",
-       subtitle = "Outcomes ordered best to worst. Bars do not sum to 100% - a cow can carry more than one lesion.") +
+       subtitle = "Outcomes best to worst reading down. Bars do not sum to 100% - a cow can carry more than one lesion.") +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
-        axis.text.x = element_text(size = 8), panel.grid.major.x = element_blank())
+        axis.text.y = element_text(size = 8), panel.grid.major.y = element_blank())
 
 # Quoted in the prose below, so the text cannot drift from the figure.
 pctl <- function(l, s) round(rate_by_lesion$pct[rate_by_lesion$lt == l & rate_by_lesion$status == s])
@@ -1153,7 +1198,7 @@ Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LE
 
 None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss. What this adds is the size of the gap on this farm, and that it is specific rather than general: white line, which does change how a cow walks, is caught well.
 
-One point for Nedap in particular: **DD is over-represented in both failure modes**, not just detection. It is `r pctm('dd', STATUS_LEV[3])`% of the flags that never reached DairyComp as well as `r pctm('dd', STATUS_LEV[4])`% of the cases never flagged at all. Whether that second pattern is real or a coincidence of `r n_by_status$n_cases[n_by_status$status == STATUS_LEV[3]]` cases, this data cannot say - but it is worth asking about.
+One point for Nedap in particular: **DD is over-represented in both failure modes**, not only in detection. It is `r pctm('dd', STATUS_LEV[3])`% of the cases whose flag produced no `NEDLAME`, as well as `r pctm('dd', STATUS_LEV[4])`% of those never flagged at all. **The first of those is the surprising one** - it rests on only `r n_by_status$n_cases[n_by_status$status == STATUS_LEV[3]]` cases, so it may be noise, but it is worth putting to Nedap rather than leaving unstated.
 
 `r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are combined into a single bar.
 
