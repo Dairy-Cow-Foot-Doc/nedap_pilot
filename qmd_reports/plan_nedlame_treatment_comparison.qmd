@@ -1409,3 +1409,26 @@ Every time-window question in the design — the lookback, the suppression gates
 **Requirement for the proposal:** `EDAY=LMSFD` on the `ENTER` command, so the event carries the camera's own detection date. Then the raw attention export becomes a cross-check rather than the only source of truth, and none of the reconstruction above is needed.
 
 **Keep the raw export regardless.** It is what made every one of these findings visible, and without it the load-date problem would have been invisible rather than merely awkward.
+
+### The pattern behind five corrections in one night: load-bearing and never re-derived
+
+Five claims were rechecked tonight and all five changed what a document says. They had nothing in common in subject matter, but everything in common in provenance: **each was established once in an earlier round, then built on without ever being recomputed.**
+
+| claim | what rechecking found |
+|---|---|
+| `27.9% -> 11.5%` control miss rate | exactly right, but it is the definition change itself, so it could be stated in current terms rather than labelled historical |
+| `119 of 313` pipeline losses | right, but 107 of the 119 sit outside the cohort — two failure modes, not one |
+| the 10.7% cohort miss rate | wrong: 30 of 31 were lesions that predated the cow's first alert |
+| `cork`/`sole_fracture` empty "by chance" | wrong: both are folded into `other` by this farm, so empty by construction |
+| `d40cca3`'s attention-time justification | inverted: 15.4% before 05:00 against a claimed zero, 25.5% in the evening against a claimed 84% |
+
+Two of the five were **mine**, written the same day. So this is not a decay-over-time problem — a claim can be load-bearing and unverified within hours of being made.
+
+**What made them dangerous was not being wrong; it was being depended upon.** Each had been cited in later reasoning, so the error propagated into conclusions rather than sitting inert. The `d40cca3` premise had been used to justify a window change that moved the headline; the 10.7% had become the cohort-side headline; "empty by chance" had become a rule about which categories to keep.
+
+**The practice this suggests is narrow enough to be worth following:** when a claim is about to carry weight — become a headline, justify a code change, or be quoted into another document — recompute it then, even if it was verified when first made. Not a periodic audit of everything, which nobody will do; a check triggered by a claim being *used*.
+
+Two habits that made these findings cheap rather than expensive, both worth keeping:
+
+- **Check the consequence before reporting the error.** The `d40cca3` premise is false, but the exposure is 2 cases in 194, so the right advice was "fix the reasoning, keep the change" rather than a revert that would have moved the headline back for no gain.
+- **Widen the query before concluding.** Three wrong assertions about cow 20444 in a row came from windows that were too narrow — a −10/+3 day trim search that missed a trim at +8, and filters that returned empty without erroring. The cowcard was right every time.
