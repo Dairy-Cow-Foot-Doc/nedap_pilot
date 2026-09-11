@@ -7,7 +7,7 @@ description: Use when writing or revising the proposal to Nedap for the full thr
 
 The NEDLAME pilot is finished and **a full draft proposal exists**: `design/proposal_nedap_3arm_draft.md`. Read it first. The working document `design/proposal_nedap_3arm.md` holds every derivation, check and correction behind its figures.
 
-**The design is settled.** Three arms - trim within a week, trim at four weeks, regular farm practice. Enrol at the alert. Six herds of 2,000-5,000 cows across three regions, four as a minimum. **6,000 cows enrolled**, powered on a 0.98 kg/day observed milk contrast between arms 1 and 3. Enrolment closes in 3-6 months; the 365-day culling follow-up sets the 15-18 month duration.
+**The design is settled.** Three arms - trim within a week, trim at four weeks, regular farm practice. Enrol at the alert. Six herds of 2,000-5,000 cows across three regions, four as a minimum. **6,000 cows enrolled**, powered on a 1.00 kg/day observed milk contrast between arms 1 and 3, at a 0.25 kg between-herd SD of the treatment effect (x1.09 inflation). Enrolment closes in 3-6 months; the 365-day culling follow-up sets the 15-18 month duration.
 
 ## Before writing anything
 
@@ -60,10 +60,14 @@ These are not caveats to mention — they determine whether the study can answer
 | Enrolment point | At the alert | Freshening costs x1.6 cows and double the time, and buys nothing unless detection accuracy is a question. It is not. |
 | Primary outcome | Milk, arm 1 v arm 3, 90 days | The only milk contrast powerable at a realistic size and the one insensitive to window choice. |
 | Cure comparison | Arms 1 v 2 primary, arm 3 descriptive | Both of 1 and 2 are protocol-trimmed so the contrast is clean; arm 3's cure is measured on farm-detected lesions that may be more severe. |
-| Chronicity | Blocked in randomisation, interaction explored not powered | Powering it doubles the study to 11,500. The price is in the draft should Nedap want it. |
+| Chronicity | Blocked in randomisation, interaction explored not powered | Powering it doubles the study to 12,000. The price is in the draft should Nedap want it. |
 | Culling follow-up | 365 days | The gap is still widening at six months - 6.8 points against 7.3 at twelve. |
 | Reproduction | Dropped | The herd's records show a one-day difference in days to first service. Nothing to power against. |
 | Economics | Reported, not powered | The inputs do not affect the sample size, so a reader can substitute their own without changing precision. |
+
+## The one input that must not drift
+
+**The between-herd SD of the treatment effect (tau) is 0.25 kg, giving x1.09 at six herds.** This is a planning assumption, not a pilot estimate - a single-herd pilot cannot estimate tau. It is the number that makes the requirement (6,000) and the design figure (6,000) coincide and detect exactly 1.00 kg. An earlier draft inflated by x1.05 in the sizing while calling 0.5 kg "plausible" in the design section, which is x1.49 - the two disagreed about the sample size by 40%. If tau is revised, `p10`, `p12` and `p14` all carry it and the herd-count table in section 2 is the sensitivity that must move with it.
 
 ## The one thing to be honest about
 
