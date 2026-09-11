@@ -190,11 +190,25 @@ culling interval and the ~200,000-cow figure; week 1 at 31.1%, weeks 1-4 at
 
 ------------------------------------------------------------------------
 
-## ALSO FROM THE PILOT SIDE
+## FROM THE PILOT SIDE, AND RESOLVED
 
-The other session split the headline miss rate: cohort 31/291 = **10.7%**,
-never-enrolled 282/288 = **97.9%**, pooled 313/579 = 54.1%. **If the proposal
-ever quotes a pilot miss rate, 54.1% is the wrong one to carry forward.** The
-draft does not quote it as a headline, but two figures should be rechecked
-against the new split: §6's "21 days versus unbounded moved the control miss rate
-from 27.9% to 11.5%", and §7's "119 of 313 apparent misses".
+The other session split the headline miss rate: cohort 31/291 = **10.7%**, never-enrolled 282/288 = **97.9%**, pooled 313/579 = 54.1%. **54.1% is the wrong figure to carry into the proposal.** The draft never quoted it as a headline, but two figures descended from the pooled definition and both were chased down.
+
+### The 119, resolved - and the answer reframes the ask
+
+The pipeline losses split by population, and the two populations fail differently:
+
+| | Flagged, no alert | Never flagged | Genuine losses |
+|---|---:|---:|---:|
+| Never enrolled | 107 | 175 | **9** |
+| Pilot cohort | 12 | 19 | **2** |
+| Pooled | 119 | 194 | 11 |
+
+By design, never enrolled: 35 FTDAT + 12 upper-leg + 5 late + 46 cannot-tell + 9 genuine. Cohort: 4 + 1 + 0 + 5 + 2. Both sum; the population totals reconcile to 282 and 31.
+
+**Quoting "119 apparent misses" overstates the cohort integration problem roughly tenfold** - but narrowing it to "2 confirmed losses" would understate the real one, because the serious failure is in the other population. In the cohort, a dropped re-alert hits a cow already being watched. Among the never enrolled, **9 cows met the enrolment criteria and never entered the study**, which is invisible from inside DairyComp - she simply never appears. It was only detectable because the raw attention export could be checked against the imported record.
+
+**APPLIED.** §7 now carries the split and the reframing. The ask to Nedap is no longer "you lost 119 alerts" but "nine cows met your own enrolment criteria and your pipeline never enrolled them" - a design risk to a trial that depends on enrolment working, not a pilot curiosity. Both genuine-loss counts are stated as **floors**, because the cannot-tell cases are `Low`-only where score at flag is missing, which is exactly what ask 1 requests. The two asks are now linked rather than listed.
+
+Still outstanding: §6's "21 days versus unbounded moved the control miss rate from 27.9% to 11.5%" predates the miss-definition change and has not been rechecked against the split.
+

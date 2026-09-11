@@ -352,7 +352,9 @@ Milk binds in both cases. Powering the interaction is **2.0× the study** — ab
 
 1.  **Score at flag, in the export.** Its absence left 69 pilot cases permanently unjudgeable, because a `Low` flag on a cow outside the enrollment score range who was correctly declined is indistinguishable from a lost flag.
 
-2.  **The daily file-in log, or independent instrumentation of the integration.** In the pilot, **119 of 313** apparent misses were cows the camera *did* flag whose alert never reached DairyComp. Logging every raw flag with a timestamp, independent of the import, removes this entirely.
+2.  **The daily file-in log, or independent instrumentation of the integration.** In the pilot, **119 of 313** apparent misses were cows the camera *did* flag whose alert never reached DairyComp — but that pooled figure hides two different failures, and only one of them threatens a trial. **Among cows already enrolled: 12, of which 2 were genuine losses.** A dropped re-alert on a cow who was already being watched — annoying, low consequence. **Among cows never enrolled: 107, of which 9 were genuine.** A decline flag fired, no gate explains the silence, and no NEDLAME appeared, so **a cow who met the enrolment criteria never entered the study.** That failure is invisible from inside DairyComp — she simply never appears — and it was only visible here because the raw attention export could be checked against the imported record. **A three-arm trial depends on enrolment working, so this is a design risk rather than a pilot curiosity.** Logging every raw flag with a timestamp, independent of the import, removes it.
+
+    *Both counts are floors.* The cases that cannot be judged either way are `Low`-only, where score at flag is missing — which is ask 1. Without it, a correctly declined flag and a lost one look identical, so the genuine-loss count can only be bounded from below.
 
 Without these the study measures the camera and the integration together and cannot separate them, which is what happened in the pilot.
 
