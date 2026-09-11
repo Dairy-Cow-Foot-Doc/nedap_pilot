@@ -251,3 +251,11 @@ Cows 21648, 22408 and 9616; the last two are the pair from the log. **The 3-in-1
 
 **Why it is worse in a trial than it was here.** The pilot resolves lactation by date and is unaffected. But lactation group is a **randomisation block**, so a cow allocated on a stale lactation is enrolled into the wrong stratum, and an allocation error cannot be repaired by analysis. §6 now carries it alongside `EDAY=LMSFD`, with both remedies and Gerard's inference that **an attention is itself evidence the cow has calved**, because the camera only sees her once she is in the milking string.
 
+
+## SUPERSEDED: THE 12/107 SPLIT (2026-09-11)
+
+The other session rebuilt the miss section so cohort membership is judged AT THE LESION rather than across the whole study, which removed a look-ahead bias: cohort 291 - cases. Under that definition **all 119 pipeline losses fall among the never-enrolled and none in the cohort**, so the 12/107 and 9/2 splits written into section 7 earlier today are superseded.
+
+**The correction strengthens the ask rather than weakening it.** There are not two failure modes; there is one. A lost alert is precisely what prevents enrolment, so the failure and its consequence are the same event - which is why the cohort figure is zero. Section 7 now says that, and states the confirmed-genuine count as a floor without a number pending re-confirmation under the new definition.
+
+**A standing habit worth keeping, since the denominator was the finding twice in one day:** when a rate looks reassuringly small, check whether its denominator includes cases where the failure was structurally impossible. Added to the pre-specification list in section 6, using the stale-lactation example - 0.19% of all alerts against 37% of alerts in the calving window.
