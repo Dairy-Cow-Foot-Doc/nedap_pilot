@@ -262,7 +262,16 @@ if (!is.na(log_file) && file.exists(log_file)) {
   soft <- grep("WARNING|Unable to resolve|Warning message", lg, value = TRUE)
   for (l in unique(hard)) say("ERROR", "H log", trimws(l))
   for (l in unique(soft)) say("WARN",  "H log", trimws(l))
-  if (!length(hard) && !length(soft)) cat("  clean\n")
+  # A log from a render still in PROGRESS has no errors yet, and reporting it
+  # clean is a false negative of exactly the kind this script exists to stop.
+  # It happened on 2026-09-11 against a log that had reached 80 of 97 chunks:
+  # the checker said clean, the HTML was the previous run, and the new content
+  # was simply absent. Require positive evidence the render finished.
+  finished <- any(grepl("Output created", lg, fixed = TRUE))
+  if (!finished)
+    say("ERROR", "H log",
+        "no 'Output created' line - the render did not finish, or is still running")
+  if (finished && !length(hard) && !length(soft)) cat("  clean\n")
 } else if (!is.na(log_file)) {
   say("WARN", "H log", paste("log file not found:", log_file))
 }
