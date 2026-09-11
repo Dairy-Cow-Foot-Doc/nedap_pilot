@@ -158,6 +158,14 @@ server.registerTool(
       text: JSON.stringify(
         [
           {
+            check: "Are you matching DairyComp event names by SUBSTRING (grepl/str_detect) where you mean an exact set? Use Event %in% c(\"LAME\",\"FOOTRIM\",\"TRIM\") - never grepl(\"LAME|FOOTRIM|TRIM\", Event).",
+            why: "A 13% over-match on this dataset: 66,873 events against 59,201, pulling in CHKLAME (4,589), NEDLAME (2,422) and LAMETX (661). 'LAME' is a substring of all three. CHKLAME is the dangerous one - a staff lameness CHECK counted as a trim corrupts the FTDAT gate, the post-trim exclusion, trims_all and the recent-trim test at once. The visible symptom was 100% lesion yield in every DIM band, because each cow matched her own alert at gap 0. NOTE the deliberate exception: functions/fxn_event_type.R classifies into event_type='health' with a broad str_detect and is CORRECT - it is supposed to catch all four. Do not 'fix' it by analogy.",
+          },
+          {
+            check: "When a failure rate looks reassuringly small, does its denominator include cases where the failure was structurally impossible?",
+            why: "The denominator was the finding twice in one day. Stale lactation numbers are 0.19% of all alerts but 3 of the 8 alerts at DIM 0-1, which is the only window where a cow can be alerted before her FRESH is keyed in - 37%, and the rate a trial is actually exposed to. Likewise a pooled miss rate averaged the enrolled cohort with the never-enrolled, who are missed almost definitionally. Condition on the population at risk before quoting a rate.",
+          },
+          {
             check: "For every left_join() followed by filter(): if a row has zero valid matches, does it still produce exactly one output row (correctly labeled/censored), or does it vanish?",
             why: "The single most common bug found in the 2-arm report (3 separate instances) - filtering the joined result instead of pre-filtering the candidate table before joining.",
           },

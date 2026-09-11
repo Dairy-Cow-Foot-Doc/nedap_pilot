@@ -339,3 +339,43 @@ The break-even calculator's IOFC turned out to be `milk_price − feed_cost /
 conversion` = $0.254/kg, which matched the assumption in use — but the *cost*
 side had no trimming term at all, which changed the break-even by 41%. Fetching
 the rendered page showed the inputs; only the source showed what was missing.
+
+## Never match DairyComp event names by substring
+
+`Event %in% c("LAME", "FOOTRIM", "TRIM")` is the only correct form.
+`grepl("LAME|FOOTRIM|TRIM", Event)` over-matches by **13%** on this dataset:
+
+| | events |
+|---|---:|
+| exact | 59,201 |
+| substring | 66,873 |
+| wrongly included | **7,672** |
+
+The extras are `CHKLAME` 4,589, `NEDLAME` 2,422, `LAMETX` 661 — `LAME` is a
+substring of all three.
+
+**`CHKLAME` is the dangerous one**, not `NEDLAME`. A staff lameness *check*
+counted as a trim corrupts the FTDAT gate, the post-trim exclusion, `trims_all`
+and the recent-trim test simultaneously — and none of it looks wrong on the page.
+The way this surfaced was a lesion-yield table reading **100% in every DIM band**,
+because each cow matched her own alert at gap 0. A result that clean is the tell.
+
+**One deliberate exception, which must not be "fixed" by analogy:**
+`functions/fxn_event_type.R:96-97` classifies events into `event_type = 'health'`
+with a broad `str_detect(event, 'FOOT|...|LAME|...')`. That is correct — it is
+*supposed* to catch `NEDLAME`, `CHKLAME`, `LAMETX` and `FOOTRIM` alike.
+
+## Check the denominator before believing a small rate
+
+Twice in one day the denominator was the finding rather than the numerator.
+
+- Stale lactation numbers are **0.19% of all alerts** — but **3 of the 8 alerts
+  at DIM 0-1**, the only window where a cow can be alerted before her `FRESH` is
+  keyed in. 37% is the rate a trial is exposed to; 0.19% is an average over cases
+  where the failure was impossible.
+- A pooled miss rate averaged the enrolled cohort with the never-enrolled, who
+  are missed almost definitionally, and the pooled figure was dominated by them.
+
+**When a failure rate looks reassuringly small, check whether its denominator
+includes cases where the failure could not have occurred.** Condition on the
+population at risk, then quote the rate.
