@@ -341,7 +341,7 @@ Milk binds in both cases. Powering the interaction is **2.0× the study** — ab
 
 **Pre-specify before enrolment opens** — each of these moved answers materially in the pilot:
 
-- The alert-to-lesion window that counts as caught in time, and how a cow alerted *outside* it is treated. In the pilot, 21 days versus unbounded moved the control miss rate from 27.9% to 11.5%.
+- **Whether a cow alerted well before her lesion, and never examined, counts as a camera miss.** A definitional choice, not a measurement. Scoring her as missed put the pilot's control miss rate at **27.9%**; scoring her as a response failure put it at **11.5%**, and the whole 16-point gap is 20 control cows. **The asymmetry is why this has to be settled in advance:** the trimmed arm moved only 12.4% to 10.1%, because it had four such cows against the control arm's twenty. A definition that lands almost entirely on the arm where nobody was obliged to act is a threat to the comparison, not a footnote — and in the pilot it was chosen after the data were seen.
 - That the import runs about 05:00 and stamps the load date, so an attention after 05:00 on day D appears as D+1.
 - That alerts landing 1–7 days after a trim are mostly the camera reacting to the trimmed cow.
 - That "trimmed" means `LAME` + `FOOTRIM` + `TRIM`, never a subset.
