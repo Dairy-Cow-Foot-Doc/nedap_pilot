@@ -57,3 +57,13 @@ worth re-checking before quoting are the **denominator** (enrolled cows, cows wi
 a lesion, and cows assessed are all different) and the **window** (a measurement
 window shorter than the process can reverse the sign, as the three-month culling
 figure did).
+
+## Budget and post-review checks
+
+| Script | Produces |
+|---|---|
+| `p30_budget.R` | The preliminary budget. Every input is a named constant at the top; the script writes `design/budget_nedap_3arm_draft.md`, so re-costing means changing one line and re-running, never editing the markdown. |
+| `p31_baseline_variance_check.R` | **Open decision D2.** Refits the milk variance components with and without the cow's own pre-alert baseline. Baseline as a covariate takes the requirement from 6,200 to 2,300 enrolled; change-from-baseline gives 3,000. r = 0.845. Measured over days 1-30 only, which is the whole caveat. |
+
+See `design/review-proposal-2026-09-10.md` for what the independent review found,
+what was verified, and the two decisions left open.

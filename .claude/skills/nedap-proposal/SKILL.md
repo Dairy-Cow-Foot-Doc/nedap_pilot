@@ -65,6 +65,25 @@ These are not caveats to mention — they determine whether the study can answer
 | Reproduction | Dropped | The herd's records show a one-day difference in days to first service. Nothing to power against. |
 | Economics | Reported, not powered | The inputs do not affect the sample size, so a reader can substitute their own without changing precision. |
 
+## START HERE: two decisions are open
+
+`design/review-proposal-2026-09-10.md` holds both in full. **Do not paper over either one** - each changes what the proposal says, and both were left for Gerard deliberately.
+
+| | What | Why it is not already fixed |
+|---|---|---|
+| **D1** | The section 3 ledger mixes denominators. Milk is per ALERTED cow, the camera and trim rows are per LAME cow. Corrected (x2.40), milk covers the cost and "milk alone does not cover it" is wrong. | The 1.05 kg was measured at days 25-30 and extrapolated flat to 90 days; over 30 days it loses. The sign is genuinely unresolved, and saying so is a better proposal than either verdict. |
+| **D2** | The planning variance comes from a model with no pre-alert baseline term, while section 4 specifies a baseline-normalised outcome. Adding baseline takes 6,200 enrolled down to 2,300. | Measured over days 1-30 only. At 90 days the baseline correlation is weaker and the pilot cannot say by how much. Re-sizing means re-deriving the whole section, not patching a number. |
+
+**One fix worth applying regardless:** section 6's model has herd as a fixed effect with no `arm | herd` random slope. Its standard error therefore ignores tau, so the x1.09 inflation in section 5 protects against something the analysis cannot see. Add `(1 + arm | herd)`, or pool two-stage per-herd estimates.
+
+## Verify what reviewers tell you
+
+A review agent produced sixteen findings on this draft. Most were real; the two largest were real and consequential. **But they were only trustworthy because each was re-derived** - by reading `fxn_build_q1()` to confirm the milk cohort has no lesion filter, and by refitting the variance components with and without a baseline term (`p31`). The pilot side hit the same thing the same night: a reviewer finding there did not survive checking and was correctly not applied. **Treat agent findings as leads, not results.** The same applies to this skill.
+
+## The budget
+
+`design/budget_nedap_3arm_draft.md` is **written by** `scripts/proposal/p30_budget.R`. Change an input at the top of the script and re-run; never hand-edit the markdown, it is overwritten. About $321,000 over 18 months, 76% personnel, and the monthly farm visits are the biggest single line. **The camera subscription is deliberately not in it** - at $0.65-0.80/cow/month across 18,000 cows it exceeds everything else combined, so it has to be settled with Nedap before the budget means anything.
+
 ## The one input that must not drift
 
 **The between-herd SD of the treatment effect (tau) is 0.25 kg, giving x1.09 at six herds.** This is a planning assumption, not a pilot estimate - a single-herd pilot cannot estimate tau. It is the number that makes the requirement (6,000) and the design figure (6,000) coincide and detect exactly 1.00 kg. An earlier draft inflated by x1.05 in the sizing while calling 0.5 kg "plausible" in the design section, which is x1.49 - the two disagreed about the sample size by 40%. If tau is revised, `p10`, `p12` and `p14` all carry it and the herd-count table in section 2 is the sensitivity that must move with it.
