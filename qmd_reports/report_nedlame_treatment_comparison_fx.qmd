@@ -36,7 +36,8 @@ pacman::p_load(
   survminer,
   ggsurvfit,
   scales,
-  viridis
+  viridis,
+  patchwork
 )
 
 source(file.path('functions/fxn_read_milk_folder.R'))
@@ -378,7 +379,7 @@ With above exclusions and conditions it resulted in
 
 **NOTE**: *No cow is counted more than once in any table below. Where this report looks for "the" trim, LAME diagnosis, staff check, or NEDLAME alert for a cow, it either uses her **first** qualifying occurrence in the relevant window or asks only whether at least one occurred. Therefore a cow flagged or diagnosed repeatedly isn't counted more than once. When a single trimming date has more than one distinct lesion type coded (e.g. white line disease and digital dermatitis found at the same trimming), each distinct type is kept; the same lesion type coded more than once on one day only counts once.*
 
-# Description of Cows
+## Description of Cows
 
 The tables below describe the cows enrolled by treatment group to ensure groups were similar.
 
@@ -532,7 +533,7 @@ These time to event curves measure **protocol compliance**.
 - For each cow we took the first trim after her first NEDLAME alert, censored at end of lactation or culling.
 
   - It is clear that most of the TX cows got trimmed within 7-10 days as designed.
-  - The difference between the
+  - The difference between the time to event with a lesion (@fig-q2-lesion-plot) illustrates how the TX group finds more cows with lesions.
 
 In TX the trim is caused by the alert, so the curve shows how well the protocol was followed.
 
@@ -645,18 +646,20 @@ ggplot(q2_alert_type_km_data, aes(x = time, y = risk, color = tx_group, fill = t
   scale_fill_viridis_d() +
   scale_y_continuous(labels = percent) +
   theme_minimal() +
-  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event", color = "Treatment Group", fill = "Treatment Group") +
+  labs(x = "Days After First NEDLAME Alert", y = "% With a Subsequent Trim/LAME Event",
+       color = "Treatment Group", fill = "Treatment Group",
+       caption = "Shaded band: 95% confidence interval from the Kaplan-Meier fit.") +
   theme(legend.position = "bottom")
 ```
 
 `r if (length(skipped_alert_levels) > 0) paste0("*Alert type(s) omitted for insufficient data in one or both arms: ", paste(skipped_alert_levels, collapse = ", "), ".*")`
 :::
 
-## How many trims with no lesions?
+### How many trims with no lesions?
 
 The table below shows the number of cows who had a first NEDAP alert and were trimmed **but** did not have a lesion.
 
-**This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.**
+**Note:** *This table's population is only the number of cows in the `r nrow(cohort)`-cow NEDLAME cohort that were trimmed.*
 
 ```{r}
 #| label: tbl-q2-trimonly-summary
@@ -692,14 +695,16 @@ q2_trimonly_tab |>
 
 ## What actually brought the Control cows in?
 
-In the Control arm a cow is only trimmed if someone decides to act, so the trims above are a mixture of two different things: staff spotting her and putting her on the list, or her simply coming up on the routine schedule. A `CHKLAME` recorded between her alert and her trim marks the first.
-
 ```{r}
 #| label: q2-chklame-build
 
 invisible(list2env(fxn_build_control_trim_drivers(
   next_events, cohort, events_formatted, lame_data), environment()))
 ```
+
+In the Control arm a cow is trimmed if she is flagged by farms staff (CHKLAME) or she is due for her routine trimming. The table below shows that the majority of trims in the Control group were due to routine trimming as only **`r n_ctl_staff` (`r pct_ctl_staff`%)** had a `CHKLAME` event.
+
+- The rate of lesions an time of the CHKLAME vs routine trimming differs as staff-flagged trims found a lesion `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and staff flag trims happened at a median `r med_days_staff` days after the alert rather than `r med_days_routine` for routine trimmings.
 
 ```{r}
 #| label: tbl-trim-driver
@@ -716,27 +721,27 @@ control_trims |>
   tab_source_note("Control cows only, counting each cow once at her first trim after the alert.")
 ```
 
-- Of the `r n_ctl_trimmed` Control cows trimmed after their alert, **`r n_ctl_staff` (`r pct_ctl_staff`%) had a `CHKLAME` first**; the other `r n_ctl_routine` were trimmed with no staff check recorded.
+## How many extra lesions did the Trim Treatment group find?
 
-- **The two groups are not doing the same job.** Staff-flagged trims found a lesion `r pct_lesion_staff`% of the time against `r pct_lesion_routine`% for routine ones, and happened at a median `r med_days_staff` days after the alert rather than `r med_days_routine`.
+From the time to lesion curve above ( @fig-q2-lesion-plot) it is clear that TX found more cows.
 
-- So the Control curve above is mostly the routine trim schedule catching up with these cows, not staff responding to them. That is worth holding onto when comparing the arms: TX is being compared against a mixture, and only about a third of it is an active decision.
+- A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%)
 
-*This is a description of the trims that happened, not a third survival curve. Whether a cow gets a `CHKLAME` is decided after her alert, during follow-up, so splitting the earlier curves on it would compare groups defined by something that happens after the clock starts and would overstate the difference.*
+- In Control cows that was `r n_lesion_ctl` of `r n_cows_ctl` (`r pct_lesion_arm_ctl`%).
 
-## How many extra lesions did the trim protocol surface?
+Rate-adjusted for the unequal arms, that is **`r n_extra_lesion_cows` more cows with a lesion identified**.
 
-A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%) against `r n_lesion_ctl` of `r n_cows_ctl` Control cows (`r pct_lesion_arm_ctl`%). Rate-adjusted for the unequal arms, that is **`r n_extra_lesion_cows` more cows with a lesion identified**. The counts come from `q2_lesion`, the object behind the curve above, so the two cannot diverge.
+**Note:** *the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`).*
 
-Note the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). Being trimmed is most of what separates the arms, so it cannot go in the denominator.
+### How does the Farm staff do?
 
-This is **ascertainment**, not disease. Allocation was random, so incidence is equal by construction; what differs is who got inspected. `r pct_trimmed_tx`% of TX cows were trimmed after their alert against `r pct_trimmed_ctl`% of Control.
+The dairy uses a `CHKLAME` event to flag cows in the need of trimming.
 
-The trim-level rates confirm it. Among cows actually trimmed, `r pct_trimonly_ctl`% of Control trims found nothing against `r pct_trimonly_tx`% of TX trims. Control trimmed fewer cows and hit more often - a suspicion-driven population, not a healthier one. So the `r n_extra_lesion_cows` are lesions surfaced earlier, not lesions caused.
+The tables below compares what % of cows with a NEDAP alert were flagged by farms staff \<=7 days of the NEDAP alert in both groups.
 
-# How does the Farm staff do?
+Overall farm staff flags about 20% of cows with an alert. M
 
-The dairy uses a `CHKLAME` event to flag cows in the need of trimming. The tables below compares what % of cows with a NEDAP alert were flagged by farms staff \<=7 days of the NEDAP alert.
+- This differs by alert type with more cows with low scores or strong declines being flagged.
 
 ```{r}
 #| label: q3-build
@@ -796,13 +801,19 @@ staff_id |>
 invisible(list2env(fxn_build_q1(cohort, milk_resolved, params), environment()))
 ```
 
-The figures below compare milk production between the groups. Cows were assigned at enrollment, so this is a like-for-like comparison. Because the split was random, finding no difference here is itself evidence against a large effect - not just a missing adjustment.
+The figures below compare milk production between the treatment groups. Cows were assigned to TX or Control at enrollment.
 
 - `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline.
 
-- The milk extract runs to `r format(milk_coverage_end)`, behind the event data. A cow needs `r params$milk_window_post` days of records after her alert to appear at the right-hand end of the curves, so the number of cows contributing falls across the x-axis: **`r n_milk_day30` cows sit behind the day-`r params$milk_window_post` point, not `r n_milk_cows`.** `r n_no_milk_at_all` cohort cows were alerted after the milk data ends and contribute nothing. The day-`r params$milk_window_post` figures therefore describe the earlier-alerting cows, and will change as milk data catches up.
+- Fewer cows sit behind the right-hand end of these curves than the left
 
-Cows were at very different lactation stages when flagged, so raw production is not comparable across them. Each cow is normalised to **% of her own pre-alert baseline** (her mean over the `r params$milk_baseline_days` days before the alert) before averaging by day and group. That isolates the *shape* of the trend from each cow's absolute level.
+  - a cow needs `r params$milk_window_post` days of milk records after her alert to appear at day `r params$milk_window_post`, and only `r n_milk_day30` have that so far.
+
+    - This means the numbers can still change as the remaining cows get to 30 days after alert.
+
+Overall numerically there is an advantage to the trimmed group in milk production after an alert but there is a lot of variation (the shaded part around the solid line) so this is not something to put a lot of trust in.
+
+**NOTE:** *Due to the fact that cows were at very different lactation stages when flagged milk production is not directly comparable across cows. Each cow's production is normalized to **% of her own pre-alert baseline** (mean production over the `r params$milk_baseline_days` days before the alert) before averaging by day and treatment group. This allow us to isolates the shape of the trend/recovery from each cow's absolute production level.*
 
 ::: panel-tabset
 ## By Treatment Group
@@ -821,7 +832,8 @@ ggplot(trend, aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group))
   labs(
     x = "Days Relative to First NEDLAME Alert",
     y = "Milk Production (% of Own Pre-Alert Baseline)",
-    color = "Treatment Group", fill = "Treatment Group"
+    color = "Treatment Group", fill = "Treatment Group",
+    caption = "Shaded band: ± 1 standard error of the mean (≈ 68%). Not a test of the difference between arms."
   )
 ```
 
@@ -836,24 +848,34 @@ Does the milk trend differ by the type of the Nedap alert?
 milk_norm |>
   mutate(alert_type = factor(alert_type, levels = c("LOW", "LOW DECLINE", "STRONG DECLINE"))) |>
   group_by(tx_group, alert_type, day_rel) |>
-  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE), n = n(), .groups = "drop") |>
+  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE),
+            se_pct = sd(pct_of_baseline, na.rm = TRUE) / sqrt(n()),
+            n = n(), .groups = "drop") |>
   filter(n >= 5) |>
-  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group)) +
+  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group)) +
+  geom_ribbon(aes(ymin = mean_pct - se_pct, ymax = mean_pct + se_pct), alpha = 0.15, color = NA) +
   geom_line(linewidth = 1) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
   facet_wrap(~alert_type) +
   scale_color_viridis_d() +
+  scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
+  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)",
+       color = "Treatment Group", fill = "Treatment Group",
+       caption = "Shaded band: ± 1 standard error of the mean (≈ 68%). Not a test of the difference between arms.") +
   theme(legend.position = "bottom")
 ```
 :::
 
-# Influence of Lameness History
+## Influence of Lameness History
 
-Lameness history can play an important role in camera performance. @fig-chronic shows the breakdown of new vs chronic cows that were enrolled. @fig-chronic-milk compares milk production across the lesion history types. Unlike the treatment groups, these are not randomised - a cow's history is a property she arrived with, along with her age, yield and everything else that goes with it - so read these curves as describing the groups, not as what a lesion history does to a cow.
+Lifetime lameness history is important confounder in lameness work and this section considers the impact of that in this pilot. Sample size becomes and issue in this and this is presented mainly to consider for possible future work.
 
-Each cow's lameness-history label (`New` / `Chronic`) reflects her **lifetime record** as of her first NEDLAME alert. The `lame_data` goes back to 2021, and this deliberately isn't restricted to her current lactation, since chronicity for lameness should be considered a lifetime event.
+### Lameness History Distribution at Enrollment
+
+@fig-chronic shows the breakdown of **New** vs **Chronic** cows that were enrolled. Chronicity is based on a cow's **lifetime record** at her first NEDLAME alert. Data going back to 2021 was used to establish chronicity.
+
+- More New cases were enrolled
 
 ```{r}
 #| label: fig-chronic
@@ -862,6 +884,7 @@ Each cow's lameness-history label (`New` / `Chronic`) reflects her **lifetime re
 cohort |>
   count(tx_group, history_group) |>
   group_by(tx_group) |>
+  filter(history_group %in% c("New", "Chronic")) |>
   mutate(pct = n / sum(n) * 100) |>
   ungroup() |>
   mutate(history_group = fct_relabel(history_group, \(x) str_wrap(x, width = 14))) |>
@@ -873,17 +896,19 @@ cohort |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
   theme_minimal() +
   labs(x = NULL, y = "N Cows", fill = "Treatment Group",
-       title = "Lameness-History Distribution at Enrollment") +
+       ) +
   theme(legend.position = "bottom",
         axis.text.x = element_text(lineheight = 0.9),
         plot.margin = margin(10, 15, 10, 15))
 ```
 
-::: callout-note
-`Repeat` is left out of the plot below but kept in the chart above. All `r sum(cohort$history_group == "Repeat")` `Repeat` cows got that label the same way: their most recent lesion before enrollment landed exactly one day after an earlier one. That is a timing artifact, not a clinical category.
-:::
+### Milk Trend by History Group
 
-## Milk Trend by History Group
+@fig-chronic-milk compares milk production across the lesion history types.
+
+- Unlike the treatment groups, these are not randomised and care should be taken interpreting them and should considered descriptive.
+
+  - This does suggest the numerical difference in milk production are driven by cows in the NEW category.
 
 ```{r}
 #| label: fig-chronic-milk
@@ -892,19 +917,29 @@ cohort |>
 milk_norm |>
   filter(history_group %in% c("New", "Chronic")) |>
   group_by(tx_group, history_group, day_rel) |>
-  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE), n = n(), .groups = "drop") |>
+  summarize(mean_pct = mean(pct_of_baseline, na.rm = TRUE),
+            se_pct = sd(pct_of_baseline, na.rm = TRUE) / sqrt(n()),
+            n = n(), .groups = "drop") |>
   filter(n >= 5) |>
-  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group)) +
+  ggplot(aes(x = day_rel, y = mean_pct, color = tx_group, fill = tx_group)) +
+  geom_ribbon(aes(ymin = mean_pct - se_pct, ymax = mean_pct + se_pct), alpha = 0.15, color = NA) +
   geom_line(linewidth = 1) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey40") +
   facet_wrap(~history_group) +
   scale_color_viridis_d() +
+  scale_fill_viridis_d() +
   theme_minimal() +
-  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)", color = "Treatment Group") +
+  labs(x = "Days Relative to First NEDLAME Alert", y = "Milk Production (% of Baseline)",
+       color = "Treatment Group", fill = "Treatment Group",
+       caption = "Shaded band: ± 1 standard error of the mean (≈ 68%). Not a test of the difference between arms.") +
   theme(legend.position = "bottom")
 ```
 
-# Time to Culling After NEDAP Enrollment
+## Time to Culling After NEDAP Enrollment
+
+Time to culling is compared below. The curves sit close together, but only `r n_culls` cows were culled (`r n_culls_tx` TX, `r n_culls_ctl` Control).
+
+That is too few to tell whether trimming off the alert changes culling, more cows and time is needed to answer that question.
 
 ```{r}
 #| label: fig-q6-plot
@@ -930,25 +965,33 @@ km_cull |>
   tab_header(title = "% Culled After First NEDLAME Alert")
 ```
 
-Time to culling is compared below. The curves sit close together, but only `r n_culls` cows were culled (`r n_culls_tx` TX, `r n_culls_ctl` Control). That is far too few to tell whether trimming off the alert changes culling. Not evidence of no effect - a question this study is too small and too short to answer.
+## What cows were missed by the system?
 
-# What cows were missed by the system?
+This section looks at cows with lesion regardless of treatment group.
 
-This section looks at cows with lesion regardless of treatment group. Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window (same lactation). A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged. Each cow is counted once here, at her **first** qualifying lesion diagnosis on/after that date (consistent with using the first event throughout this report).
+Among cows with a `LAME`-diagnosed lesion on or after `r params$history_after_date`, this checks whether that cow had a `NEDLAME` alert in the preceding lookback window.
 
-**Note** *Lame events that were in heifers, dried off cows or cows trimmed within 28 days of another trim were excluded as the system does not monitor those cows or they were automatically excluded*.
+A "miss" means staff/routine trimming found a lesion that NEDAP hadn't already flagged.
 
-A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`). This excludes `r n_excluded_recent_trim` cows diagnosed within `r params$recent_trim_suppression_days` days of a prior trim, when NEDAP couldn't have alerted a cow due to the set up in DairyComp. Of the `r nrow(q4)` cows, `r n_truncated_lookback` had a lookback window shorter than the full `r params$q4_lookback_days` days (because they fell within `r params$q4_lookback_days` days of NEDLAME go-live).
+There are 3 reasons cows can be considered missed:
 
-Of those `r nrow(q4)` cows, **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) are counted as missed**: no `NEDLAME` reached DairyComp in the `r params$q4_lookback_days` days before the lesion, and no earlier alert had gone unanswered either. `r sum(q4$caught_by_nedap)` were caught inside the window.
+1.  Alerted, on trim list but not trimmed
 
-A further **`r n_warned_not_acted` are not counted as misses**. The camera had alerted on them before the window opened - a median of `r round(median(q4$days_alert_to_lesion[q4$warned_not_acted]))` days out - and nothing happened between that alert and the lesion. No trim, no `LAME`, no `FOOTRIM`. The warning arrived and was not used, which is a response failure, not a detection failure.
+2.  Alerted by camera but alert did not get into DairyComp
 
-This matters because the `r params$q4_lookback_days`-day window is a judgement call, and it was doing most of its work in one arm. Counting those cows as misses puts the Control miss rate at `r round(100 * mean(!q4$caught_by_nedap[q4$tx_group == 'Control']), 1)`%; excluding them puts it at `r round(100 * mean(q4$is_miss[q4$tx_group == 'Control']), 1)`%. TX barely moves.
+3.  Never Alerted
 
-A Control cow was under no obligation to be trimmed off her alert, so an alert `r params$q4_lookback_days`+ days out is still a warning the farm chose not to use. Where a cow *was* trimmed after that alert, the later lesion is a new episode the camera did not warn about, and she stays a miss - `r sum(q4$acted_on_alert & !q4$caught_by_nedap)` of them.
+- A total of `r nrow(q4)` cows had a lesion diagnosed after the project start date (`r params$history_after_date`).
 
-## Alert Check: True Misses vs. Pipeline Losses
+  - **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera**
+
+  - Following those up against the camera's own records, **`r n_true_miss` were truly never flagged** - the camera saw nothing on them.
+
+  - The remaining **`r n_pipeline_loss` were flagged but the alert did not reach DairyComp in time**, which is a pipeline problem due to filters we set up or problems in the file in rather than a limit of the camera.
+
+A break down of these misses by treatment
+
+### Alert Check: True Misses vs. Pipeline Losses
 
 The figure above only answers "did a `NEDLAME` land in DairyComp in time". It cannot tell a true miss from a cow the camera flagged whose flag never arrived. Raw Nedap flag data separates them, for `r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`.
 
@@ -986,32 +1029,133 @@ One judgement call sits behind these numbers. `r n_attentions_incomplete` of the
 
 The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
 
-- **Flagged, Caught in Time** — an alert landed in DairyComp inside the window before the lesion.
-- **Flagged, but no alert in time** — the camera did flag her, but no alert reached DairyComp in time.
-- **Never Flagged (True Miss)** — the camera never saw a problem at all.
+- **Flagged, Caught in Time**
+  - an alert landed in DairyComp inside the window before the lesion.
+- **Flagged, but no alert in time**
+  - the camera did flag her, but no alert reached DairyComp in time.
+- **Never Flagged (True Miss)**
+  - the camera never saw a problem at all.
+- **Alerted earlier but no action taken**.
+  - camera flagged the cow but for unknow reasons she was not trimmed.
 
 Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
 
-From the figure below it is clear that DD and other are the main categories being missed. Other on this farm is typically Corkscrews.
+Two views of the same cases, because either one alone invites a wrong reading. **Panel A** asks how often each lesion is caught. **Panel B** asks what each outcome tends to be, with *Flagged, Caught in Time* as the comparison column - without it, a common lesion looks like a blind spot simply by being common.
+
+The four-way split is kept deliberately. The farm report collapses it to alerted / not alerted, which is what the farm needs; Nedap needs *flagged, but no alert in time* (an integration problem) held apart from *never flagged* (a detection problem).
+
+Lesion types with fewer than 20 cases are combined into one bar - separately they are too few to carry a percentage.
 
 ```{r}
 #| label: fig-q4-lesion-types
+#| fig-height: 9
 
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
-ggplot(q4_lesion_types, aes(x = lesion_type, y = pct, fill = detection_group_3way)) +
-  geom_col(width = 0.7) +
-  geom_text(data = lesion_totals, inherit.aes = FALSE,
-            aes(x = lesion_type, y = 101, label = paste0("n=", total_cases)),
-            hjust = 0, size = 3, colour = "grey30") +
-  coord_flip(clip = "off") +
+STATUS_LEV <- c("Flagged, Caught in Time", "Alerted earlier, no action taken",
+                "Flagged, but no alert in time", "Never Flagged (True Miss)")
+
+les_base <- q4_sensor |>
+  filter(in_coverage) |>
+  select(id_animal, lact_number, date_event, detection_group_3way) |>
+  mutate(status = factor(as.character(detection_group_3way), levels = STATUS_LEV))
+# Same trap as elsewhere: a renamed level silently becomes NA and vanishes from
+# every count while the page still renders. Assert the mapping caught everything.
+stopifnot(!any(is.na(les_base$status)), nrow(les_base) > 0)
+
+les_long <- lame_lesion_recent |>
+  select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
+  inner_join(les_base |> select(id_animal, lact_number, date_event, status),
+             by = c("id_animal", "lact_number", "date_event")) |>
+  pivot_longer(all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
+  filter(has_lesion == 1)
+
+# Types under 20 cases cannot carry a percentage: toe ulcer is 2 cows, and under
+# the previous per-type chart those 2 rendered as a full-width 100% bar.
+les_min_n  <- 20
+les_tot    <- les_long |> count(lesion_type, name = "n_total")
+les_rare   <- sort(les_tot$lesion_type[les_tot$n_total < les_min_n])
+n_les_rare <- sum(les_tot$n_total[les_tot$n_total < les_min_n])
+les_long   <- les_long |>
+  mutate(lt = if_else(lesion_type %in% les_rare, "rare types (combined)", lesion_type))
+
+n_by_lesion    <- les_long |> count(lt, name = "n_cases")
+rate_by_lesion <- les_long |> count(lt, status) |>
+  left_join(n_by_lesion, by = "lt") |>
+  mutate(pct = 100 * n / n_cases)
+
+# Best to worst, left to right, by share caught in time.
+les_ord <- rate_by_lesion |> filter(status == STATUS_LEV[1]) |>
+  arrange(desc(pct)) |> pull(lt)
+les_ord <- c(les_ord, setdiff(unique(les_long$lt), les_ord))
+rate_by_lesion <- rate_by_lesion |> mutate(lt = factor(lt, levels = les_ord))
+n_by_lesion    <- n_by_lesion    |> mutate(lt = factor(lt, levels = les_ord))
+
+# Okabe-Ito, colourblind-safe, and deliberately NOT viridis: panel A uses viridis
+# for STATUS, and two palettes both ending in yellow would make the lesion "dd"
+# read as the status "Never Flagged".
+les_pal <- setNames(c("#0072B2", "#009E73", "#CC79A7", "#56B4E9", "#D55E00",
+                      "#E69F00", "#999999")[seq_along(les_ord)], les_ord)
+
+caught_lab <- rate_by_lesion |> filter(status == STATUS_LEV[1]) |>
+  mutate(lab = paste0(round(pct), "%"))
+
+p_lesion_rate <- ggplot(rate_by_lesion, aes(x = lt, y = pct, fill = fct_rev(status))) +
+  geom_col(width = 0.72) +
+  geom_text(data = caught_lab, inherit.aes = FALSE,
+            aes(x = lt, y = pct / 2, label = lab), colour = "white", size = 3.4) +
+  geom_text(data = n_by_lesion, inherit.aes = FALSE,
+            aes(x = lt, y = 103, label = paste0("n=", n_cases)),
+            size = 3, colour = "grey30") +
   scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
-                     limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
-  scale_fill_viridis_d() +
+                     limits = c(0, 110), expand = expansion(mult = c(0, 0))) +
+  scale_fill_viridis_d(drop = FALSE, direction = -1,
+                       guide = guide_legend(reverse = TRUE, nrow = 2)) +
   theme_minimal() +
-  labs(x = NULL, y = "% of cases with that lesion", fill = NULL) +
-  theme(legend.position = "bottom")
+  labs(x = NULL, y = "% of cases with that lesion", fill = NULL,
+       title = "A. How often is each lesion caught?",
+       subtitle = "Within each lesion type, best on the left. The figure inside each bar is the share caught in time.") +
+  theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
+        axis.text.x = element_text(colour = les_pal[les_ord], face = "bold"),
+        panel.grid.major.x = element_blank())
+
+n_by_status   <- les_base |> count(status, name = "n_cases")
+mix_by_status <- les_long |> count(status, lt) |>
+  left_join(n_by_status, by = "status") |>
+  mutate(pct = 100 * n / n_cases, lt = factor(lt, levels = les_ord))
+
+p_lesion_mix <- ggplot(mix_by_status, aes(x = status, y = pct, fill = lt)) +
+  geom_col(width = 0.78, position = position_dodge(width = 0.85)) +
+  geom_text(aes(label = round(pct)), position = position_dodge(width = 0.85),
+            vjust = -0.35, size = 2.7, colour = "grey25") +
+  geom_text(data = n_by_status, inherit.aes = FALSE,
+            aes(x = status, y = -3.5, label = paste0("n=", n_cases)),
+            size = 3, colour = "grey30") +
+  scale_y_continuous(labels = function(x) paste0(x, "%"),
+                     expand = expansion(mult = c(0.06, 0.10))) +
+  scale_fill_manual(values = les_pal, guide = guide_legend(nrow = 1)) +
+  scale_x_discrete(labels = function(x) gsub(", ", ",\n", x)) +
+  theme_minimal() +
+  labs(x = NULL, y = "% of cases in that status", fill = NULL,
+       title = "B. What does each outcome tend to be?",
+       subtitle = "Outcomes ordered best to worst. Bars do not sum to 100% - a cow can carry more than one lesion.") +
+  theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
+        axis.text.x = element_text(size = 8), panel.grid.major.x = element_blank())
+
+# Quoted in the prose below, so the text cannot drift from the figure.
+pctl <- function(l, s) round(rate_by_lesion$pct[rate_by_lesion$lt == l & rate_by_lesion$status == s])
+pctm <- function(l, s) round(mix_by_status$pct[mix_by_status$lt == l & mix_by_status$status == s])
+
+p_lesion_rate / p_lesion_mix
 ```
+
+Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LEV[1])`%** of DD cases in time against **`r pctl('wld', STATUS_LEV[1])`%** of white line, and DD is **`r pctm('dd', STATUS_LEV[4])`%** of the cases it never flagged against **`r pctm('dd', STATUS_LEV[1])`%** of those it caught. White line runs the other way on both counts. Hemorrhage, injury and "other" - typically corkscrew claw on this farm - sit in between.
+
+None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss. What this adds is the size of the gap on this farm, and that it is specific rather than general: white line, which does change how a cow walks, is caught well.
+
+One point for Nedap in particular: **DD is over-represented in both failure modes**, not just detection. It is `r pctm('dd', STATUS_LEV[3])`% of the flags that never reached DairyComp as well as `r pctm('dd', STATUS_LEV[4])`% of the cases never flagged at all. Whether that second pattern is real or a coincidence of `r n_by_status$n_cases[n_by_status$status == STATUS_LEV[3]]` cases, this data cannot say - but it is worth asking about.
+
+`r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are combined into a single bar.
 
 ## Which leg is being missed?
 
