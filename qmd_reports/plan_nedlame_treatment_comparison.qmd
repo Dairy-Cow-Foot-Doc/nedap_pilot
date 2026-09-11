@@ -1254,3 +1254,76 @@ Two things belong in whatever design document the proposal starts from:
 
 1. **The third arm has never been specified. It must be asked about, not invented.** There is no basis in the pilot for guessing what it should be.
 2. **Ascertainment is the central design problem, not a limitation to note in passing.** The pilot's headline benefit is entirely explained by TX cows being trimmed 90.4% of the time against Control's 49.8% — that is what Round 29's 58-extra-lesion finding actually measures. **A three-arm study repeats that confound at greater cost unless inspection is made common across arms.** Sample sizes make the same point from the other side: milk needs 585 cows per arm to detect 5 points and 1,737 for the 2.9 actually observed, which is 75 weeks at this farm's 69 alerts per week. **Detection is the only outcome a single farm can power.**
+
+## Round 31: the misses section rebuilt, and the herd-wide miss rate retired
+
+A long editing session on `report_nedlame_treatment_comparison_fx.qmd`, mostly Gerard writing with review and repair alongside. **Pick up here tomorrow.**
+
+### The headline change: stop quoting a herd-wide miss rate
+
+Gerard: *"The whole herd % is not really of value as the cohort and the never enrolled are what is of interest."* He is right, and the arithmetic shows why:
+
+| population | misses / cases | rate |
+|---|---|---|
+| pilot cohort | 31 / 291 | **10.7%** |
+| never enrolled | 282 / 288 | **97.9%** |
+| pooled (the old headline) | 313 / 579 | 54.1% |
+
+**Ninety per cent of all misses sit outside the pilot cohort**, and that group is 97.9% "missed" almost definitionally — a cow the pilot never enrolled has no `NEDLAME` to find. Pooling them produced a number dominated by the definitional group, and it sat seventy lines from the arm-level result (~90% alerted) with nothing reconciling the two. A Nedap reader met "you miss half" and "you catch ninety per cent" in the same section.
+
+The full report now reports the two populations separately, with a `stopifnot` that they sum to `n_misses`. **The farm report deliberately keeps the pooled figure** — for the farm, "of every cow that went lame, how many did we get a warning on" is the right question, and the unenrolled cows are part of their herd. Same number, different audience, and the divergence is intentional this time.
+
+### The wide denominator was never a bug
+
+Worth restating, because it looks like one: design decision 5 deliberately set Q4's denominator to *all* lesion-bearing `LAME` events, not just cohort cows, precisely so the analysis would surface cows the camera never alerted on. That decision stands. What changed is only that the two groups are no longer averaged into one rate.
+
+### `cork` dropped from the lesion set, `sole_fracture` kept — the distinction matters
+
+Both columns had zero cases. Only one was removed, and the reason is the same one that governs the empty `DSNLM` bucket:
+
+- **`cork` is empty by construction.** `fxn_code_lesions()` matches it on `TRMC`/`NONC`/`Cork`, but this farm codes corkscrew claw in a way that lands in `other` (confirmed by Gerard). It can never populate here, so listing it implies a category the reader will never find — and it made the prose claim *"other is typically corkscrew"* look contradicted by the data when it is in fact correct farm knowledge.
+- **`sole_fracture` is empty by chance.** Round 20 settled that a category is not deleted for being currently empty, because the feeds leapfrog and buckets refill.
+
+A `stopifnot` now asserts `cork` really is zero, so if this farm ever does code one, the render fails loudly instead of silently dropping those cases from every lesion figure.
+
+### A review agent's findings, and what survived checking
+
+Commissioned while Gerard ate. It found the denominator problem above — the most valuable thing in the session. Three further real defects in prose written earlier that day, all now fixed:
+
+- **"The camera alerted before the lesion in 89% / 90%"** was wrong. That measures *a `NEDLAME` reaching DairyComp*; the camera itself flagged 92% / 95%. The difference is exactly the flags that never arrived — so the sentence contradicted the paragraph above it.
+- **The 89/90% needed a selection caveat.** All 291 cohort cases are cows that received a `NEDLAME`, because that is how `fxn_build_cohort()` defines membership. A high prior-alert rate is therefore partly structural and must not be read as a sensitivity estimate. The *between-arm* comparison survives, since both arms are selected identically — and that comparison is the actual result: the arms are equal on detection (89 vs 90) and differ on action (16% vs 2% unacted), so the visible gap is protocol compliance.
+- **A word and an index disagreed** — prose said "that second pattern" while quoting the case count for the third status.
+
+One review claim was overstated and did not survive checking: it treated *"other is typically corkscrew"* as contradicted by the separate `cork` column. The column exists and is empty, but Gerard's farm knowledge explains why. **Checking a reviewer's claims against the data is worth the ten minutes** — this is the second time this round that an agent's confident finding needed qualifying.
+
+### Structural repairs
+
+- `## What cows were missed by the system?` had a **"3 reasons" list whose arithmetic gave two** (119 + 194 = 313 exactly). The third item, *"alerted, on trim list but not trimmed"*, carried no number because it is the 26 that Round 27 deliberately excluded from misses. Rebuilt as a three-way split (caught / alerted-not-acted / missed) with the missed group dividing two ways.
+- *"A miss means staff/routine trimming found a lesion that NEDAP hadn't already flagged"* was false for the 119 the camera **did** flag. Now: *no useful warning reached DairyComp*.
+- *"The figure above only answers..."* referred to a figure that was not there — the nearest one above was the **culling KM curve**. Folded into the raw-export paragraph instead.
+- The figure moved up under its lead-in, which had been left dangling by a `###` heading.
+- `### Alert Check: True Misses vs. Pipeline Losses` retitled `### How solid are those two numbers?`, since the split and the figure moved above it and only the coverage and `is_completed` caveats remained.
+
+### The lesion figure became two panels
+
+Kept the four-way status split rather than the farm report's two-way collapse, on Gerard's reasoning: **Nedap needs "flagged, but no alert" (their integration problem) held apart from "never flagged" (their detection problem); the farm does not.** Panel A gives the per-lesion catch rate, Panel B the lesion mix within each outcome with *Caught in Time* as the comparison group — because A alone invites "DD is common, so of course it leads", and B is what rules that out.
+
+Lesion types under 20 cases are pooled: `toe_ulcer` is 2 cows, and under the old per-type chart those 2 rendered as a **full-width 100% bar**.
+
+The result is a gradient rather than a contrast: DD rises 21 → 27 → 39 → 44% across the four outcomes while white line falls 50 → 31 → 18 → 15%. Monotone in both directions across four independently defined groups is harder to dismiss than any single pair of numbers.
+
+### Three self-inflicted breaks, and what each one teaches
+
+All three rendered without error, which is the point.
+
+1. **`scale_y_continuous(limits =)` with `position = "fill"` emptied a figure completely.** `limits` drops rows *before* the position adjustment normalises, and the raw counts (2–175) all fell outside `[0, 1.08]`. Every bar was discarded; the `n=` labels survived because they came from a different data frame. **Use `coord_cartesian(ylim =)` to zoom — `limits` filters data.** Caught only when Gerard looked at the page.
+2. **Two variables pasted from the farm report were defined nowhere** — `n_truly_never` and `n_pipeline`, which the full report calls `n_true_miss` and `n_pipeline_loss`. The two reports compute the same quantities under different names, so **any sentence carrying an inline value that is pasted between them needs its variable renamed.**
+3. A dropped `|>` left a pipeline fragment that still *parsed*, as two statements.
+
+### `scripts/check_report.R`
+
+Written this round and extended twice, after each break got through. Eight checks: duplicate labels, dangling crossrefs, prefix/output mismatch, unparseable chunks **and pipelines left with no data argument**, `::: panel-tabset` opened below its first heading, fence balance, forward references, and a render log scanned for `WARNING` as well as `Error`.
+
+Check I reads what each `fxn_build_*()` returns from its closing `list(...)` — 115 names across 13 functions — so an inline `r obj` naming something that exists nowhere can be told from the many legitimate objects that arrive via `list2env()` and are never assigned in the `.qmd`. Validated in both directions on real failures.
+
+**The habit that matters more than the script: a clean exit code is not evidence.** Quarto exited 0 on a render that halted, on a render that emitted an unresolved-crossref warning, and on a page containing an empty figure. Read the log in full, and look at the picture.

@@ -753,7 +753,15 @@ fxn_build_q4_groups <- function(q4_sensor, lame_lesion_recent) {
   # taxonomy now, and it is the one that says whether the camera saw her.
   stopifnot("detection_group_3way" %in% names(q4_sensor))
 
-  lesion_type_cols <- c("dd", "footrot", "wld", "sole_ulcer", "injury", "cork",
+  # `cork` is dropped deliberately, not because it happens to be empty. This farm
+  # codes corkscrew claw in a way that lands in `other`, so the cork column can
+  # never populate here and listing it implies a category the reader will not find.
+  # `sole_fracture` stays despite also being 0: that one is empty by chance, and
+  # Round 20 settled that a category is not deleted just for being currently empty.
+  # The assertion below is the guard - if this farm ever does code a corkscrew,
+  # this fails loudly rather than silently dropping those cases from every figure.
+  stopifnot(!"cork" %in% names(lame_lesion_recent) || sum(lame_lesion_recent$cork, na.rm = TRUE) == 0)
+  lesion_type_cols <- c("dd", "footrot", "wld", "sole_ulcer", "injury",
                          "hemorrhage", "sole_fracture", "toe_ulcer", "thin", "other")
   
   q4_lesion_types <- lame_lesion_recent |>

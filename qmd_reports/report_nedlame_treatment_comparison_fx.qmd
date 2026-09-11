@@ -184,6 +184,18 @@ invisible(list2env(fxn_build_q4(
   events_formatted = events_formatted, events_all = events_all,
   animal_lactations = animal_lactations, enrolled_ids = enrolled_ids,
   nedlame_start_date = nedlame_start_date, params = params), environment()))
+
+# The pilot cohort and the cows it never enrolled answer different questions, and
+# pooling them produces a herd-wide rate that is dominated by the second group:
+# a cow outside the cohort has no NEDLAME by construction, so she is "missed"
+# almost definitionally. Reported separately rather than combined.
+in_pilot_case      <- q4$tx_group != "Never Alerted (Not in Pilot Cohort)"
+n_cases_pilot      <- sum(in_pilot_case)
+n_miss_pilot       <- sum(q4$is_miss &  in_pilot_case)
+n_cases_unenrolled <- sum(!in_pilot_case)
+n_miss_unenrolled  <- sum(q4$is_miss & !in_pilot_case)
+stopifnot(n_miss_pilot + n_miss_unenrolled == n_misses,
+          n_cases_pilot + n_cases_unenrolled == nrow(q4))
 ```
 
 ```{r}
@@ -975,7 +987,9 @@ A "miss" means **no useful warning reached DairyComp before the lesion was found
 
 - A total of `r nrow(q4)` lesion cases were diagnosed after the project start date (`r params$history_after_date`), across `r n_distinct(q4$id_animal)` cows.
 
-  - **`r n_misses` (`r round(100 * n_misses / nrow(q4), 1)`%) got no useful warning from the camera**
+  - **`r n_miss_pilot` of the `r n_cases_pilot` cases in the pilot cohort (`r round(100 * n_miss_pilot / n_cases_pilot, 1)`%) got no useful warning from the camera.**
+
+  - Separately, `r n_miss_unenrolled` of the `r n_cases_unenrolled` cases in cows the pilot never enrolled (`r round(100 * n_miss_unenrolled / n_cases_unenrolled, 1)`%). A cow outside the cohort has no `NEDLAME` by construction, so that figure is close to definitional and is kept separate rather than pooled - a combined rate would be dominated by it and would not describe the pilot.
 
 Those `r nrow(q4)` cases divide three ways:
 
