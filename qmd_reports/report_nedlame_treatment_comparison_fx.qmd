@@ -377,6 +377,71 @@ For this study the follow things were created in DairyComp to handle the file da
 
 Above commands were all run daily around 5 am after NEDAP file in occurred.
 
+```{r}
+#| label: same-day-trim-check
+
+# Cows whose FIRST alert is stamped on the SAME DATE as a trim. The 1-7 day
+# exclusion above cannot see these: it tests `trim_date < first_nedlame_date`,
+# so a same-day trim never triggers it.
+#
+# Whether the alert preceded the trim cannot be answered from the event date,
+# because the NEDLAME carries the date the 05:00 command ran rather than the
+# date the camera detected her. It CAN be answered from the raw export: the
+# batch loads at ~05:00 and stamps the load day, so an alert dated D comes from
+# an attention in (D-1 05:00, D 05:00] - all of which precede any trimming on D.
+# Path taken from the loader default rather than hard-coded.
+sd_trim <- cohort |>
+  select(id_animal, id, lact_number, first_nedlame_date) |>
+  left_join(trims_all, by = c('id_animal', 'lact_number'), relationship = 'many-to-many') |>
+  group_by(id_animal, id, lact_number, first_nedlame_date) |>
+  summarize(same_day = any(trim_date == first_nedlame_date, na.rm = TRUE),
+            prior7   = any(trim_date < first_nedlame_date &
+                           trim_date >= first_nedlame_date - params$post_trim_exclusion_days,
+                           na.rm = TRUE), .groups = 'drop') |>
+  filter(same_day, !prior7)
+n_same_day_trim <- nrow(sd_trim)
+
+sd_raw <- readr::read_csv(eval(formals(fxn_read_nedap_attentions)$file),
+                          show_col_types = FALSE) |>
+  mutate(id = as.character(animal_number),
+         st = lubridate::with_tz(lubridate::as_datetime(start_time_utc, tz = 'UTC'),
+                                 'America/Chicago'))
+sd_gen <- sd_trim |>
+  select(id, D = first_nedlame_date) |>
+  left_join(sd_raw |> select(id, st), by = 'id', relationship = 'many-to-many') |>
+  mutate(in_win = st > lubridate::as_datetime(paste0(D - 1, ' 05:00:00'), tz = 'America/Chicago') &
+                  st <= lubridate::as_datetime(paste0(D, ' 05:00:00'), tz = 'America/Chicago')) |>
+  group_by(id, D) |>
+  summarize(traced = any(in_win, na.rm = TRUE), .groups = 'drop')
+n_sd_traced   <- sum(sd_gen$traced)
+n_sd_untraced <- sum(!sd_gen$traced)
+stopifnot(n_sd_traced + n_sd_untraced == n_same_day_trim)
+
+# The cows the raw export cannot place were checked by hand against the
+# DairyComp command logs (data/logs, 8 Jun - 11 Sep). Those logs are a one-off
+# manual pull and are gitignored, so the audit cannot be recomputed here - the
+# findings are constants, fenced by the assertion below so the prose cannot
+# drift away from the chunk above if the cohort changes.
+n_sd_log_nolog   <- 1L   # alerted 4 Jun, before the logs begin on 8 Jun
+n_sd_log_checked <- 16L  # NEDLAME entry located in the log for the alert date
+stopifnot(n_sd_log_checked + n_sd_log_nolog == n_sd_untraced)
+
+# Of ALL the same-day cows, how many had a staff locomotion check the day
+# BEFORE the alert - i.e. she was already on the trim list and the camera is
+# not what put her there. Computed from CHKLAME so it survives a re-render.
+# This is NOT the quantity fxn_build_control_trim_drivers() reports: that one
+# counts a CHKLAME falling BETWEEN the alert and a LATER trim, and only 2 of
+# these cows appear in it at all.
+n_sd_staff_first <- sd_trim |>
+  left_join(events_formatted |> filter(event == 'CHKLAME') |>
+              distinct(id_animal, chk_date = date_event),
+            by = 'id_animal', relationship = 'many-to-many') |>
+  group_by(id_animal) |>
+  summarize(sf = any(as.numeric(first_nedlame_date - chk_date) == 1, na.rm = TRUE),
+            .groups = 'drop') |>
+  summarize(n = sum(sf)) |> pull(n)
+```
+
 # Results
 
 - `r nrow(first_nedlame)` cows received a `NEDLAME` alert between `r format(min(first_nedlame$first_nedlame_date))` and `r format(max(first_nedlame$first_nedlame_date))`
@@ -385,9 +450,21 @@ Above commands were all run daily around 5 am after NEDAP file in occurred.
 
   - Follow-up extends past this data to allow following of trims, culls and milk records.
 
-- `r n_excluded_post_trim` alerts on cows were excluded as alerts occurred after a recent hoof trimming. These were still coded in DairyComp as the farm imports hoof trimming data a few days after the actual hoof trimming date.
+- `r n_excluded_post_trim` alerts on cows were excluded as alerts occurred after a recent hoof trimming (1-7 days). These were still coded in DairyComp as the farm imports hoof trimming data a few days after the actual hoof trimming date.
 
   - See @tbl-post-trim-exclusion-table. for details on these cows
+
+- **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim**, which the 1-`r params$post_trim_exclusion_days` day rule above cannot catch.
+
+  - From the DairyComp event date alone there is no way to say which came first, because the `NEDLAME` carries the date the 05:00 command ran rather than the date the camera detected her.
+
+    - The raw attention export shows that for `r n_sd_traced` of them they were alerted before trimming and would have been on the trim list.
+
+      - For the remaining `r n_sd_untraced` no attention falls in that window, so these were checked by hand against the DairyComp command logs. `r n_sd_log_checked` fall inside the logged period; the last alerted on 4 June, before the logs begin.
+
+      - **In every one of those `r n_sd_log_checked` the `NEDLAME` event was written between 05:31 and 05:35**, hours before trimming starts, so none of them is the camera reacting to a trim. All are kept in the cohort.
+
+  - Being alerted before the trim is not the same as being the reason for it. `r n_sd_staff_first` of the `r n_same_day_trim` had a staff locomotion check (`CHKLAME`) entered the day *before* the alert, so they were already on the trim list and the camera did not put them there. They stay in the cohort, but the camera should not be credited with finding them.
 
 With above exclusions and conditions it resulted in
 
@@ -541,55 +618,6 @@ pct_excluded_no_followup <- round(100 * n_excluded_no_followup / nrow(excluded_f
 pct_decline_excluded <- round(100 * mean(cohort_excluded_post_trim$alert_type %in% c("LOW DECLINE", "STRONG DECLINE")), 1)
 pct_decline_cohort <- round(100 * mean(cohort$alert_type %in% c("LOW DECLINE", "STRONG DECLINE")), 1)
 ```
-
-
-```{r}
-#| label: same-day-trim-check
-
-# Cows whose FIRST alert is stamped on the SAME DATE as a trim. The 1-7 day
-# exclusion above cannot see these: it tests `trim_date < first_nedlame_date`,
-# so a same-day trim never triggers it.
-#
-# Whether the alert preceded the trim cannot be answered from the event date,
-# because the NEDLAME carries the date the 05:00 command ran rather than the
-# date the camera detected her. It CAN be answered from the raw export: the
-# batch loads at ~05:00 and stamps the load day, so an alert dated D comes from
-# an attention in (D-1 05:00, D 05:00] - all of which precede any trimming on D.
-# Path taken from the loader default rather than hard-coded.
-sd_trim <- cohort |>
-  select(id_animal, id, lact_number, first_nedlame_date) |>
-  left_join(trims_all, by = c('id_animal', 'lact_number'), relationship = 'many-to-many') |>
-  group_by(id_animal, id, lact_number, first_nedlame_date) |>
-  summarize(same_day = any(trim_date == first_nedlame_date, na.rm = TRUE),
-            prior7   = any(trim_date < first_nedlame_date &
-                           trim_date >= first_nedlame_date - params$post_trim_exclusion_days,
-                           na.rm = TRUE), .groups = 'drop') |>
-  filter(same_day, !prior7)
-n_same_day_trim <- nrow(sd_trim)
-
-sd_raw <- readr::read_csv(eval(formals(fxn_read_nedap_attentions)$file),
-                          show_col_types = FALSE) |>
-  mutate(id = as.character(animal_number),
-         st = lubridate::with_tz(lubridate::as_datetime(start_time_utc, tz = 'UTC'),
-                                 'America/Chicago'))
-sd_gen <- sd_trim |>
-  select(id, D = first_nedlame_date) |>
-  left_join(sd_raw |> select(id, st), by = 'id', relationship = 'many-to-many') |>
-  mutate(in_win = st > lubridate::as_datetime(paste0(D - 1, ' 05:00:00'), tz = 'America/Chicago') &
-                  st <= lubridate::as_datetime(paste0(D, ' 05:00:00'), tz = 'America/Chicago')) |>
-  group_by(id, D) |>
-  summarize(traced = any(in_win, na.rm = TRUE), .groups = 'drop')
-n_sd_traced   <- sum(sd_gen$traced)
-n_sd_untraced <- sum(!sd_gen$traced)
-stopifnot(n_sd_traced + n_sd_untraced == n_same_day_trim)
-```
-
-A further **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim**, which the 1-`r params$post_trim_exclusion_days` day rule above cannot catch - it tests for a trim strictly *before* the alert. From the DairyComp event date alone there is no way to say which came first, because the `NEDLAME` carries the date the 05:00 command ran rather than the date the camera detected her.
-
-The raw attention export settles it for `r n_sd_traced` of them. The batch stamps the day it loads, so an alert dated D must come from an attention before 05:00 that morning - before any trimming that day. **In those cases the camera detected her first, and the trimmer then found a lesion in about two thirds of them**, so they are the camera working rather than reacting to the trim. They are kept in the cohort. For the remaining `r n_sd_untraced` no attention falls in that window and the order stays unresolved.
-
-This ambiguity is avoidable rather than inherent: stamping the event with the camera's own detection date (`EDAY=LMSFD` on the `ENTER` command) would remove the need for any of this reconstruction. See the recommendations.
-## Trimming Data
 
 ### Time to next trimming after alert
 
@@ -860,7 +888,7 @@ staff_id |>
 ```
 :::
 
-# Milk Production After 1st NEDLAME Alert
+## Milk Production After 1st NEDLAME Alert
 
 ```{r}
 #| label: q1-build
@@ -1034,89 +1062,23 @@ km_cull |>
 
 ## What cows were missed by the system?
 
-Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp in the lookback window before the lesion was found.
+Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` not in the cohort is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp before the lesion was found.
 
 A "miss" means **no useful warning reached DairyComp before the lesion was found** - either the camera never flagged her, or it flagged her and the alert never arrived.
 
-Cohort membership is judged **at the lesion**, not over the whole study: a cow counts as being in the pilot for a given lesion only if her first `NEDLAME` had already arrived by then. Labelling her by a later alert would credit the camera with watching a cow it had not yet flagged.
+- This was `r n_miss_unenrolled` cows in the pilot study.
 
-### The split that shapes everything below
+Using the raw camera flag export data, the breakdown of those missed cow is as follows.
 
-`r nrow(q4)` lesion cases were diagnosed after the project start date, across `r n_distinct(q4$id_animal)` cows. They fall into two populations that behave completely differently:
+1.  **`r n_pipeline_loss` the camera flagged her, but no alert reached DairyComp in time.** She met the sensor's criteria and never entered the study.
 
-| | lesion cases | missed | rate |
-|---|---|---|---|
-| already under camera surveillance | `r n_cases_pilot` | **`r n_miss_pilot`** | **`r round(100 * n_miss_pilot / n_cases_pilot, 1)`%** |
-| never enrolled in the pilot | `r n_cases_unenrolled` | `r n_miss_unenrolled` | `r round(100 * n_miss_unenrolled / n_cases_unenrolled, 1)`% |
+    1.  Whether that is an pipeline failure or the enrolment rules working is shown below.
 
-**Among cows the camera was actually watching, it missed `r n_miss_pilot` lesions in `r n_cases_pilot`.** `r n_caught_pilot` were caught in time and `r n_warned_pilot` were alerted earlier with no action taken in between - the warning arrived, nobody acted on it, which is a response failure rather than a camera one.
+2.  **`r n_true_miss` the camera never flagged at all.**
 
-With `r n_miss_pilot` cases there is nothing to analyse on that side, and no cohort cow at all falls into the "flagged but no alert arrived" category. **So the rest of this section is about the `r n_cases_unenrolled` lesion cases in cows the pilot never enrolled**, which is where all `r n_pipeline_loss` pipeline losses and `r n_true_miss` never-flagged cases sit.
 
-### Why those cows were missed
-
-A cow outside the cohort has no `NEDLAME` by construction, so "missed" is near-definitional for her and the `r round(100 * n_miss_unenrolled / n_cases_unenrolled, 1)`% rate says nothing about camera performance. The useful question is a different one: **did the camera see her at all?** That splits the `r n_miss_unenrolled` misses two ways:
-
-1.  **`r n_pipeline_loss` the camera flagged her, but no alert reached DairyComp in time.** She met the sensor's criteria and never entered the study. Whether that is an integration failure or the enrolment rules working as intended is taken apart below.
-
-2.  **`r n_true_miss` the camera never flagged at all.** No sensor attention in the window.
-
-Telling those apart needs the raw Nedap attention export rather than DairyComp alone, which covers `r format(nedap_coverage_start)` to `r format(nedap_coverage_end)`. DairyComp on its own can only answer "did a `NEDLAME` land in time"; it cannot tell a cow the camera never saw from one it flagged whose alert never arrived.
-
-A breakdown of these cases by treatment group:
-
-Each bar is one group of lesion cases, scaled to 100% so the four outcomes can be compared; the case count is printed above each bar, because the groups are very different sizes. The third group is **not a treatment arm** - it is every lesion case in a cow the pilot never enrolled, and it is the largest of the three.
-
-```{r}
-#| label: fig-q4-sensor-plot
-#| fig-height: 4.4
-
-n_by_arm <- q4_sensor |> count(tx_group, name = "n_cases")
-
-# Quoted below, so the prose cannot drift from the figure.
-arm_caught <- q4_sensor |>
-  group_by(tx_group) |>
-  summarize(pct = round(100 * mean(detection_group_3way == "Flagged, Caught in Time")),
-            .groups = "drop")
-pct_caught_arm <- function(a) arm_caught$pct[grepl(a, arm_caught$tx_group, fixed = TRUE)]
-n_arm <- function(a) n_by_arm$n_cases[grepl(a, n_by_arm$tx_group, fixed = TRUE)]
-arm_split <- q4_sensor |>
-  group_by(tx_group) |>
-  summarize(pct_warned = round(100 * mean(detection_group_3way == "Alerted earlier, no action taken")),
-            pct_any    = round(100 * mean(detection_group_3way %in%
-                          c("Flagged, Caught in Time", "Alerted earlier, no action taken"))),
-            .groups = "drop")
-pct_warned_arm <- function(a) arm_split$pct_warned[grepl(a, arm_split$tx_group, fixed = TRUE)]
-pct_any_arm    <- function(a) arm_split$pct_any[grepl(a, arm_split$tx_group, fixed = TRUE)]
-
-# Cows in the "not in pilot cohort" bar that nonetheless carry a NEDLAME. They
-# were alerted and then dropped from the cohort by the post-trim rule, so the
-# bucket name is true of ENROLMENT, not of the camera. Named in the prose so a
-# reader who spots the sliver is not left guessing.
-n_unenrolled_alerted <- sum(grepl("Never Alerted", q4_sensor$tx_group) &
-                              (q4_sensor$caught_by_nedap | q4_sensor$warned_not_acted))
-
-q4_sensor |>
-  count(tx_group, detection_group_3way) |>
-  ggplot(aes(x = tx_group, y = n, fill = detection_group_3way)) +
-  geom_col(position = "fill") +
-  geom_text(data = n_by_arm, inherit.aes = FALSE,
-            aes(x = tx_group, y = 1.04, label = paste0("n=", n_cases)),
-            size = 3, colour = "grey30") +
-  scale_y_continuous(labels = scales::percent, breaks = seq(0, 1, 0.25)) +
-  coord_cartesian(ylim = c(0, 1.08), clip = "off") +
-  scale_fill_viridis_d() +
-  guides(fill = guide_legend(nrow = 2)) +
-  theme_minimal() +
-  labs(x = NULL, y = "% of lesion cases in that group", fill = "Alert Status") +
-  theme(legend.position = "bottom")
-```
 
 Two of the four outcomes come from DairyComp alone - *Flagged, Caught in Time* and *Alerted earlier, no action taken*. The other two can only be told apart using the raw Nedap export: without it there is no way to distinguish a flag that never arrived from a cow the camera never saw.
-
-Within the pilot, the two arms differ far less than the bars suggest. A `NEDLAME` reached DairyComp before the lesion in `r pct_any_arm("Control")`% of Control cases and `r pct_any_arm("TX")`% of TX cases - effectively the same. **Read those two figures as a comparison, not as a sensitivity.** A cow enters either arm by having received a `NEDLAME` at some point, so a high prior-alert rate is partly built into how the cohort is defined; what that selection does not explain is the difference *between* the arms, since both are selected the same way. **And what differs is whether anyone acted.** `r pct_caught_arm("TX")`% of TX cases were caught in time against `r pct_caught_arm("Control")`% of Control, because a Control alert nobody acted on falls into *alerted earlier, no action taken* - `r pct_warned_arm("Control")`% of Control cases against `r pct_warned_arm("TX")`% of TX. That gap is protocol compliance, not detection, which is the same distinction the trimming section draws. The third bar is different in kind rather than degree: almost all of it is *never flagged* or *flagged, but no alert in time*, because a cow outside the cohort has no `NEDLAME` by construction. **That bar is therefore not a pipeline failure rate** - those are cows the camera did see, in a study that never enrolled them.
-
-One wrinkle, since it is visible as a thin sliver on that third bar: `r n_unenrolled_alerted` of the `r n_arm("Never Alerted")` unenrolled cases do carry a `NEDLAME`. They were alerted and then dropped from the cohort by the post-trim rule, so "not in pilot cohort" describes enrolment, not the camera.
 
 ### How solid are those two numbers?
 

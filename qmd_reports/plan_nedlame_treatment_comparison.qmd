@@ -1452,3 +1452,71 @@ Checked across the whole project: every analysis path uses exact matching, so no
 **A result with no noise in it is evidence of a join error, not of a strong effect.** The tell for the bug above was a lesion-yield table reading **100% in every band** — not one implausible cell, a perfectly clean table. That heuristic finds match and join errors faster than reading the code does, and it generalises: this project has now produced three of them — the 100% table, the `NaN` percentages from a renamed factor level, and the empty figure from `limits=` dropping every row. Each looked like a result rather than an error.
 
 The version worth remembering: **suspicion should scale with how good the answer looks.** A clean number is more likely to be a bug than a finding, because real data on 579 cows is never that tidy.
+
+## Round 33: the command logs close the same-day question, and the staff beat the camera 24 times
+
+Gerard supplied 96 DairyComp command logs (`data/logs`, `DCyymmdd.LOG`, 8 Jun - 11 Sep) with the key that makes them readable: **the trim list is generated from a menu, so there is no command for it - but the session always opens with `ENTER TRIM="" FOR TRMCD>0`, and that line is timestamped.** A menu-driven action leaves a trace after all; you just have to know which line is its signature.
+
+The logs are gitignored (`*.log`) and are a one-off manual pull, not a pipeline input. The two findings taken from them are therefore constants in the report, fenced by `stopifnot(n_sd_log_checked + n_sd_log_nolog == n_sd_untraced)` so they cannot drift silently if the cohort changes.
+
+### The ordering question is closed
+
+Of the 17 same-day cows the raw attention export could not place, **16 are inside the logged period**, and every one of them has its `NEDLAME` written **between 05:31 and 05:35**. Trimming does not start before 05:35. **So none of them is the camera reacting to an already-trimmed cow** - the suspicion that started the whole thread. They stay in the cohort, now for a measured reason rather than an assumed one. The 17th alerted on 4 June, before the logs begin.
+
+The same-day chunk had always rested on "the batch loads at ~05:00 and stamps the load day", which was inferred from the data and never observed. The logs show the `ENTER` commands running at 05:31-05:35 daily, immediately after the `FILEIN` of `lameness_checks.csv`. A load-bearing assumption became a measurement.
+
+### But "alerted before the trim" is not "found her first"
+
+The log audit turned up three cows (10250, 10769 on 23 Jun; 10114 on 7 Jul) with no trim list run after their alert. Tracing them explains why, and it is not a gap in the data:
+
+```
+DC260622.LOG:D 10:29   10250  6/22/26 CHKLAME LH   Prot:192 Check Lame
+DC260622.LOG:D 10:30   10769  6/22/26 CHKLAME LH   Prot:192 Check Lame
+DC260706.LOG:D 13:07   10114  7/ 6/26 CHKLAME RF   Prot:192 Check Lame
+```
+
+Each `CHKLAME` was entered *during* the previous afternoon's trim-list session. A human had already found these cows; the camera alerted the next morning at 05:33 with zero lead time.
+
+**The mistake was reporting that as "3 cows".** Three is what the log audit could see, because the audit only ever looked at the 17 cows the export could not place. Asking the same question of the event data - which needs no logs - gives the real number:
+
+| of the 52 same-day cows | |
+|---|---|
+| staff `CHKLAME` **exactly one day** before the alert | **24** |
+| no `CHKLAME` in the 7 days before | 28 |
+
+All 24 sit at lag = 1 exactly, and herd-wide only 27 of 849 cohort cows have a `CHKLAME` in the week before their first alert - so 24 of those 27 are this one group. **The pattern is the same-day group.** The split by arm is the design working:
+
+| | camera only | staff `CHKLAME` day before |
+|---|---|---|
+| Control | 5 | 13 |
+| TX (Trim) | 23 | 11 |
+
+A TX cow's alert auto-adds her to the list, so a same-day trim with no prior staff check is the protocol firing. A Control cow had to be found by someone.
+
+**Gerard's decision: they stay in the cohort** (excluding them would have taken it 849 -> 825 and removed 20 lesion cases). What changes is the credit, not the denominator - the report now says so in one computed line rather than leaving it invisible.
+
+**The generalisable error here is scope, not arithmetic.** A number measured on a subset that was selected for a *different* reason - "the ones the export could not trace" - was reported as if it described the whole. It was not wrong about the 17; it was silently wrong about the 52. Before quoting a count, check that the set it was computed on is the set the sentence is about.
+
+### The existing staff-flag section does not cover these cows
+
+Worth recording because it looked like it did. `fxn_build_control_trim_drivers()` measures the opposite direction in time: it takes Control cows with a trim **strictly after** the alert, then counts a `CHKLAME` falling **between** the alert and that trim - staff flagging as a driver of a trim the alert already prompted. The 24 have their trim **on** the alert date and their `CHKLAME` the day **before** it, outside both windows. **12 of the 24 do not appear in `trim_driver` at all, and only 2 are counted there as staff-flagged.** That section's 35.6% (80 of 225) is a different quantity and cannot stand in for this one.
+
+### The renumber trap: re-derived, and already known
+
+Cow 23144's 16 July alert could not be found in the 16 July log. It is there - filed as **cow 5502**:
+
+```
+DC260831.LOG:D 17:51   23144  8/31/26 XID     5502
+```
+
+**This is not a new finding.** Round 22 already recorded it, from Gerard's catch on cow 23143/14347, as a CRITICAL JOIN RULE and as *"FLAGGED, NOT FIXED: renumbering creates DUPLICATE animals... a step-00 processing question, not a report one."* Re-deriving it from a completely different source landed on exactly the same two pairs - **23143/14347 and 23144/5502, the only two that carry a `NEDLAME` under both numbers** - which is worth something as corroboration and worth noting as a warning: an hour went into rediscovering a documented finding because the log trail was followed without checking the memory first.
+
+What the logs add is small but real: `XID` is the reason a cow's alert can be invisible under her current number *in a contemporaneous record*, and the 31 August batch renumbered four cows at once (23147←638, 23144←5502, 23244←14886, 23243←7462). Checked against the event data: 413 `XID` events all time, 7 in 2026, 5 during the pilot.
+
+The fix does not need the logs - `XID` is exported as an event with the old ID in the `remark` field, so the pairs are recoverable from `events_formatted` alone. Enrollment already tests current and prior numbers (`enrolled_ids`); the duplicate-animal split at step 00 is still open.
+
+One dead end worth recording so nobody repeats it: the obvious detector - two `id_animal` values sharing `herdid` and `date_birth` - is useless. It returns 3,118 birthdates in this herd, because same-day births are ordinary. `XID` is the only reliable signal.
+
+### For the proposal
+
+**Ask for the command logs as a standing deliverable.** They are the only record of what actually ran, when, and in what order. They turned an unresolvable ambiguity into a closed question, and they cost one afternoon.
