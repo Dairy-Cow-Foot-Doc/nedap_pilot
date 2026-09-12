@@ -260,16 +260,16 @@ q4_sensor <- q4_sensor |>
       !in_coverage ~ "No Data (Outside Coverage)",
       caught_by_nedap ~ "Flagged, Caught in Time",
       warned_not_acted ~ "Alerted earlier, no action taken",
-      sensor_fired_in_window ~ "Flagged, Filtered Out",
+      sensor_fired_in_window ~ "Flagged, No Alert Raised",
       TRUE ~ "Never Flagged (True Miss)"
     ), levels = c(
-      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, Filtered Out",
+      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, No Alert Raised",
       "Never Flagged (True Miss)", "No Data (Outside Coverage)"
     ))
   )
 
 misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
-n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, Filtered Out")
+n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised")
 n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (True Miss)")
 # These two split the misses on a string. Rename a level anywhere and the
 # comparison quietly matches nothing: the counts go to zero, the page still
@@ -300,7 +300,7 @@ sensor_hits_completed <- q4_sensor |>
   summarize(fired_completed = any(sensor_hit), .groups = "drop")
 
 n_pipeline_loss_completed_only <- misses_in_coverage |>
-  filter(detection_group_3way == "Flagged, Filtered Out") |>
+  filter(detection_group_3way == "Flagged, No Alert Raised") |>
   left_join(sensor_hits_completed, by = c("id_animal", "lact_number", "date_event")) |>
   summarize(n = sum(coalesce(fired_completed, FALSE))) |>
   pull(n)
@@ -349,7 +349,7 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
     - This is not surprising considering the model being trained on locomotion scoring.
 
-- A further **`r n_pipeline_loss` were flagged by the camera but filtered out before a `NEDLAME` was raised.**
+- A further **`r n_pipeline_loss` were flagged by the camera but no `NEDLAME` was raised in time.**
 
   - Most of that is the enrollment rules working as designed.
 
@@ -1079,7 +1079,7 @@ A "miss" means **no useful warning reached DairyComp before the lesion was found
 
 Using the raw camera flag export data, the breakdown of those missed cow is as follows.
 
-1.  **`r n_pipeline_loss` the camera flagged her, but the flag was filtered out before a `NEDLAME` was raised.** She met the sensor's criteria and never entered the study.
+1.  **`r n_pipeline_loss` the camera flagged her, but no `NEDLAME` was raised in time.** She met the sensor's criteria and never entered the study.
 
     1.  Whether that is an pipeline failure or the enrollment rules working is shown below.
 
@@ -1091,7 +1091,7 @@ The figure below shows the lesion types found at all (cohort and non cohort cows
 
 - **Flagged, Caught in Time**
   - an alert landed in DairyComp inside the window before the lesion.
-- **Flagged, Filtered Out**
+- **Flagged, No Alert Raised**
   - the camera did flag her, but no `NEDLAME` was raised in DairyComp in time. Mostly the enrollment rules declining the flag on purpose rather than anything going missing - see @fig-pipeline-loss-injury-plot.
 - **Never Flagged (True Miss)**
   - the camera never saw a problem at all.
@@ -1115,7 +1115,7 @@ Lesion types with fewer than 20 cases are combined into one bar - separately the
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
 STATUS_LEV <- c("Flagged, Caught in Time", "Alerted earlier, no action taken",
-                "Flagged, Filtered Out", "Never Flagged (True Miss)")
+                "Flagged, No Alert Raised", "Never Flagged (True Miss)")
 
 les_base <- q4_sensor |>
   filter(in_coverage) |>
