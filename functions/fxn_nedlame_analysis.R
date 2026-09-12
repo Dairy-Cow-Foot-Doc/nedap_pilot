@@ -623,10 +623,39 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
     slice_min(date_event, n = 1, with_ties = FALSE) |>
     ungroup()
   
+  # lact_number must be resolved the SAME way fxn_build_cohort() resolves it,
+  # not taken from the raw event. When an alert fires on or just after the day
+  # a cow freshens, DC's raw field can still carry the lactation that just
+  # ENDED - 3 of 1,608 events here, all at DIM 0-1. Because cohort membership
+  # uses the resolved number and this lookback used the raw one, the same alert
+  # could be visible to one and invisible to the other: the cow was enrolled
+  # (she was alerted) AND counted a miss (her alert could not be found).
+  # Resolving both sides the same way makes them agree by construction.
   nedlame_all <- events_all |>
     filter(Event == "NEDLAME") |>
-    select(id_animal, lact_number, ned_date = date_event) |>
+    select(id_animal, ned_date = date_event) |>
     distinct()
+  n_nedlame_raw <- nrow(nedlame_all)
+  nedlame_all <- nedlame_all |>
+    inner_join(
+      animal_lactations |>
+        filter(!is.na(date_fresh)) |>
+        select(id_animal, lact_number, date_fresh),
+      by = "id_animal",
+      relationship = "many-to-many"
+    ) |>
+    filter(date_fresh <= ned_date) |>
+    group_by(id_animal, ned_date) |>
+    slice_max(date_fresh, n = 1, with_ties = FALSE) |>
+    ungroup() |>
+    select(id_animal, lact_number, ned_date)
+  # every alert must survive the resolve, or the lookback silently loses cases
+  if (nrow(nedlame_all) != n_nedlame_raw) {
+    stop("fxn_build_q4(): resolving NEDLAME lactations changed the row count ",
+         "from ", n_nedlame_raw, " to ", nrow(nedlame_all),
+         " - some alerts have no preceding freshening and would vanish from ",
+         "the lookback, making those cows look like misses.")
+  }
   
   q4 <- lame_lesion_recent |>
     mutate(
@@ -704,6 +733,14 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
       # the miss population every headline below is built from
       is_miss = !caught_by_nedap & !warned_not_acted
     )
+  # A cow who was alerted, trimmed, and only THEN developed a lesion has
+  # completed her alert-to-trim cycle - the lesion is a new episode, and a
+  # design that looks only at FIRST alerts cannot speak to it. Counting her as
+  # a miss blames the camera for not warning about something that happened
+  # after the system had already done its job. Gerard's ruling on cow 20444.
+  n_new_episode <- sum(q4$acted_on_alert)
+  q4 <- q4 |> filter(!acted_on_alert)
+
   n_warned_not_acted <- sum(q4$warned_not_acted)
   n_misses <- sum(q4$is_miss)
   stopifnot(n_misses + n_warned_not_acted + sum(q4$caught_by_nedap) == nrow(q4))
@@ -743,7 +780,7 @@ fxn_build_q4 <- function(cohort, all_nedlame_cows, lame_data, events_formatted, 
     nrow()
   n_never_alerted_excluded <- n_never_alerted_bucket - n_never_alerted_true
 
-  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, q4_group = q4_group, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded, n_warned_not_acted = n_warned_not_acted, n_misses = n_misses)
+  list(trims_for_suppression = trims_for_suppression, lame_lesion_recent_all = lame_lesion_recent_all, recent_trim_check = recent_trim_check, n_excluded_prefresh = n_excluded_prefresh, n_excluded_dry = n_excluded_dry, n_excluded_recent_trim = n_excluded_recent_trim, excluded_not_enrolled_cases = excluded_not_enrolled_cases, n_excluded_not_enrolled = n_excluded_not_enrolled, lame_lesion_recent = lame_lesion_recent, nedlame_all = nedlame_all, q4 = q4, n_truncated_lookback = n_truncated_lookback, q4_group = q4_group, never_alerted_rows = never_alerted_rows, n_never_alerted_bucket = n_never_alerted_bucket, n_never_alerted_true = n_never_alerted_true, n_never_alerted_excluded = n_never_alerted_excluded, n_warned_not_acted = n_warned_not_acted, n_misses = n_misses, n_new_episode = n_new_episode)
 }
 
 # Detection categories and the lesion-type breakdown.
@@ -876,7 +913,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
   #
   # This needs the FULL report's detection vocabulary. The farm report collapses
   # to two categories and never emits this label, deliberately.
-  miss_level <- "Flagged, but no alert in time"
+  miss_level <- "Flagged, Filtered Out"
   vocab <- unique(c(levels(q4_sensor$detection_group_3way),
                     as.character(q4_sensor$detection_group_3way)))
   if (!miss_level %in% vocab) {
@@ -886,7 +923,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
          ". This function needs the full report's detection vocabulary.")
   }
 
-  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, but no alert in time")
+  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, Filtered Out")
   
   # Which alert type(s) actually fired within the lookback window for each
   # pipeline-loss case - needed to restrict the injury/Leg-AboveFoot check
