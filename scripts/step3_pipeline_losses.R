@@ -63,7 +63,7 @@ q4_sensor <- qs |>
   # label must match what fxn_build_pipeline_by_design() filters on; when this
   # drifted the function silently matched nothing and returned zero for everything
   mutate(detection_group_3way = if_else(grp == "pipeline",
-                                        "Flagged, but no alert in time", "other"))
+                                        "Flagged, Filtered Out", "other"))
 bd <- fxn_build_pipeline_by_design(q4_sensor, att, events_formatted, events_all, lame_data)
 plc <- bd$pipeline_loss_cases
 cat("by design:", bd$n_pipeline_loss_by_design,

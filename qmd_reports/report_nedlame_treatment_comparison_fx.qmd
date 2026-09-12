@@ -202,6 +202,25 @@ n_warned_pilot     <- sum(q4$warned_not_acted &  in_pilot_case)
 stopifnot(n_caught_pilot + n_warned_pilot + n_miss_pilot == n_cases_pilot)
 stopifnot(n_miss_pilot + n_miss_unenrolled == n_misses,
           n_cases_pilot + n_cases_unenrolled == nrow(q4))
+
+# The misses section states n_miss_unenrolled and then splits it using
+# n_pipeline_loss and n_true_miss, which are computed over ALL misses. That is
+# only the same split while no miss sits inside the cohort. It was not always:
+# with the stale-lactation bug there were 3, and the section printed
+# 119 + 194 = 313 under a stated total of 310. The arithmetic assertions above
+# did not catch it, because both sums were individually true - they were just
+# taken over different populations.
+#
+# So assert the condition the PROSE depends on, not one that happens to hold.
+# If a cohort miss ever reappears, halt: the split needs restricting to the
+# unenrolled cases (filter misses_in_coverage on tx_group) before it can be
+# quoted against n_miss_unenrolled again.
+if (n_miss_pilot != 0)
+  stop("n_miss_pilot is ", n_miss_pilot, ", not 0. The misses section splits ",
+       "n_miss_unenrolled (", n_miss_unenrolled, ") with the herd-wide ",
+       "n_pipeline_loss / n_true_miss, which is only valid while every miss is ",
+       "outside the cohort. Restrict that split to unenrolled cases before ",
+       "quoting it.")
 ```
 
 ```{r}
@@ -241,41 +260,21 @@ q4_sensor <- q4_sensor |>
       !in_coverage ~ "No Data (Outside Coverage)",
       caught_by_nedap ~ "Flagged, Caught in Time",
       warned_not_acted ~ "Alerted earlier, no action taken",
-      sensor_fired_in_window ~ "Flagged, but no alert in time",
+      sensor_fired_in_window ~ "Flagged, Filtered Out",
       TRUE ~ "Never Flagged (True Miss)"
     ), levels = c(
-      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, but no alert in time",
+      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, Filtered Out",
       "Never Flagged (True Miss)", "No Data (Outside Coverage)"
     ))
   )
 
 misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
-n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, but no alert in time")
+n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, Filtered Out")
 n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (True Miss)")
 # These two split the misses on a string. Rename a level anywhere and the
 # comparison quietly matches nothing: the counts go to zero, the page still
 # renders, and the numbers just come out wrong. Happened in the farm report.
 stopifnot(n_pipeline_loss + n_true_miss == nrow(misses_in_coverage))
-
-# The SAME split, restricted to cows the pilot never enrolled. The misses
-# section quotes its breakdown against n_miss_unenrolled, which excludes the
-# in-cohort misses - so the herd-wide n_true_miss cannot be used there. It was:
-# 119 + 194 = 313 printed under a stated total of 310, because the 3 in-cohort
-# misses are inside n_true_miss but outside n_miss_unenrolled. Same class of
-# error as the 240 + 26 + 3 = 269 one above: a split taken from one population
-# and quoted against another population's denominator.
-misses_unenrolled <- misses_in_coverage |>
-  filter(tx_group == "Never Alerted (Not in Pilot Cohort)")
-n_pipeline_loss_unenrolled <- sum(misses_unenrolled$detection_group_3way ==
-                                    "Flagged, but no alert in time")
-n_true_miss_unenrolled     <- sum(misses_unenrolled$detection_group_3way ==
-                                    "Never Flagged (True Miss)")
-# The second assertion is deliberately strict: the prose claims the unenrolled
-# misses split exactly two ways. If any of them ever falls outside sensor
-# coverage the claim needs a third line, so halting is the correct outcome.
-stopifnot(n_pipeline_loss_unenrolled + n_true_miss_unenrolled == nrow(misses_unenrolled),
-          nrow(misses_unenrolled) == n_miss_unenrolled)
-
 pct_pipeline_loss <- round(100 * n_pipeline_loss / nrow(misses_in_coverage), 1)
 n_outside_coverage <- sum(!q4_sensor$in_coverage)
 # Misses specifically that fall outside coverage - the figure that belongs
@@ -301,7 +300,7 @@ sensor_hits_completed <- q4_sensor |>
   summarize(fired_completed = any(sensor_hit), .groups = "drop")
 
 n_pipeline_loss_completed_only <- misses_in_coverage |>
-  filter(detection_group_3way == "Flagged, but no alert in time") |>
+  filter(detection_group_3way == "Flagged, Filtered Out") |>
   left_join(sensor_hits_completed, by = c("id_animal", "lact_number", "date_event")) |>
   summarize(n = sum(coalesce(fired_completed, FALSE))) |>
   pull(n)
@@ -350,7 +349,7 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
     - This is not surprising considering the model being trained on locomotion scoring.
 
-- A further **`r n_pipeline_loss` were flagged but no alert reached DairyComp in time.**
+- A further **`r n_pipeline_loss` were flagged by the camera but filtered out before a `NEDLAME` was raised.**
 
   - Most of that is the enrollment rules working as designed.
 
@@ -1080,11 +1079,11 @@ A "miss" means **no useful warning reached DairyComp before the lesion was found
 
 Using the raw camera flag export data, the breakdown of those missed cow is as follows.
 
-1.  **`r n_pipeline_loss_unenrolled` the camera flagged her, but no alert reached DairyComp in time.** She met the sensor's criteria and never entered the study.
+1.  **`r n_pipeline_loss` the camera flagged her, but the flag was filtered out before a `NEDLAME` was raised.** She met the sensor's criteria and never entered the study.
 
     1.  Whether that is an pipeline failure or the enrollment rules working is shown below.
 
-2.  **`r n_true_miss_unenrolled` the camera never flagged at all.**
+2.  **`r n_true_miss` the camera never flagged at all.**
 
 ## What Lesions are being missed?
 
@@ -1092,20 +1091,22 @@ The figure below shows the lesion types found at all (cohort and non cohort cows
 
 - **Flagged, Caught in Time**
   - an alert landed in DairyComp inside the window before the lesion.
-- **Flagged, but no alert in time**
-  - the camera did flag her, but no alert reached DairyComp in time.
+- **Flagged, Filtered Out**
+  - the camera did flag her, but no `NEDLAME` was raised in DairyComp in time. Mostly the enrollment rules declining the flag on purpose rather than anything going missing - see @fig-pipeline-loss-injury-plot.
 - **Never Flagged (True Miss)**
   - the camera never saw a problem at all.
 - **Alerted earlier but no action taken**.
-  - camera flagged the cow but for unknow reasons she was not trimmed.
+  - camera flagged the cow but for unknown reasons she was not trimmed.
 
 Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
 
-Two views of the same cases, because either one alone invites a wrong reading. **Panel A** asks how often each lesion is caught. **Panel B** asks what each outcome tends to be, with *Flagged, Caught in Time* as the comparison column - without it, a common lesion looks like a blind spot simply by being common.
+- **Panel A** asks how often each lesion is caught.
 
-The four-way split is kept deliberately. The farm report collapses it to alerted / not alerted, which is what the farm needs; Nedap needs *flagged, but no alert in time* (an integration problem) held apart from *never flagged* (a detection problem).
+  - \% caught in time is listed inside the figure.
 
-Lesion types with fewer than 20 cases are combined into one bar - separately they are too few to carry a percentage.
+- **Panel B** asks what lesion each flag outcome tends to be, with *Flagged, Caught in Time* as the comparison column
+
+Lesion types with fewer than 20 cases are combined into one bar - separately they are too few to carry a percentage. Other is a combination category that holds lesions that were infrequent.
 
 ```{r}
 #| label: fig-q4-lesion-types
@@ -1114,7 +1115,7 @@ Lesion types with fewer than 20 cases are combined into one bar - separately the
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
 STATUS_LEV <- c("Flagged, Caught in Time", "Alerted earlier, no action taken",
-                "Flagged, but no alert in time", "Never Flagged (True Miss)")
+                "Flagged, Filtered Out", "Never Flagged (True Miss)")
 
 les_base <- q4_sensor |>
   filter(in_coverage) |>
@@ -1182,7 +1183,7 @@ p_lesion_rate <- ggplot(rate_by_lesion, aes(x = lt, y = pct, fill = fct_rev(stat
   theme_minimal() +
   labs(x = NULL, y = "% of cases with that lesion", fill = NULL,
        title = "A. How often is each lesion caught?",
-       subtitle = "Within each lesion type, best at the top. The figure inside each bar is the share caught in time.") +
+       ) +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
         axis.text.y = element_text(colour = rev(les_pal[les_ord]), face = "bold"),
         panel.grid.major.y = element_blank())
@@ -1212,12 +1213,12 @@ p_lesion_mix <- ggplot(mix_by_status, aes(x = status, y = pct, fill = lt)) +
   coord_flip(clip = "off") +
   scale_y_continuous(labels = function(x) paste0(x, "%"),
                      expand = expansion(mult = c(0.10, 0.10))) +
-  scale_fill_manual(values = les_pal, guide = guide_legend(nrow = 1, reverse = TRUE)) +
+  scale_fill_manual(values = les_pal, guide = guide_legend(nrow = 2, reverse = TRUE)) +
   scale_x_discrete(labels = function(x) gsub(", ", ",\n", x)) +
   theme_minimal() +
   labs(x = NULL, y = "% of cases in that status", fill = NULL,
-       title = "B. What does each outcome tend to be?",
-       subtitle = "Outcomes best to worst reading down. Bars do not sum to 100% - a cow can carry more than one lesion.") +
+       title = "B. What lesion does each outcome tend to be?",
+       subtitle = "Bars do not sum to 100% as a cow can have 1+ lesions.") +
   theme(legend.position = "bottom", plot.title = element_text(face = "bold", size = 11),
         axis.text.y = element_text(size = 8), panel.grid.major.y = element_blank())
 
@@ -1228,17 +1229,19 @@ pctm <- function(l, s) round(mix_by_status$pct[mix_by_status$lt == l & mix_by_st
 p_lesion_rate / p_lesion_mix
 ```
 
-Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LEV[1])`%** of DD cases in time against **`r pctl('wld', STATUS_LEV[1])`%** of white line, and DD is **`r pctm('dd', STATUS_LEV[4])`%** of the cases it never flagged against **`r pctm('dd', STATUS_LEV[1])`%** of those it caught. White line runs the other way on both counts. Hemorrhage, injury and "other" - typically corkscrew claw on this farm - sit in between.
+- Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LEV[1])`%** of DD cases in time against **`r pctl('wld', STATUS_LEV[1])`%** of white line
 
-None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss. What this adds is the size of the gap on this farm, and that it is specific rather than general: white line, which does change how a cow walks, is caught well.
+- DD is **`r pctm('dd', STATUS_LEV[4])`%** of the cases it never flagged against **`r pctm('dd', STATUS_LEV[1])`%** of those it caught.
 
-One point for Nedap in particular: **DD is over-represented in both failure modes**, not only in detection. It is `r pctm('dd', STATUS_LEV[3])`% of the cases whose flag produced no `NEDLAME`, as well as `r pctm('dd', STATUS_LEV[4])`% of those never flagged at all. **The first of those is the surprising one** - it rests on only `r n_by_status$n_cases[n_by_status$status == STATUS_LEV[3]]` cases, so it may be noise, but it is worth putting to Nedap rather than leaving unstated.
+None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss.
 
-`r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are combined into a single bar.
+The `r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are pooled into the "rare types (combined)" bar.
 
 ## Which leg is being missed?
 
-The same cases split by which foot the lesion was found on. A cow can have lesions on more than one foot, so the bars add to more than `r nrow(q4_group)` cases.
+Below is all lesions found by the trimmer split by which foot the lesion was found on and if it was alerted or not. A cow can have lesions on more than one foot, so the bars add to more than `r nrow(q4_group)` cases.
+
+- Similar % for front vs rear so no clear pattern of the camera missing front feet.
 
 ```{r}
 #| label: fig-missed-by-leg
@@ -1300,86 +1303,15 @@ ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group_3way)) +
   coord_flip(clip = "off") +
   scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
                      limits = c(0, 118), expand = expansion(mult = c(0, 0))) +
-  scale_fill_viridis_d() +
+  scale_fill_viridis_d(guide = guide_legend(reverse = TRUE, nrow = 2)) +
   theme_minimal() +
   labs(x = NULL, y = "% of cases on that foot", fill = NULL) +
   theme(legend.position = "bottom")
 ```
 
-Rear feet account for `r n_legs_rear` of the `r n_legs_rear + n_legs_front` foot-level lesions, front feet `r n_legs_front`. That is where lesions occur, not where the camera fails - which segment of a stacked bar is tallest says nothing about detection, because every segment scales with how common lesions are on that foot. Whether the camera misses front feet more than hind feet is asked directly below.
+### Was it a NEDAP Now problem?
 
-## What is the camera actually missing?
-
-```{r}
-#| label: true-miss-build
-
-checkable <- q4_sensor |>
-  filter(in_coverage) |>
-  mutate(camera = if_else(detection_group_3way == "Never Flagged (True Miss)",
-                          "Camera never flagged", "Camera flagged her"))
-
-n_cam_miss <- sum(checkable$camera == "Camera never flagged")
-n_cam_flag <- sum(checkable$camera == "Camera flagged her")
-# Same trap, same guard: both groups non-empty and accounting for every case.
-stopifnot(n_cam_miss > 0, n_cam_flag > 0, n_cam_miss + n_cam_flag == nrow(checkable))
-
-lesion_by_camera <- lame_lesion_recent |>
-  select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
-  inner_join(checkable |> select(id_animal, lact_number, date_event, camera),
-             by = c("id_animal", "lact_number", "date_event")) |>
-  pivot_longer(all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
-  filter(has_lesion == 1) |>
-  count(camera, lesion_type) |>
-  mutate(pct = if_else(camera == "Camera never flagged", 100 * n / n_cam_miss, 100 * n / n_cam_flag))
-
-pct_dd_miss  <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "dd"  & lesion_by_camera$camera == "Camera never flagged"], 0)
-pct_dd_flag  <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "dd"  & lesion_by_camera$camera == "Camera flagged her"], 0)
-pct_wld_miss <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "wld" & lesion_by_camera$camera == "Camera never flagged"], 0)
-pct_wld_flag <- round(lesion_by_camera$pct[lesion_by_camera$lesion_type == "wld" & lesion_by_camera$camera == "Camera flagged her"], 0)
-
-# Front/rear share within each group, computed here rather than inline so the
-# prose stays readable.
-leg_end <- leg_long |>
-  mutate(end = if_else(str_detect(leg, "Rear"), "Rear", "Front")) |>
-  distinct(id_animal, lact_number, date_event, end)
-
-leg_by_camera <- leg_end |>
-  inner_join(checkable |> select(id_animal, lact_number, date_event, camera),
-             by = c("id_animal", "lact_number", "date_event")) |>
-  count(camera, end) |>
-  group_by(camera) |>
-  mutate(pct = 100 * n / sum(n)) |>
-  ungroup()
-
-pct_rear_miss <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera never flagged" & leg_by_camera$end == "Rear"], 0)
-pct_rear_flag <- round(leg_by_camera$pct[leg_by_camera$camera == "Camera flagged her"   & leg_by_camera$end == "Rear"], 0)
-```
-
-The `r n_cam_miss` cases the camera never flagged are compared below against the `r n_cam_flag` it did. Both sit inside the sensor coverage window, so both have raw flag data behind them. Percentages are within each group, and a cow can have several lesion types and several affected feet, so they add to more than 100%.
-
-```{r}
-#| label: fig-true-miss-lesion
-#| fig-height: 4
-
-lesion_by_camera |>
-  ggplot(aes(x = fct_reorder(lesion_type, pct, .fun = max), y = pct, fill = camera)) +
-  geom_col(position = position_dodge(width = 0.7), width = 0.6) +
-  coord_flip() +
-  scale_fill_viridis_d() +
-  theme_minimal() +
-  labs(x = NULL, y = "% of cases in that group", fill = NULL) +
-  theme(legend.position = "bottom")
-```
-
-- **Digital dermatitis is over-represented**: `r pct_dd_miss`% of the cases the camera never flagged, against `r pct_dd_flag`% of the ones it did flag.
-
-- **White line is the opposite**: `r pct_wld_miss`% of misses vs `r pct_wld_flag`% of flagged cases. The camera picks white line up well.
-
-- **Front versus hind is not where the difference is.** Rear feet are `r pct_rear_miss`% of the missed cases against `r pct_rear_flag`% of the ones the camera did flag. Hind-foot lesions dominate both groups in much the same proportion, so there is no sign the camera is specifically blind to front feet.
-
-So the difference is in the lesion, not the limb. That is no surprise: locomotion scoring detects digital dermatitis poorly, and the camera scores locomotion, so a lesion that barely changes how a cow walks is the one it will miss. What this adds is the size of the gap here, and that it is specific rather than general - white line, which does change the gait, is caught well.
-
-Since we are running a separate SmartSight instance, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
+Since we are running a separate SmartSight instance for NEDAP Now, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
 
 ```{r}
 #| label: platform-enrollment-build
@@ -1439,30 +1371,38 @@ n_l1_after_on_activity <- sum(l1_after$on_activity)
 
 ```
 
-`r n_excluded_not_enrolled` lesion cases were excluded on this basis, and they are no longer counted as misses anywhere above.
+- `r n_excluded_not_enrolled` lesion cases were excluded on this basis, and they are no longer counted as misses anywhere above.
 
-Those are only the unenrolled cows who also happened to get a lesion, so they understate the problem. Asking the question directly - of every first-lactation cow that freshened in the window, how many are on each platform:
+- Digging further showed that
 
-```{r}
-#| label: tbl-enrollment-by-month
+  - The most recent freshening among first-lactation cows who *are* on SmartSight was **`r format(last_enrolled_fresh)`**.
 
-enroll_by_month |>
-  gt() |>
-  tab_header(title = "SmartSight enrollment of first-lactation cows stops; Activity does not") |>
-  tab_source_note("Activity is the control here. Both lists were pulled on the same day, so a drop in one and not the other cannot be an export problem.")
-```
+  - After that date **`r n_l1_after_unenrolled` first-lactation cows are absent** in the SmartSight instance.
 
-- The most recent freshening among first-lactation cows who *are* on SmartSight is **`r format(last_enrolled_fresh)`**. Before that date `r pct_l1_before_enrolled`% were enrolled; after it, **`r n_l1_after_unenrolled` first-lactation cows are absent**, and `r n_l1_after_on_activity` of them are on Activity.
-
-- Both lists were pulled on the same day, well after the cut-off, so this is not a stale-export artifact. A drop in SmartSight with Activity unaffected points at enrollment having stopped, not at data transfer.
-
-- **Animal numbers get reassigned, and that had to be handled before this check could be trusted.** DairyComp logs an ID change as an `XID` event holding the old number, and `r nrow(id_aliases)` such changes appear in this extract. A cow renumbered after she was enrolled looks absent under her current number while being present under her old one - cow 23143, renumbered from 14347, is enrolled all along as 14347. Enrollment is therefore checked against a cow's current *and* prior numbers; `r n_rescued_by_alias` animals are only found that way.
 
 ## Why Did No Alert Arrive in Time?
 
-Two rules limit which cows can become a `Low` alert: a score under 31, and no history of upper-leg lameness (`Leg-AboveFoot` in the trim `protocols`).
+Due to the DairyComp and data entry set up there are several ways a cow that is flagged would not have a NEDAP Lame event (see @fig-pipeline-loss-injury-plot)
 
-Score-at-flag isn't available in this data, so only the injury/`Leg-AboveFoot` half of this can be checked. It is shown in the figure below.
+- A low score \<31 but recently trimmed or flagged
+
+  - `r n_only_ftdat` had every flag land inside its own `FTDAT` window (90 days for `Low`, 28 for the declines).
+
+- A low score and an injury event
+
+  - `r n_only_injury` had a history of upper-leg lameness (`Leg-AboveFoot`), which blocks the `Low` route.
+
+- Cow flagged after trim data but trim data was entered retrospectively.
+
+  - `r n_only_late` did get an alert, but it arrived a day after the lesion was recorded.
+
+That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_cases)`**. The remaining `r n_pipeline_loss_unexplained` are not explained by any of those rules - but they are not all failures either, and the split matters:
+
+- **`r n_pipeline_loss_unknowable` cannot be judged at all.** Only a `LOW` flag fired, and the `Low` route requires a score of 1-30. Score-at-flag is not in this data, so a cow scoring 31-69 who was correctly declined looks exactly like a lost flag.
+
+- **`r n_pipeline_loss_genuine` are genuine pipeline losses.** A decline route fired, and the decline routes carry no score gate.
+
+  - Since we don't have the actual files that were filed in it is unclear if those cows made it to that stage.
 
 ```{r}
 #| label: fig-pipeline-loss-injury-plot
@@ -1483,28 +1423,6 @@ pipeline_loss_cases |>
   scale_y_continuous(expand = expansion(mult = c(0, 0.15)))
 ```
 
-**Every cow in this section was still missed.** She is counted in the `r sum(q4_sensor$is_miss)` above either way — the question here is only whether the camera's signal went astray on the way to DairyComp, or whether the system was correctly declining to raise an alert.
-
-Four rules can explain this without anything having gone missing. Each case is counted once, under the first rule that applies, so the figures below add to `r nrow(pipeline_loss_cases)`. Of those cases:
-
-- `r n_only_ftdat` had every flag land inside its own `FTDAT` window (90 days for `Low`, 28 for the declines). DairyComp was right to skip them.
-
-- `r n_only_injury` were `LOW`-only flags on cows with upper-leg lameness history, which blocks the `Low` route.
-
-`r if (n_only_dsnlm > 0) paste0('- ', n_only_dsnlm, ' had every flag suppressed by DSNLM: she had already been alerted inside the window (90 days on the Low route, 7 on the declines), so a repeat alert is deliberately withheld to keep the cowcard clean.') else paste0('- No case is now explained by DSNLM alone. That rule needs a prior NEDLAME before the flag, and a cow with an earlier alert has already left this population - either caught inside the lookback, or set aside as warned-and-not-acted-on. The two rules overlap almost entirely. It is not unreachable: a cow alerted, then trimmed, then flagged again inside the 7-day decline window would still land here, because the trim keeps her a miss. None currently does.')`
-
-- `r n_only_late` did get an alert into DairyComp — the day after the lesion, too late to act on. The daily batch runs at \~5am and stamps an alert with the day it was loaded, so an attention after \~5am on day D is logged as D+1, landing just outside a lookback that only looks backward. Two readings fit and the data cannot separate them: either that flag arrived late, or the camera made a fresh observation of her post-trim gait and *that* is what came through. Under the second reading the original flag really was lost. Either way she was missed, and either way DairyComp was receiving something from the camera around that date — which is why these are not counted among the confirmed losses below.
-
-That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_cases)`**. The remaining `r n_pipeline_loss_unexplained` are not all failures either, and it matters to separate them:
-
-- **`r n_pipeline_loss_unknowable` cannot be judged at all.** Only a `LOW` flag fired, and the `Low` route requires a score of 1-30. Score-at-flag is not in this data, so a cow scoring 31-69 who was correctly declined looks exactly like a lost flag. These are unresolved, not unexplained.
-
-- **`r n_pipeline_loss_genuine` are genuine pipeline losses.** A decline route fired, and the decline routes carry no score gate — so there is no rule left that would explain the silence. These are the cases worth taking to Nedap, and cow-level detail for them is in `pipeline_losses.xlsx`.
-
-So the integration problem is **`r n_pipeline_loss_genuine` confirmed cases, not `r nrow(pipeline_loss_cases)`** — with an upper bound of `r n_pipeline_loss_unexplained` if every unjudgeable case turned out to be a failure, which is unlikely.
-
-One earlier caveat is retired. The `FTDAT` lookup is now cow-level, matching DairyComp, where it is a lifetime date that does not reset at freshening. It used to be scoped to the current lactation, which hid prior-lactation trims and under-counted the correct suppressions. The remaining `r n_pipeline_loss_unknowable` are unjudgeable for the score reason alone.
-
 ## Of the Misses, Did Farm Staff Catch Them Anyway?
 
 ```{r}
@@ -1513,70 +1431,6 @@ One earlier caveat is retired. The `FTDAT` lookup is now cow-level, matching Dai
 invisible(list2env(fxn_build_staff_catch(q4, chklame), environment()))
 ```
 
-Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed on the routine round or because staff picked them out),
+Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed by routine trimming or because staff picked them out),
 
 - `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
-
-## Summarizing the Misses
-
-Each check above narrows a different group of cows, so the percentages don't share a denominator. The table below ties them together. Indented rows are splits of the row above, and the "% of" column always refers to the base named beside it.
-
-```{r}
-#| label: tbl-q4-reconciliation
-
-n_caught_total <- sum(q4$caught_by_nedap)
-n_staff_caught <- sum(staff_catch$staff_flagged)
-
-q4_recon <- tibble::tribble(
-  ~step, ~n, ~base, ~base_n,
-  "Qualifying lesion cases (after eligibility exclusions)", nrow(q4), "—", NA_integer_,
-  " Caught by NEDAP in time", n_caught_total, "qualifying cases", nrow(q4),
-  " Not caught — \"misses\"", n_total_misses, "qualifying cases", nrow(q4),
-  "  Within raw sensor coverage (checkable)", nrow(misses_in_coverage), "misses", n_total_misses,
-  "  Outside coverage (not checkable yet)", n_misses_outside_coverage, "misses", n_total_misses,
-  "   Flag fired anyway — candidate pipeline loss", n_pipeline_loss, "checkable misses", nrow(misses_in_coverage),
-  "   Never flagged — true miss", n_true_miss, "checkable misses", nrow(misses_in_coverage),
-  "    Of candidates: blocked by its own FTDAT window", n_pipeline_loss_ftdat_blocked, "candidates", n_pipeline_loss,
-  "    Of candidates: LOW-only + injury/upper-leg history", n_pipeline_loss_injury_explained, "candidates", n_pipeline_loss,
-  "    Of candidates: by design overall (either rule)", n_pipeline_loss_by_design, "candidates", n_pipeline_loss,
-  "    Of candidates: cannot tell (LOW only, no score)", n_pipeline_loss_unknowable, "candidates", n_pipeline_loss,
-  "    Of candidates: GENUINE pipeline loss", n_pipeline_loss_genuine, "candidates", n_pipeline_loss
-) |>
-  mutate(pct = if_else(is.na(base_n), NA_real_, 100 * n / base_n))
-
-q4_recon |>
-  select(step, n, pct, base) |>
-  gt() |>
-  fmt_number(columns = pct, decimals = 1) |>
-  sub_missing(columns = pct, missing_text = "") |>
-  cols_label(step = "", n = "N", pct = "% of base", base = "…of what") |>
-  cols_align(align = "left", columns = step) |>
-  tab_header(
-    title = "Q4 Reconciliation: How the Populations Nest",
-    subtitle = "Indented rows split the row above them"
-  ) |>
-  tab_source_note(source_note = paste0(
-    "Cows never enrolled in SmartSight are excluded before this chain starts (",
-    n_excluded_not_enrolled, " lesion cases), on the same basis as dry cows and unfreshened heifers - ",
-    "so they are not a row here and the residual inside the chain is ", n_residual_not_in_smartsight, ". ",
-    "One check does cut ACROSS the chain rather than extending it: ", n_staff_caught, " of the ", n_total_misses,
-    " misses were independently flagged by staff, which can apply to any row."))
-```
-
-**The bottom line of this:**
-
-- of the `r n_total_misses` cases DairyComp records as missed,
-
-- only `r nrow(misses_in_coverage)` can currently be checked against the raw sensor feed at all.
-
-  Within that checkable slice,
-
-- `r n_true_miss` are genuine missing alerts
-
-- `r n_pipeline_loss` are cases where the camera did flag her
-
-  - `r n_pipeline_loss_by_design` were correct by-design suppressions (`FTDAT` window or injury/upper-leg rule), not integration failures,
-
-  - `r n_pipeline_loss_unknowable` cannot be judged, because only a `LOW` flag fired and score-at-flag is not in the data,
-
-  - leaving **`r n_pipeline_loss_genuine` genuine pipeline losses** — `r round(100 * n_pipeline_loss_genuine / nrow(misses_in_coverage), 1)`% of the checkable misses. That, not the headline miss rate, is the size of the integration problem.
