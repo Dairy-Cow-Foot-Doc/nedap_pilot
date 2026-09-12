@@ -256,6 +256,26 @@ n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (Tr
 # comparison quietly matches nothing: the counts go to zero, the page still
 # renders, and the numbers just come out wrong. Happened in the farm report.
 stopifnot(n_pipeline_loss + n_true_miss == nrow(misses_in_coverage))
+
+# The SAME split, restricted to cows the pilot never enrolled. The misses
+# section quotes its breakdown against n_miss_unenrolled, which excludes the
+# in-cohort misses - so the herd-wide n_true_miss cannot be used there. It was:
+# 119 + 194 = 313 printed under a stated total of 310, because the 3 in-cohort
+# misses are inside n_true_miss but outside n_miss_unenrolled. Same class of
+# error as the 240 + 26 + 3 = 269 one above: a split taken from one population
+# and quoted against another population's denominator.
+misses_unenrolled <- misses_in_coverage |>
+  filter(tx_group == "Never Alerted (Not in Pilot Cohort)")
+n_pipeline_loss_unenrolled <- sum(misses_unenrolled$detection_group_3way ==
+                                    "Flagged, but no alert in time")
+n_true_miss_unenrolled     <- sum(misses_unenrolled$detection_group_3way ==
+                                    "Never Flagged (True Miss)")
+# The second assertion is deliberately strict: the prose claims the unenrolled
+# misses split exactly two ways. If any of them ever falls outside sensor
+# coverage the claim needs a third line, so halting is the correct outcome.
+stopifnot(n_pipeline_loss_unenrolled + n_true_miss_unenrolled == nrow(misses_unenrolled),
+          nrow(misses_unenrolled) == n_miss_unenrolled)
+
 pct_pipeline_loss <- round(100 * n_pipeline_loss / nrow(misses_in_coverage), 1)
 n_outside_coverage <- sum(!q4_sensor$in_coverage)
 # Misses specifically that fall outside coverage - the figure that belongs
@@ -454,17 +474,7 @@ n_sd_staff_first <- sd_trim |>
 
   - See @tbl-post-trim-exclusion-table. for details on these cows
 
-- **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim**, which the 1-`r params$post_trim_exclusion_days` day rule above cannot catch.
-
-  - From the DairyComp event date alone there is no way to say which came first, because the `NEDLAME` carries the date the 05:00 command ran rather than the date the camera detected her.
-
-    - The raw attention export shows that for `r n_sd_traced` of them they were alerted before trimming and would have been on the trim list.
-
-      - For the remaining `r n_sd_untraced` no attention falls in that window, so these were checked by hand against the DairyComp command logs. `r n_sd_log_checked` fall inside the logged period; the last alerted on 4 June, before the logs begin.
-
-      - **In every one of those `r n_sd_log_checked` the `NEDLAME` event was written between 05:31 and 05:35**, hours before trimming starts, so none of them is the camera reacting to a trim. All are kept in the cohort.
-
-  - Being alerted before the trim is not the same as being the reason for it. `r n_sd_staff_first` of the `r n_same_day_trim` had a staff locomotion check (`CHKLAME`) entered the day *before* the alert, so they were already on the trim list and the camera did not put them there. They stay in the cohort, but the camera should not be credited with finding them.
+- **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim** based on DairyComp logs and raw NEDAP flag exports they were flagged before trimming and considered part of the cohorts
 
 With above exclusions and conditions it resulted in
 
@@ -1070,25 +1080,15 @@ A "miss" means **no useful warning reached DairyComp before the lesion was found
 
 Using the raw camera flag export data, the breakdown of those missed cow is as follows.
 
-1.  **`r n_pipeline_loss` the camera flagged her, but no alert reached DairyComp in time.** She met the sensor's criteria and never entered the study.
+1.  **`r n_pipeline_loss_unenrolled` the camera flagged her, but no alert reached DairyComp in time.** She met the sensor's criteria and never entered the study.
 
-    1.  Whether that is an pipeline failure or the enrolment rules working is shown below.
+    1.  Whether that is an pipeline failure or the enrollment rules working is shown below.
 
-2.  **`r n_true_miss` the camera never flagged at all.**
-
-
-
-Two of the four outcomes come from DairyComp alone - *Flagged, Caught in Time* and *Alerted earlier, no action taken*. The other two can only be told apart using the raw Nedap export: without it there is no way to distinguish a flag that never arrived from a cow the camera never saw.
-
-### How solid are those two numbers?
-
-`r if (n_misses_outside_coverage > 0) paste0("- The other ", n_misses_outside_coverage, " misses were diagnosed after ", format(nedap_coverage_end), ", which the current export can't see. These are left unclassified rather than assumed.") else paste0("Every miss here is checkable against the raw sensor feed: the analysis stops at ", format(analysis_end), ", the last day the Nedap export covers.")`
-
-One judgement call sits behind these numbers. `r n_attentions_incomplete` of the resolved flags are marked not completed in the raw export, and are counted here as the camera having flagged the cow. `r n_pipeline_loss_incomplete_only` of the `r n_pipeline_loss` pipeline losses rest on such a flag alone; counting only completed flags would give `r n_pipeline_loss_completed_only`. Stated rather than assumed.
+2.  **`r n_true_miss_unenrolled` the camera never flagged at all.**
 
 ## What Lesions are being missed?
 
-The figure below shows the lesion types found at these first-diagnosis cases, broken out by NEDAP detection status:
+The figure below shows the lesion types found at all (cohort and non cohort cows) first-diagnosis cases, broken out by NEDAP detection status:
 
 - **Flagged, Caught in Time**
   - an alert landed in DairyComp inside the window before the lesion.
