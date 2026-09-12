@@ -270,3 +270,13 @@ So `CHKLAME` is **not a trim list**. At this farm it is recorded at the trim, do
 
 Added to §6 with the trial-specific reason: **compliance is an outcome**. “Not trimmed within a week” is the protocol failing if she was never listed, and an execution miss if she was listed and not caught — only the first is about the system under test. It also gives §4's arm-3 route recording directly, as a row rather than an inference from event codes.
 
+
+## THE AUTO-ADD, WHICH THE PROPOSAL HAD NOT SPECIFIED (2026-09-11)
+
+The other session found that in the pilot a treated-arm alert **auto-added** the cow to the trim list - 23 treated-arm same-day trims had no prior staff check, which is the protocol firing rather than anyone noticing her. Control split the other way: 13 staff-first against 5 camera-only.
+
+**The proposal described arm 3 as "alerted and recorded, not acted on" without ever saying how an alert reaches the list.** Auto-add is the system default. If it fires for every arm, arm 3 is trimmed by the system instead of by farm practice and the primary contrast is destroyed at source - silently, from day one, with nothing in the data to show it. Section 2 now specifies it per arm: within a week in arm 1, at four weeks in arm 2, never in arm 3.
+
+Also settled: 96 DairyComp command logs show every NEDLAME written 05:31-05:35, immediately after the lameness file-in, with trimming never starting before 05:35. The same-day ordering question is now measured rather than inferred, and section 6 cites it.
+
+And a caution recorded in the MCP: **fxn_build_control_trim_drivers() cannot answer "did staff find her before the camera did"** - its windows run the other way in time, so 12 of the 24 staff-first cows are absent from its output entirely. Its 35.6% is a different quantity. The proposal does not quote it, checked.

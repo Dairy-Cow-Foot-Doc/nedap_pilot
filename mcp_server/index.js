@@ -158,6 +158,14 @@ server.registerTool(
       text: JSON.stringify(
         [
           {
+            check: "Before quoting a count, is the SET it was computed on the same set your sentence describes? Not the denominator - the population.",
+            why: "A CHKLAME finding was first reported as 3 cows. That was the right answer for the 17 cows an audit happened to be looking at, not for the group the sentence was about; the correct answer over the event data was 24. Both numbers were correctly computed. The error was that the set drifted between the computation and the claim, which no amount of re-checking the arithmetic would catch.",
+          },
+          {
+            check: "Does a function's name promise more than its windows deliver? Check the actual filter directions before reusing its output for a new question.",
+            why: "fxn_build_control_trim_drivers() answers 'did staff flagging drive a trim the alert had already prompted' - first_post_alert_trim requires date_event > first_nedlame_date and chk_before_trim requires chk_date >= first_nedlame_date. It therefore cannot see a cow whose CHKLAME came BEFORE her alert, which is exactly the 'did staff find her first' question. 12 of the 24 such cows are absent from its output entirely and only 2 are counted as staff_flagged. Its 35.6% is a different quantity and must not be quoted as 'the % staff also flagged'.",
+          },
+          {
             check: "Are you matching DairyComp event names by SUBSTRING (grepl/str_detect) where you mean an exact set? Use Event %in% c(\"LAME\",\"FOOTRIM\",\"TRIM\") - never grepl(\"LAME|FOOTRIM|TRIM\", Event).",
             why: "A 13% over-match on this dataset: 66,873 events against 59,201, pulling in CHKLAME (4,589), NEDLAME (2,422) and LAMETX (661). 'LAME' is a substring of all three. CHKLAME is the dangerous one - a staff lameness CHECK counted as a trim corrupts the FTDAT gate, the post-trim exclusion, trims_all and the recent-trim test at once. The visible symptom was 100% lesion yield in every DIM band, because each cow matched her own alert at gap 0. NOTE the deliberate exception: functions/fxn_event_type.R classifies into event_type='health' with a broad str_detect and is CORRECT - it is supposed to catch all four. Do not 'fix' it by analogy.",
           },
