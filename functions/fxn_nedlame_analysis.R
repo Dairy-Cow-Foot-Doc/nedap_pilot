@@ -913,7 +913,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
   #
   # This needs the FULL report's detection vocabulary. The farm report collapses
   # to two categories and never emits this label, deliberately.
-  miss_level <- "Flagged, Filtered Out"
+  miss_level <- "Flagged, No Alert Raised"
   vocab <- unique(c(levels(q4_sensor$detection_group_3way),
                     as.character(q4_sensor$detection_group_3way)))
   if (!miss_level %in% vocab) {
@@ -923,7 +923,7 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
          ". This function needs the full report's detection vocabulary.")
   }
 
-  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, Filtered Out")
+  pipeline_loss_cases <- q4_sensor |> filter(detection_group_3way == "Flagged, No Alert Raised")
   
   # Which alert type(s) actually fired within the lookback window for each
   # pipeline-loss case - needed to restrict the injury/Leg-AboveFoot check
