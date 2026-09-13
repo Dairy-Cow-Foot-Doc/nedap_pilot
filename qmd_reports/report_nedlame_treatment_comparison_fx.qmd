@@ -247,34 +247,48 @@ sensor_hits <- q4_sensor |>
             by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
   mutate(sensor_hit = !is.na(attention_date) &
            attention_date < date_event &
-           attention_date >= date_event - lookback_days_used) |>
+           attention_date >= date_event - lookback_days_used,
+         # Any flag before the lesion at ALL, however far back. Without this the
+         # residual category below was called "Never Flagged (True Miss)" while
+         # being factually false for 161 of the 190 cases it labelled - they had
+         # been flagged, just outside the window. A residual must not be named
+         # for a cause it does not measure.
+         sensor_hit_ever = !is.na(attention_date) & attention_date < date_event) |>
   group_by(id_animal, lact_number, date_event) |>
-  summarize(sensor_fired_in_window = any(sensor_hit), .groups = "drop")
+  summarize(sensor_fired_in_window = any(sensor_hit),
+            sensor_fired_ever      = any(sensor_hit_ever), .groups = "drop")
 
 q4_sensor <- q4_sensor |>
   left_join(sensor_hits, by = c("id_animal", "lact_number", "date_event")) |>
   mutate(
     # The strings in case_when() and in levels= must match EXACTLY or the
     # non-matching ones become NA and vanish from every count and plot.
+    # Every name here states what was OBSERVED, not what it is taken to mean.
+    # The old set asserted causes: "Caught in Time" conflated the camera flag
+    # with the DairyComp alert, "no action taken" read as blame for what was
+    # only an absent trim, and "Never Flagged (True Miss)" was the TRUE ~
+    # residual wearing a causal name while being false for 85% of its rows.
     detection_group_3way = factor(case_when(
       !in_coverage ~ "No Data (Outside Coverage)",
-      caught_by_nedap ~ "Flagged, Caught in Time",
-      warned_not_acted ~ "Alerted earlier, no action taken",
+      caught_by_nedap ~ "Alert Arrived in Time",
+      warned_not_acted ~ "Alerted Earlier, No Trim Followed",
       sensor_fired_in_window ~ "Flagged, No Alert Raised",
-      TRUE ~ "Never Flagged (True Miss)"
+      sensor_fired_ever ~ "Flagged Earlier, Outside the Window",
+      TRUE ~ "No Flag Found"
     ), levels = c(
-      "Flagged, Caught in Time", "Alerted earlier, no action taken", "Flagged, No Alert Raised",
-      "Never Flagged (True Miss)", "No Data (Outside Coverage)"
+      "Alert Arrived in Time", "Alerted Earlier, No Trim Followed", "Flagged, No Alert Raised",
+      "Flagged Earlier, Outside the Window", "No Flag Found", "No Data (Outside Coverage)"
     ))
   )
 
 misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
-n_pipeline_loss <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised")
-n_true_miss <- sum(misses_in_coverage$detection_group_3way == "Never Flagged (True Miss)")
-# These two split the misses on a string. Rename a level anywhere and the
+n_pipeline_loss   <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised")
+n_flagged_outside <- sum(misses_in_coverage$detection_group_3way == "Flagged Earlier, Outside the Window")
+n_true_miss       <- sum(misses_in_coverage$detection_group_3way == "No Flag Found")
+# These three split the misses on a string. Rename a level anywhere and the
 # comparison quietly matches nothing: the counts go to zero, the page still
 # renders, and the numbers just come out wrong. Happened in the farm report.
-stopifnot(n_pipeline_loss + n_true_miss == nrow(misses_in_coverage))
+stopifnot(n_pipeline_loss + n_flagged_outside + n_true_miss == nrow(misses_in_coverage))
 pct_pipeline_loss <- round(100 * n_pipeline_loss / nrow(misses_in_coverage), 1)
 n_outside_coverage <- sum(!q4_sensor$in_coverage)
 # Misses specifically that fall outside coverage - the figure that belongs
@@ -343,13 +357,17 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
 # **The Bottom Line**
 
-- The camera never flagged **`r n_true_miss` of the `r nrow(q4)` cows** found with a lesion.
+- **`r n_misses` of the `r nrow(q4)` cows** found with a lesion got no useful warning from the camera. That splits three ways, and only the last is the camera failing to see her:
 
-  - Digital dermatitis is over-represented among them and white line under-represented
+  - **`r n_true_miss` had no camera flag of any kind** before the lesion. This is the camera's genuine blind spot, and it is much smaller than the miss count suggests.
 
-    - This is not surprising considering the model being trained on locomotion scoring.
+    - Digital dermatitis is over-represented among them and white line under-represented.
 
-- A further **`r n_pipeline_loss` were flagged by the camera but no `NEDLAME` was raised in time.**
+      - This is not surprising considering the model being trained on locomotion scoring.
+
+  - **`r n_flagged_outside` were flagged, but only more than `r params$q4_lookback_days` days before the lesion** - too far back to count as a warning about it. See @sec-lookback for why that window was chosen.
+
+- A further **`r n_pipeline_loss` were flagged inside the window but no `NEDLAME` was raised.**
 
   - Most of that is the enrollment rules working as designed.
 
@@ -1079,24 +1097,66 @@ A "miss" means **no useful warning reached DairyComp before the lesion was found
 
 Using the raw camera flag export data, the breakdown of those missed cow is as follows.
 
-1.  **`r n_pipeline_loss` the camera flagged her, but no `NEDLAME` was raised in time.** She met the sensor's criteria and never entered the study.
+1.  **`r n_pipeline_loss` the camera flagged her inside the window, but no `NEDLAME` was raised.** She met the sensor's criteria and never entered the study.
 
-    1.  Whether that is an pipeline failure or the enrollment rules working is shown below.
+    1.  Whether that is a pipeline failure or the enrollment rules working is shown below.
 
-2.  **`r n_true_miss` the camera never flagged at all.**
+2.  **`r n_flagged_outside` the camera flagged her, but only more than `r params$q4_lookback_days` days before the lesion.** None of these carried a `NEDLAME` at any point before the lesion either, so the camera was producing signal on them and none of it became an alert. They are not counted as warnings, because a flag that far back cannot be attributed to this lesion - see @sec-lookback.
+
+3.  **`r n_true_miss` had no camera flag at all.** This is the only group the camera genuinely did not see.
+
+### Why the warning window is `r params$q4_lookback_days` days {#sec-lookback}
+
+Three of the figures above depend on this number, so it is worth stating why it is what it is. Taking every lesion case in the pilot window that had *any* prior `NEDLAME` and measuring the days from the most recent prior alert to the lesion:
+
+```{r}
+#| label: tbl-lookback-rationale
+
+lookback_gaps <- lame_lesion_recent |>
+  select(id_animal, lact_number, date_event) |>
+  distinct() |>
+  left_join(nedlame_all, by = c("id_animal", "lact_number"),
+            relationship = "many-to-many") |>
+  filter(!is.na(ned_date), ned_date < date_event) |>
+  group_by(id_animal, lact_number, date_event) |>
+  summarize(last_ned = max(ned_date), .groups = "drop") |>
+  mutate(gap = as.numeric(date_event - last_ned),
+         band = cut(gap, c(0, 7, 14, 21, 28, 45, 60, 90, Inf),
+                    labels = c("0-7", "8-14", "15-21", "22-28",
+                               "29-45", "46-60", "61-90", "90+"))) |>
+  count(band, name = "cases")
+
+lookback_gaps |>
+  tidyr::pivot_wider(names_from = band, values_from = cases) |>
+  gt() |>
+  tab_header(title = "Days from the last prior alert to the lesion",
+             subtitle = paste0("n = ", sum(lookback_gaps$cases),
+                               " lesion cases with any prior NEDLAME")) |>
+  tab_source_note("The window is measured backward from the lesion only.")
+```
+
+The signal decays steeply - most alerts that precede a lesion do so within a week - and then runs out into a thin, flat tail. `r params$q4_lookback_days` days captures `r round(100 * sum(lookback_gaps$cases[lookback_gaps$band %in% c("0-7","8-14","15-21")]) / sum(lookback_gaps$cases))`% of all cases that had any prior alert. Extending to 28 days would add `r lookback_gaps$cases[lookback_gaps$band == "22-28"]` more.
+
+**On a diminishing return, not on a trough.** An earlier version of this analysis justified the window differently - it reported a second rise at 29-45 days, read as the routine trim cycle re-alerting rather than the camera anticipating a lesion, with 21 sitting in the trough between the two. Re-derived against the population this report actually uses, that structure is not there. The second rise is real, but it appears only when **repeat** lesions in the same lactation are counted: including them, the 29-45 band holds 76 cases instead of `r lookback_gaps$cases[lookback_gaps$band == "29-45"]`. This analysis counts only a cow's **first** diagnosis, so the process that produced the bump is already excluded by construction, and the window is not what is holding it out.
+
+So treat `r params$q4_lookback_days` as **a choice with a trade-off, not a natural constant.** Anything from roughly 14 to 28 days is arguable on this evidence, and with the tail this flat, a wider window would be defensible too. Widening moves cases out of *Flagged Earlier, Outside the Window* and into the caught and pipeline groups; it does **not** change `r n_true_miss`, the count of cows with no flag at all, which is why that figure is the robust one.
+
+A separate rule also applies: `lookback_days_used` is capped at how long `NEDLAME` had been live as of each lesion, so the window never reaches back before the system existed.
 
 ## What Lesions are being missed?
 
 The figure below shows the lesion types found at all (cohort and non cohort cows) first-diagnosis cases, broken out by NEDAP detection status:
 
-- **Flagged, Caught in Time**
-  - an alert landed in DairyComp inside the window before the lesion.
+- **Alert Arrived in Time**
+  - a `NEDLAME` landed in DairyComp inside the window before the lesion.
+- **Alerted Earlier, No Trim Followed**
+  - an alert arrived before the window opened and no trim happened in between.
 - **Flagged, No Alert Raised**
-  - the camera did flag her, but no `NEDLAME` was raised in DairyComp in time. Mostly the enrollment rules declining the flag on purpose rather than anything going missing - see @fig-pipeline-loss-injury-plot.
-- **Never Flagged (True Miss)**
-  - the camera never saw a problem at all.
-- **Alerted earlier but no action taken**.
-  - camera flagged the cow but for unknown reasons she was not trimmed.
+  - the camera flagged her inside the window but no `NEDLAME` was raised. Mostly the enrollment rules declining the flag on purpose rather than anything going missing - see @fig-pipeline-loss-injury-plot.
+- **Flagged Earlier, Outside the Window**
+  - the camera did flag her, but only more than `r params$q4_lookback_days` days before the lesion - too far back to count as a warning about it.
+- **No Flag Found**
+  - no camera flag of any kind before the lesion.
 
 Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
 
@@ -1104,7 +1164,7 @@ Where a cow had two different lesions on the same day, each type is counted. The
 
   - \% caught in time is listed inside the figure.
 
-- **Panel B** asks what lesion each flag outcome tends to be, with *Flagged, Caught in Time* as the comparison column
+- **Panel B** asks what lesion each flag outcome tends to be, with *Alert Arrived in Time* as the comparison column
 
 Lesion types with fewer than 20 cases are combined into one bar - separately they are too few to carry a percentage. Other is a combination category that holds lesions that were infrequent.
 
@@ -1114,8 +1174,9 @@ Lesion types with fewer than 20 cases are combined into one bar - separately the
 
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
-STATUS_LEV <- c("Flagged, Caught in Time", "Alerted earlier, no action taken",
-                "Flagged, No Alert Raised", "Never Flagged (True Miss)")
+STATUS_LEV <- c("Alert Arrived in Time", "Alerted Earlier, No Trim Followed",
+                "Flagged, No Alert Raised", "Flagged Earlier, Outside the Window",
+                "No Flag Found")
 
 les_base <- q4_sensor |>
   filter(in_coverage) |>
@@ -1231,7 +1292,7 @@ p_lesion_rate / p_lesion_mix
 
 - Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LEV[1])`%** of DD cases in time against **`r pctl('wld', STATUS_LEV[1])`%** of white line
 
-- DD is **`r pctm('dd', STATUS_LEV[4])`%** of the cases it never flagged against **`r pctm('dd', STATUS_LEV[1])`%** of those it caught.
+- DD is **`r pctm('dd', STATUS_LEV[5])`%** of the cases with no camera flag at all against **`r pctm('dd', STATUS_LEV[1])`%** of those where the alert arrived in time.
 
 None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss.
 

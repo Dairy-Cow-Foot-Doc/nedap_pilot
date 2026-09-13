@@ -47,9 +47,21 @@ This document records the analysis plan as approved, and notes where implementat
 
    The detection signal decays steeply through day 21 (247 → 54 → 18) and then **rises again at 29–45 days**. That second bump is a different process — the routine trim cycle and re-alerting, not the camera anticipating a lesion — so a window wide enough to capture it would start scoring unrelated alerts as successful detections. 21 days sits in the trough between the two, capturing 71.8% of alerted cases; widening to 28 adds only 15 cases (+3.4pp).
 
+   > ⚠ **CORRECTED 2026-09-12 — the trough argument above is measured on the wrong population. Do not quote it.** Gerard asked for this rationale to be stated in the report, which forced a re-derivation. On the population the window is actually applied to — **first-diagnosis** q4 cases, n = 249 — there is no trough and no second rise: 176 / 37 / 6 / 9 / **11** / 5 / 5, a clean monotonic decay.
+   >
+   > The bump is real but it is a **repeat-lesion** effect. It appears only when every lesion event is counted (29–45 band = **76**, n = 478, which is roughly the n = 444 the original analysis used). Restrict to first diagnoses and it disappears whether or not the eligibility exclusions are applied (11 either way).
+   >
+   > So the *mechanism* was right — that bump is the trim cycle re-alerting — but it was measured across all lesion events while the window governs first diagnoses only. **The process the window was thought to be holding out is already excluded by the first-diagnosis rule.**
+   >
+   > The honest justification is diminishing returns: 21 days captures **88%** of cases with any prior alert, and 28 days adds **9** more. With the tail that flat, **a wider window would be equally defensible** — the trough argument was doing work the data does not support. Now stated this way in the report under `#sec-lookback`.
+   >
+   > What does *not* move with the window: the count of cows with **no camera flag at all** (29). Every other category shuffles as the window widens, which is why that figure is the one to put in front of Nedap.
+   >
+   > This is the Round 32 pattern exactly — a claim established once (2026-09-09), never re-derived, and load-bearing enough that publishing it was the only thing that caught it.
+
    So the window is defensible, but treat it as a **choice with a trade-off, not a natural constant**: anything from ~14 to ~28 days is arguable on this evidence, and the miss rate moves with it. The `lookback_days_used` rolling cap (Round 2) is separate and still applies — it shortens the window for lesions early in the pilot so it cannot reach back before NEDLAME existed.
 
-   **Known edge effect:** the window is measured backward from the lesion only, so a cow alerted *earlier* than the window opens is scored as never alerted in DairyComp. See Round 25 for a case (10581) where this mislabelled an enrolled cow as a pipeline loss.
+   **Known edge effect — now quantified, and it was much bigger than one case.** The window is measured backward from the lesion only, so a cow alerted *earlier* than the window opens is scored as never alerted in DairyComp. Round 25 found one case (10581) where this mislabelled an enrolled cow as a pipeline loss. Measured 2026-09-12: **161 of the 190 cases then labelled "Never Flagged (True Miss)" had in fact been flagged**, just outside the window — median 50 days out. That is what forced the category split into *Flagged Earlier, Outside the Window* (161) and *No Flag Found* (29).
 
 ## Caveats carried into the final report
 
