@@ -1520,3 +1520,76 @@ One dead end worth recording so nobody repeats it: the obvious detector - two `i
 ### For the proposal
 
 **Ask for the command logs as a standing deliverable.** They are the only record of what actually ran, when, and in what order. They turned an unresolvable ambiguity into a closed question, and they cost one afternoon.
+
+## Round 34: one alert, two lactation numbers - and the cohort miss rate goes to zero
+
+Gerard, reading the misses section: **"How can 3 be part of the pilot yet be flagged? I thought we addressed that before."** He was right that it had been raised and right that it had not been fixed. Two of the three were a real bug, and it was not the one anybody was looking for.
+
+### The bug
+
+`fxn_build_q4()` built `nedlame_all` straight from raw `events_all` and joined lesions on the **raw** `lact_number`. `fxn_build_cohort()` deliberately does not trust that field - its own comment at lines 65-74 explains why, and resolves it by nearest-preceding-fresh-date. So the same `NEDLAME` carried **two different lactation numbers**: the resolved one for cohort membership, the raw one for the lookback.
+
+The cow was therefore in the cohort *because* she was alerted and a miss *because* her alert could not be found.
+
+```
+cow 22408
+  2026-08-27  FRESH    (lact 3)
+  2026-08-27  LAME     TRMORF/S0/B   (lact 3)
+  2026-08-27  NEDLAME  LOW           (raw lact 2)   <- invisible to the lookback
+  2026-08-28  NEDLAME  LOW           (lact 3)
+```
+
+Cow 9616 is the same shape. The `<=` in `lookback_hit` was already correct - a same-day alert is *meant* to count as caught. The join key was what was wrong, which is why every previous look at the inequality found nothing.
+
+Measured across all 1,608 `NEDLAME` events, **exactly 3 disagree**: 9616 and 22408 (day of fresh) and 21648 (one day post-fresh). **All three were costing the camera credit**, and 21648 is a Control cow who now comes out caught.
+
+### The result
+
+| | before | after |
+|---|---|---|
+| lesion cases | 579 | **577** |
+| misses | 313 | **309** |
+| never flagged | 194 | **190** |
+| **in-cohort misses** | **3** | **0** |
+
+**Among the 262 lesion cases in cows the camera was actually watching, it missed none.** That is a far stronger result than this report has carried at any point, and it exists because Gerard would not accept a number that did not make sense to him.
+
+### Gerard's new-episode rule
+
+*"20444 is not legitimate - she was a new case but we are only looking at first cases of NEDLAME alerts, so even within the cohort she would have been excluded."*
+
+A cow alerted, trimmed, and only then developing a lesion has completed her alert-to-trim cycle; a design that looks only at first alerts cannot speak to what happens after. Two cases, both now excluded (`n_new_episode`).
+
+**Cow 10390 is the better example, and shows two correct rules composing into a wrong answer:**
+
+```
+2026-05-26  FOOTRIM  NONE              routine trim, nothing found
+2026-06-02  NEDLAME  STRONG DECLINE    7 days post-trim
+2026-06-17  LAMETX   XC.20BOE          Excede
+2026-06-22  CHKLAME  LH
+2026-06-23  LAME     BLKWLH/S0/B       white line, LEFT HIND
+2026-08-04  LAME     BLKWLH/S0/B       white line, LEFT HIND again
+```
+
+Her 23 June diagnosis is not her q4 case, because it falls at **exactly 28 days** from the 26 May trim - inside `recent_trim_suppression_days`. That pushes her first qualifying lesion out to 4 August, which then inherits the June alert as "never caught". So a treated recurrence was being counted as a camera miss. **Neither rule is wrong on its own.**
+
+Gerard also deduced that her 2 June alert only exists because the 26 May trim had not yet been entered - and that needs no logs to confirm. `P213` carries `FTDAT<-28`, so a cow trimmed 26 May **could not** raise a Strong Decline on 2 June if DairyComp knew about the trim. **The alert firing is itself the evidence of what DairyComp knew at 05:33.**
+
+### A proposed exclusion, measured and rejected
+
+He then proposed the general rule: *"we shouldn't count those cows as misses anywhere as it is unclear what reason for flag was."* Measuring it first is what killed it.
+
+**All 55 such misses have their lesion BEFORE the excluded alert, median gap -2 days.** The sequence is: trimmer finds the lesion on day D, camera flags her on D+1, the post-trim rule discards that flag. The miss verdict never uses the discarded flag - she is a miss because nothing arrived *before*. The rule would have removed the 55 clearest "no warning arrived" cases and taken the pooled rate to 49.0%. And 10390, the case that prompted it, is not even in that population.
+
+**What made the difference was showing the direction of travel.** Every correction that evening moved the miss rate down - 54.1%, 53.6%, and this would have made 49.0%. Each was independently justified; the series was worth a deliberate look. Presented with that, Gerard reversed his own proposal. **Reject-after-measuring is a result, and worth recording as one, or it comes back.**
+
+### Naming: a residual bucket must not carry a causal name
+
+Gerard: *"flagged, not alerted in time is a misnomer - shouldn't it be flagged filtered out instead?"* Right, and the first replacement was wrong too. That bucket holds **three** causes - 57 by-design filters, 51 unjudgeable, 11 genuine losses - so both "no alert in time" and "Filtered Out" assert a cause for all 119. Final name: **"Flagged, No Alert Raised"**, which states only the fact all 119 share.
+
+**The same defect is still live one level up.** `"Never Flagged (True Miss)"` is the `TRUE ~` arm of the `case_when`, so anything failing every earlier test lands there wearing a causal name - which is precisely how 22408 and 9616 were described as never flagged on a morning the camera had flagged them. `"Never Alerted (Not in Pilot Cohort)"` has it too: it describes **enrolment**, not detection. Cow 10390 was alerted on 2 June and sits outside the cohort only because a post-trim rule removed her. Two found in one evening suggests the habit is the thing to watch, not either name.
+
+### Two guards earned their keep
+
+- **The `vocab` guard** in `fxn_build_pipeline_by_design()` turned a rename split across two sessions and three files into a loud stop that named the categories present. Verified twice - the intermediate render failed exactly there both times. **Quarto still exited 0 on those failed renders**, which is why `check_report.R` requires an `Output created` line.
+- **A new guard on `n_miss_pilot == 0`.** The misses section states `n_miss_unenrolled` and splits it with herd-wide counts, which is valid only while no miss sits inside the cohort. The two arithmetic `stopifnot`s already there never caught the original `119 + 194 = 313` under a stated 310, **because both sums were individually true - they were just taken over different populations.** Assert the condition the *prose* depends on, not one that merely happens to hold.
