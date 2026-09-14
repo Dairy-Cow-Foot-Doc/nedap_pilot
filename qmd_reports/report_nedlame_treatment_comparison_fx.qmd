@@ -203,6 +203,23 @@ stopifnot(n_caught_pilot + n_warned_pilot + n_miss_pilot == n_cases_pilot)
 stopifnot(n_miss_pilot + n_miss_unenrolled == n_misses,
           n_cases_pilot + n_cases_unenrolled == nrow(q4))
 
+# Median days from a cow's first alert to her first trim, by arm. Quoted in the
+# misses section to make the point that the caught-versus-alerted-earlier split
+# is largely a restatement of time to trimming - the intervention - rather than
+# a measure of detection. Computed here so the prose cannot drift from it.
+days_to_trim_by_arm <- cohort |>
+  select(id_animal, lact_number, tx_group, first_nedlame_date) |>
+  left_join(trims_all, by = c("id_animal", "lact_number"),
+            relationship = "many-to-many") |>
+  filter(trim_date >= first_nedlame_date) |>
+  group_by(id_animal, lact_number, tx_group) |>
+  summarize(d = min(as.numeric(trim_date - first_nedlame_date)), .groups = "drop") |>
+  group_by(tx_group) |>
+  summarize(med = median(d), .groups = "drop")
+med_days_to_trim_tx  <- days_to_trim_by_arm$med[grepl("TX", days_to_trim_by_arm$tx_group)]
+med_days_to_trim_ctl <- days_to_trim_by_arm$med[grepl("Control", days_to_trim_by_arm$tx_group)]
+stopifnot(length(med_days_to_trim_tx) == 1L, length(med_days_to_trim_ctl) == 1L)
+
 # The misses section states n_miss_unenrolled and then splits it using
 # n_pipeline_loss and n_true_miss, which are computed over ALL misses. That is
 # only the same split while no miss sits inside the cohort. It was not always:
@@ -1089,7 +1106,11 @@ km_cull |>
 
 ## What cows were missed by the system?
 
-Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` not in the cohort is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp before the lesion was found.
+**First, the cows the camera was actually watching.** Of the `r n_cases_pilot` lesion cases in the pilot cohort, **`r n_miss_pilot` were missed**: `r n_caught_pilot` had an alert arrive inside the window and `r n_warned_pilot` had one arrive earlier with no trim in between. Every cow in the cohort is there by having been alerted, so this is not a detection rate - it is the statement that once a cow was enrolled, a warning always existed.
+
+**Do not read the caught-versus-earlier split as camera performance by arm.** It is closer to a restatement of time to trimming, which is the intervention itself: a TX cow is added to the trim list automatically and trimmed at a median of `r med_days_to_trim_tx` days against `r med_days_to_trim_ctl` for Control, so her lesion is *found* sooner and the gap between her alert and her diagnosis is short by construction. That gap is protocol compliance, not detection - the same distinction the trimming section draws.
+
+The rest of this section is about the cows the pilot never enrolled. Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` not in the cohort is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp before the lesion was found.
 
 A "miss" means **no useful warning reached DairyComp before the lesion was found** - either the camera never flagged her, or it flagged her and the alert never arrived.
 
