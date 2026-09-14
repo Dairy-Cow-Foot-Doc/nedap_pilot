@@ -13,6 +13,9 @@ setwd("C:/Github/nedap_pilot")
 N_HERDS        <- 6
 HERD_SIZE      <- 3000      # midpoint of the 2,000-5,000 eligibility range
 MONTHS         <- 18        # 6 months enrolment + 12 months follow-up
+MO_ENROL       <- 6         # Farm visits and their travel run during ENROLMENT only.
+                            # Follow-up is passive data collection and needs nobody
+                            # on site, so it carries no visit cost.
 N_INVESTIGATOR <- 3         # Gerard (West Coast), NY, Midwest - two farms each
 FARMS_EACH     <- N_HERDS / N_INVESTIGATOR
 
@@ -50,7 +53,7 @@ pv_gerard_initial <- N_HERDS                       # 6 visit-days
 pv_collab_initial <- 2 * FARMS_EACH                # NY 2 + Midwest 2 = 4
 initial_personnel <- (pv_gerard_initial + pv_collab_initial) * DAY_RATE
 
-monthly_halfdays  <- N_INVESTIGATOR * FARMS_EACH * MONTHS
+monthly_halfdays  <- N_INVESTIGATOR * FARMS_EACH * MO_ENROL
 monthly_personnel <- monthly_halfdays * HALF_DAY
 
 analysis_personnel <- ANALYSIS_DAYS * DAY_RATE
@@ -61,7 +64,7 @@ personnel <- initial_personnel + monthly_personnel + analysis_personnel + pm_per
 # ---- travel ----------------------------------------------------------------
 initial_travel <- g_buffalo + g_denver + g_westcoast + 2 * collab_initial
 
-monthly_trips  <- N_INVESTIGATOR * MONTHS
+monthly_trips  <- N_INVESTIGATOR * MO_ENROL
 monthly_travel <- monthly_trips * MONTHLY_TRIP_DRIVE +
                   monthly_trips * MONTHLY_OVERNIGHT_FRACTION * MONTHLY_NIGHT_RATE
 
@@ -100,7 +103,7 @@ sprintf("**Draft %s.** Every figure here comes from `scripts/proposal/p30_budget
 "",
 sprintf("- **%d herds**, %s cows each on average, run by **%d investigators** with two farms each — Gerard on the West Coast, one collaborator in New York, one in the Midwest.", N_HERDS, format(HERD_SIZE, big.mark = ","), N_INVESTIGATOR),
 sprintf("- **%d months**: six of enrolment, twelve of follow-up on the last cow enrolled.", MONTHS),
-sprintf("- **One initial visit to every farm**, then a **half-day visit to each farm every month** for the life of the project."),
+sprintf(paste0("- **One initial visit to every farm**, then a **half-day visit to each farm every ","month during enrolment**. Follow-up is passive data collection and needs nobody on site, ","so the %d follow-up months carry no visit cost."), MONTHS - MO_ENROL),
 "",
 "------------------------------------------------------------------------",
 "",
@@ -126,16 +129,16 @@ sprintf("Costed at **%s per investigator per visit-day**, %s for a half-day.", m
 "| Item | Basis | Cost |",
 "|---|---|---:|",
 sprintf("| Initial farm visits | %d visit-days — Gerard at all six farms, each collaborator joining at their own two | %s |", pv_gerard_initial + pv_collab_initial, m(initial_personnel)),
-sprintf("| Monthly farm visits | %d half-days — %d investigators x %d farms x %d months | %s |", monthly_halfdays, N_INVESTIGATOR, FARMS_EACH, MONTHS, m(monthly_personnel)),
+sprintf("| Monthly farm visits | %d half-days — %d investigators x %d farms x %d enrolment months | %s |", monthly_halfdays, N_INVESTIGATOR, FARMS_EACH, MO_ENROL, m(monthly_personnel)),
 sprintf("| Analysis and reporting | %d days (three weeks) | %s |", ANALYSIS_DAYS, m(analysis_personnel)),
 sprintf("| Project management | %d day/month x %d months | %s |", PM_DAYS_MONTH, MONTHS, m(pm_personnel)),
 sprintf("| **Total** | | **%s** |", m(personnel)),
 "",
-sprintf(paste0("**The monthly visits are the single largest line in the budget** — more than half of all ",
-               "personnel cost. If a half-day visit to every farm every month turns out to be more than the ",
-               "protocol needs, that is the first place to look for savings: holding monthly visits through ",
-               "enrolment and dropping to every second month for the follow-up year would save about %s."),
-        m((monthly_halfdays - N_INVESTIGATOR * FARMS_EACH * (6 + 12 / 2)) * HALF_DAY)),
+sprintf(paste0("**Project management is now the line to watch**, at %s across all %d months, alongside ",
+               "monthly visits at %s. Confining visits to enrolment already removed the largest ",
+               "single cost in the earlier version of this budget: %d half-days rather than %d, a ",
+               "saving of %s."),
+        m(pm_personnel), MONTHS, m(monthly_personnel), monthly_halfdays, N_INVESTIGATOR * FARMS_EACH * MONTHS, m((N_INVESTIGATOR * FARMS_EACH * MONTHS - monthly_halfdays) * HALF_DAY)),
 "",
 "------------------------------------------------------------------------",
 "",
@@ -209,8 +212,8 @@ sprintf("| 15 months rather than 18 | %s |",
                    cows_monitored * STORAGE_RATE * 15) * (1 + CONTINGENCY))),
 sprintf("| Four herds rather than six | roughly %s, as two farms' visits and travel fall away |",
         m(2 / 6 * (initial_personnel + monthly_personnel) * (1 + CONTINGENCY))),
-sprintf("| Monthly visits halved for the follow-up year | about %s |",
-        m((monthly_halfdays - N_INVESTIGATOR * FARMS_EACH * (6 + 12 / 2)) * HALF_DAY * (1 + CONTINGENCY))),
+sprintf("| Monthly visits every second month during enrolment | about %s |",
+        m(monthly_halfdays / 2 * HALF_DAY * (1 + CONTINGENCY))),
 "",
 "**Four herds is the one that changes the science as well as the cost** — see the heterogeneity table in the proposal. The other two are scheduling decisions.",
 "")

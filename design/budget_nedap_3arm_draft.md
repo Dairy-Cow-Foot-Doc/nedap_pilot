@@ -1,6 +1,6 @@
 # Preliminary budget — three-arm SmartSight study
 
-**Draft 2026-09-11.** Every figure here comes from `scripts/proposal/p30_budget.R`; change an input at the top of that script and the whole budget re-costs. Travel is deliberately liberal.
+**Draft 2026-09-14.** Every figure here comes from `scripts/proposal/p30_budget.R`; change an input at the top of that script and the whole budget re-costs. Travel is deliberately liberal.
 
 ------------------------------------------------------------------------
 
@@ -8,7 +8,7 @@
 
 - **6 herds**, 3,000 cows each on average, run by **3 investigators** with two farms each — Gerard on the West Coast, one collaborator in New York, one in the Midwest.
 - **18 months**: six of enrolment, twelve of follow-up on the last cow enrolled.
-- **One initial visit to every farm**, then a **half-day visit to each farm every month** for the life of the project.
+- **One initial visit to every farm**, then a **half-day visit to each farm every month during enrolment**. Follow-up is passive data collection and needs nobody on site, so the 12 follow-up months carry no visit cost.
 
 ------------------------------------------------------------------------
 
@@ -16,14 +16,14 @@
 
 | Category | Cost | Share |
 |---|---:|---:|
-| Personnel | \$242,500 | 76% |
-| Travel | \$29,950 | 9% |
-| Data | \$19,440 | 6% |
-| Subtotal | **\$291,890** | |
-| Contingency at 10% | \$29,189 | |
-| **Total** | **\$321,079** | |
+| Personnel | \$152,500 | 75% |
+| Travel | \$14,110 | 7% |
+| Data | \$19,440 | 9% |
+| Subtotal | **\$186,050** | |
+| Contingency at 10% | \$18,605 | |
+| **Total** | **\$204,655** | |
 
-**About \$54 per enrolled cow** at 6,000 enrolled, or \$53,513 per herd.
+**About \$34 per enrolled cow** at 6,000 enrolled, or \$34,109 per herd.
 
 ------------------------------------------------------------------------
 
@@ -34,12 +34,12 @@ Costed at **\$2,500 per investigator per visit-day**, \$1,250 for a half-day.
 | Item | Basis | Cost |
 |---|---|---:|
 | Initial farm visits | 10 visit-days — Gerard at all six farms, each collaborator joining at their own two | \$25,000 |
-| Monthly farm visits | 108 half-days — 3 investigators x 2 farms x 18 months | \$135,000 |
+| Monthly farm visits | 36 half-days — 3 investigators x 2 farms x 6 enrolment months | \$45,000 |
 | Analysis and reporting | 15 days (three weeks) | \$37,500 |
 | Project management | 1 day/month x 18 months | \$45,000 |
-| **Total** | | **\$242,500** |
+| **Total** | | **\$152,500** |
 
-**The monthly visits are the single largest line in the budget** — more than half of all personnel cost. If a half-day visit to every farm every month turns out to be more than the protocol needs, that is the first place to look for savings: holding monthly visits through enrolment and dropping to every second month for the follow-up year would save about \$45,000.
+**Project management is now the line to watch**, at \$45,000 across all 18 months, alongside monthly visits at \$45,000. Confining visits to enrolment already removed the largest single cost in the earlier version of this budget: 36 half-days rather than 108, a saving of \$90,000.
 
 ------------------------------------------------------------------------
 
@@ -58,13 +58,13 @@ Costed at **\$2,500 per investigator per visit-day**, \$1,250 for a half-day.
 
 ### Monthly round
 
-Each investigator covers both of their farms in a single day-trip, so **54 trips** rather than 108.
+Each investigator covers both of their farms in a single day-trip, so **18 trips** rather than 36.
 
 | Item | Basis | Cost |
 |---|---|---:|
-| Mileage and meals | 54 trips at \$350 | \$18,900 |
-| Overnight stays | 50% of trips at \$180 | \$4,860 |
-| **Total** | | **\$23,760** |
+| Mileage and meals | 18 trips at \$350 | \$6,300 |
+| Overnight stays | 50% of trips at \$180 | \$1,620 |
+| **Total** | | **\$7,920** |
 
 ------------------------------------------------------------------------
 
@@ -98,9 +98,9 @@ All three are savings against the \$321,079 total, and all include the 10% conti
 
 | Change | Saving |
 |---|---:|
-| 15 months rather than 18 | \$40,920 |
-| Four herds rather than six | roughly \$58,667, as two farms' visits and travel fall away |
-| Monthly visits halved for the follow-up year | about \$49,500 |
+| 15 months rather than 18 | \$-75,504 |
+| Four herds rather than six | roughly \$25,667, as two farms' visits and travel fall away |
+| Monthly visits every second month during enrolment | about \$24,750 |
 
 **Four herds is the one that changes the science as well as the cost** — see the heterogeneity table in the proposal. The other two are scheduling decisions.
 

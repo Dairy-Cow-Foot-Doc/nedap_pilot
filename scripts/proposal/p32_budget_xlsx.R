@@ -1,360 +1,245 @@
-# Builds the budget as a LIVE Excel workbook: every figure is an Excel formula
-# referring to named input cells, so changing an input on the Inputs sheet
-# recalculates the whole budget. Nothing is hard-coded downstream.
+# Builds the budget workbook in GERARD'S staircase layout.
 #
-# Writes design/budget_nedap_3arm.xlsx. Re-run to regenerate; the workbook is an
-# output, so edits made in Excel are lost on the next run. Change defaults here.
+# The rule, taken from his "GC personnel" sheet: a number sits in a column, its
+# LABEL sits one column to its right, and its COMPONENTS sit one column further
+# right on the rows below. You read left-to-right to drill into any figure, and
+# the arithmetic is visible on the sheet rather than described in a text column.
+#
+#   A  TOTAL
+#      B  category
+#         C  line item
+#            D  the numbers that multiply together
+#
+# Everything is a live Excel formula against named input cells, so changing an
+# input recalculates the whole staircase.
+#
+# Gerard's own "GC personnel" sheet is PRESERVED untouched - this script deletes
+# and rebuilds only the sheets it owns.
 
 setwd("C:/Github/nedap_pilot")
 suppressPackageStartupMessages(library(openxlsx))
-
 OUT <- "design/budget_nedap_3arm.xlsx"
 
 # ---- styles ----------------------------------------------------------------
-st_title   <- createStyle(fontSize = 14, textDecoration = "bold")
-st_head    <- createStyle(textDecoration = "bold", fgFill = "#D9E2F3", border = "TopBottom")
-st_section <- createStyle(textDecoration = "bold", fontSize = 11)
-st_input   <- createStyle(fgFill = "#FFF2CC", border = "TopBottomLeftRight",
-                          borderColour = "#BF9000", numFmt = "#,##0")
-st_input_d <- createStyle(fgFill = "#FFF2CC", border = "TopBottomLeftRight",
-                          borderColour = "#BF9000", numFmt = "0.00")
-st_input_p <- createStyle(fgFill = "#FFF2CC", border = "TopBottomLeftRight",
-                          borderColour = "#BF9000", numFmt = "0%")
-st_money   <- createStyle(numFmt = "$#,##0")
-st_money_b <- createStyle(numFmt = "$#,##0", textDecoration = "bold")
-st_total   <- createStyle(numFmt = "$#,##0", textDecoration = "bold", border = "Top")
-st_grand   <- createStyle(numFmt = "$#,##0", textDecoration = "bold", fontSize = 12,
-                          border = "TopBottom", fgFill = "#E2EFDA")
-st_note    <- createStyle(fontColour = "#7F7F7F", wrapText = TRUE, valign = "top")
-st_wrap    <- createStyle(wrapText = TRUE, valign = "top")
+st_title <- createStyle(fontSize = 14, textDecoration = "bold")
+st_note  <- createStyle(fontColour = "#7F7F7F", wrapText = TRUE, valign = "top")
+st_hdr   <- createStyle(textDecoration = "bold", fgFill = "#D9E2F3", border = "TopBottom")
+st_in    <- createStyle(fgFill = "#FFF2CC", border = "TopBottomLeftRight",
+                        borderColour = "#BF9000", numFmt = "#,##0.00")
+st_lab   <- createStyle(fontColour = "#404040")
+st_grand <- createStyle(numFmt = "$#,##0", textDecoration = "bold", fontSize = 13,
+                        fgFill = "#E2EFDA", border = "TopBottom")
+st_cat   <- createStyle(numFmt = "$#,##0", textDecoration = "bold")
+st_item  <- createStyle(numFmt = "$#,##0")
+st_part  <- createStyle(numFmt = "#,##0.##", fontColour = "#595959")
+st_sect  <- createStyle(textDecoration = "bold", fontSize = 11)
 
-wb <- createWorkbook()
+wb <- loadWorkbook(OUT)
+# Gerard's own sheets are preserved by not being on this list. He renamed
+# "GC personnel" to "GC example"; delete by name only, never by position.
+for (s in c("Summary", "Inputs", "Personnel", "Travel", "Data", "Budget")) {
+  if (s %in% names(wb)) removeWorksheet(wb, s)
+}
+addWorksheet(wb, "Budget")
+SH <- "Budget"
 
-# ===========================================================================
-# INPUTS
-# ===========================================================================
-addWorksheet(wb, "Inputs")
-writeData(wb, "Inputs", "Budget inputs — change anything in a yellow cell", startCol = 1, startRow = 1)
-addStyle(wb, "Inputs", st_title, rows = 1, cols = 1)
-writeData(wb, "Inputs",
-          "Every other sheet is formulas referring to these cells. Nothing downstream is typed in.",
-          startCol = 1, startRow = 2)
-addStyle(wb, "Inputs", st_note, rows = 2, cols = 1)
-
-# name, value, unit, note, format
-inp <- list(
-  c("STUDY SHAPE", "", "", ""),
-  c("N_HERDS",            6,     "herds",        "Four is the stated minimum; six is the design"),
-  c("HERD_SIZE",          3000,  "cows",         "Midpoint of the 2,000-5,000 eligibility range"),
-  c("MONTHS",             18,    "months",       "6 enrolment + 12 follow-up on the last cow"),
-  c("N_INVESTIGATORS",    3,     "people",       "Gerard (West Coast), New York, Midwest"),
-  c("ENROLLED",           6000,  "cows",         "Used for cost-per-cow and the storage alternative"),
-  c("RATES", "", "", ""),
-  c("DAY_RATE",           2500,  "$ / day",      "Per investigator per visit-day"),
-  c("ANALYSIS_DAYS",      15,    "days",         "Three weeks of analysis and reporting"),
-  c("PM_DAYS_PER_MONTH",  1,     "days / month", "Project management, whole life of the project"),
-  c("STORAGE_RATE",       0.06,  "$ / cow / mo", "Data storage"),
-  c("STORAGE_BASIS",      1,     "1 or 2",       "1 = whole monitored herd, 2 = enrolled cows only"),
-  c("CONTINGENCY",        0.10,  "fraction",     "Applied to the subtotal"),
-  c("TRAVEL UNIT COSTS", "", "", ""),
-  c("CAR_DAY_RATE",       80,    "$ / day",      "Rental car"),
-  c("NIGHT_RATE",         180,   "$ / night",    "Airbnb or hotel"),
-  c("PER_DIEM",           80,    "$ / day",      "Meals and incidentals"),
-  c("MONTHLY_TRIP_DRIVE", 350,   "$ / trip",     "Mileage and meals, one monthly trip covering both farms"),
-  c("MONTHLY_ON_FRAC",    0.5,   "fraction",     "Share of monthly trips needing an overnight"),
-  c("OPTIONAL LINES", "", "", ""),
-  c("INC_SUBSCRIPTION",   0,     "1 or 0",       "Include the camera subscription in the total?"),
-  c("SUB_RATE",           0.65,  "$ / cow / mo", "Camera subscription, reported range 0.65-0.80"),
-  c("INC_TRIMMING",       0,     "1 or 0",       "Include the extra trimming the protocol causes?"),
-  c("EXTRA_TRIMS_ALERT",  0.406, "per enrolled", "Pilot: trimmed arm 90.4% vs control 49.8%"),
-  c("PROTOCOL_ARMS_FRAC", 0.667, "fraction",     "Arms 1 and 2 of three are trimmed by protocol"),
-  c("TRIM_COST",          18,    "$ / trim",     "Stated assumption; range 15-20")
-)
-
-hdr <- 4
-writeData(wb, "Inputs", data.frame(Input = "Input", Value = "Value", Unit = "Unit", Note = "Note"),
-          startCol = 1, startRow = hdr, colNames = FALSE)
-addStyle(wb, "Inputs", st_head, rows = hdr, cols = 1:4, gridExpand = TRUE)
-
-r <- hdr
-named <- list()
-for (row in inp) {
-  r <- r + 1
-  if (row[[2]] == "") {                     # section divider
-    writeData(wb, "Inputs", row[[1]], startCol = 1, startRow = r)
-    addStyle(wb, "Inputs", st_section, rows = r, cols = 1)
-    next
-  }
-  writeData(wb, "Inputs", row[[1]], startCol = 1, startRow = r)
-  writeData(wb, "Inputs", as.numeric(row[[2]]), startCol = 2, startRow = r)
-  writeData(wb, "Inputs", row[[3]], startCol = 3, startRow = r)
-  writeData(wb, "Inputs", row[[4]], startCol = 4, startRow = r)
-  v <- as.numeric(row[[2]])
-  sty <- if (row[[1]] %in% c("CONTINGENCY", "MONTHLY_ON_FRAC")) st_input_p
-         else if (v < 10 && v != round(v)) st_input_d else st_input
-  addStyle(wb, "Inputs", sty, rows = r, cols = 2)
-  addStyle(wb, "Inputs", st_note, rows = r, cols = 4)
-  createNamedRegion(wb, "Inputs", cols = 2, rows = r, name = row[[1]])
-  named[[row[[1]]]] <- r
+r <- 1
+put <- function(col, row, value, style = NULL, formula = FALSE) {
+  if (formula) writeFormula(wb, SH, paste0("=", value), startCol = col, startRow = row)
+  else         writeData(wb, SH, value, startCol = col, startRow = row)
+  if (!is.null(style)) addStyle(wb, SH, style, rows = row, cols = col)
+}
+label <- function(col, row, text) {
+  writeData(wb, SH, text, startCol = col, startRow = row)
+  addStyle(wb, SH, st_lab, rows = row, cols = col)
 }
 
-# derived, also named so the sheets can use them
-r <- r + 2
-writeData(wb, "Inputs", "DERIVED — do not edit", startCol = 1, startRow = r)
-addStyle(wb, "Inputs", st_section, rows = r, cols = 1)
-derived <- list(
-  c("FARMS_EACH",     "N_HERDS/N_INVESTIGATORS",  "farms per investigator"),
-  c("HALF_DAY",       "DAY_RATE/2",               "$ per half-day visit"),
-  c("COWS_MONITORED", "N_HERDS*HERD_SIZE",        "cows the camera watches")
-)
-for (d in derived) {
-  r <- r + 1
-  writeData(wb, "Inputs", d[[1]], startCol = 1, startRow = r)
-  writeFormula(wb, "Inputs", paste0("=", d[[2]]), startCol = 2, startRow = r)
-  writeData(wb, "Inputs", d[[3]], startCol = 4, startRow = r)
-  addStyle(wb, "Inputs", st_note, rows = r, cols = 4)
-  createNamedRegion(wb, "Inputs", cols = 2, rows = r, name = d[[1]])
-}
-setColWidths(wb, "Inputs", cols = 1:4, widths = c(22, 12, 14, 62))
-freezePane(wb, "Inputs", firstActiveRow = hdr + 1)
+put(1, 1, "Budget \u2014 three-arm SmartSight study", st_title)
+put(1, 2, paste("Yellow cells are inputs. Every figure to the LEFT of a number is built from it:",
+                "read right to drill into a total, left to roll it up."), st_note)
 
 # ===========================================================================
-# helper: write a line-item sheet
+# INPUTS  (value in A, label in B) - the same idiom as the GC sheet
 # ===========================================================================
-line_sheet <- function(sheet, title, intro, rows, total_label = "Total") {
-  addWorksheet(wb, sheet)
-  writeData(wb, sheet, title, startCol = 1, startRow = 1)
-  addStyle(wb, sheet, st_title, rows = 1, cols = 1)
-  writeData(wb, sheet, intro, startCol = 1, startRow = 2)
-  addStyle(wb, sheet, st_note, rows = 2, cols = 1)
-  writeData(wb, sheet, data.frame(a = "Item", b = "Basis", c = "Cost"),
-            startCol = 1, startRow = 4, colNames = FALSE)
-  addStyle(wb, sheet, st_head, rows = 4, cols = 1:3, gridExpand = TRUE)
-  rr <- 4
-  first <- NA
-  for (x in rows) {
-    rr <- rr + 1
-    writeData(wb, sheet, x[[1]], startCol = 1, startRow = rr)
-    writeData(wb, sheet, x[[2]], startCol = 2, startRow = rr)
-    writeFormula(wb, sheet, paste0("=", x[[3]]), startCol = 3, startRow = rr)
-    addStyle(wb, sheet, st_money, rows = rr, cols = 3)
-    addStyle(wb, sheet, st_wrap, rows = rr, cols = 2)
-    if (is.na(first)) first <- rr
-  }
-  rr <- rr + 1
-  writeData(wb, sheet, total_label, startCol = 1, startRow = rr)
-  addStyle(wb, sheet, st_section, rows = rr, cols = 1)
-  writeFormula(wb, sheet, sprintf("=SUM(C%d:C%d)", first, rr - 1), startCol = 3, startRow = rr)
-  addStyle(wb, sheet, st_total, rows = rr, cols = 3)
-  setColWidths(wb, sheet, cols = 1:3, widths = c(34, 56, 14))
-  createNamedRegion(wb, sheet, cols = 3, rows = rr, name = paste0(toupper(sheet), "_TOTAL"))
-  rr
-}
-
-# ===========================================================================
-# PERSONNEL
-# ===========================================================================
-line_sheet("Personnel", "Personnel",
-  "Costed at DAY_RATE per investigator per visit-day, half that for a half-day visit.",
-  list(
-    list("Initial farm visits",
-         "Gerard at all six farms, each collaborator joining at their own two: N_HERDS + 2*FARMS_EACH visit-days",
-         "(N_HERDS + 2*FARMS_EACH) * DAY_RATE"),
-    list("Monthly farm visits",
-         "N_INVESTIGATORS x FARMS_EACH x MONTHS half-days",
-         "N_INVESTIGATORS * FARMS_EACH * MONTHS * HALF_DAY"),
-    list("Analysis and reporting",
-         "ANALYSIS_DAYS at the day rate",
-         "ANALYSIS_DAYS * DAY_RATE"),
-    list("Project management",
-         "PM_DAYS_PER_MONTH x MONTHS at the day rate",
-         "PM_DAYS_PER_MONTH * MONTHS * DAY_RATE")
-  ))
-
-# ===========================================================================
-# TRAVEL - initial trips get their own editable component table
-# ===========================================================================
-addWorksheet(wb, "Travel")
-writeData(wb, "Travel", "Travel", startCol = 1, startRow = 1)
-addStyle(wb, "Travel", st_title, rows = 1, cols = 1)
-writeData(wb, "Travel",
-  "Yellow cells are per-trip counts - edit them directly. Rates live on the Inputs sheet. Deliberately liberal.",
-  startCol = 1, startRow = 2)
-addStyle(wb, "Travel", st_note, rows = 2, cols = 1)
-
-writeData(wb, "Travel", "Initial round — one visit to every farm", startCol = 1, startRow = 4)
-addStyle(wb, "Travel", st_section, rows = 4, cols = 1)
-writeData(wb, "Travel",
-          data.frame(a = "Trip", b = "Airfare", c = "Car days", d = "Nights",
-                     e = "Per-diem days", f = "Mileage/other", g = "Cost"),
-          startCol = 1, startRow = 5, colNames = FALSE)
-addStyle(wb, "Travel", st_head, rows = 5, cols = 1:7, gridExpand = TRUE)
-
-trips <- list(
-  c("Gerard, Vancouver to Buffalo — both NY farms",   800, 4, 3, 4, 0),
-  c("Gerard, Vancouver to Denver — both Midwest farms", 650, 4, 3, 4, 0),
-  c("Gerard, West Coast — his own two farms",           0, 0, 2, 3, 400),
-  c("New York collaborator — regional",                 0, 0, 1, 2, 350),
-  c("Midwest collaborator — regional",                  0, 0, 1, 2, 350)
-)
-r <- 5
-for (t in trips) {
-  r <- r + 1
-  writeData(wb, "Travel", t[[1]], startCol = 1, startRow = r)
-  for (k in 2:6) writeData(wb, "Travel", as.numeric(t[[k]]), startCol = k, startRow = r)
-  addStyle(wb, "Travel", st_input, rows = r, cols = 2:6, gridExpand = TRUE)
-  writeFormula(wb, "Travel",
-    sprintf("=B%d + C%d*CAR_DAY_RATE + D%d*NIGHT_RATE + E%d*PER_DIEM + F%d", r, r, r, r, r),
-    startCol = 7, startRow = r)
-  addStyle(wb, "Travel", st_money, rows = r, cols = 7)
-}
-r_init_first <- 6; r_init_last <- r
-r <- r + 1
-writeData(wb, "Travel", "Initial round total", startCol = 1, startRow = r)
-addStyle(wb, "Travel", st_section, rows = r, cols = 1)
-writeFormula(wb, "Travel", sprintf("=SUM(G%d:G%d)", r_init_first, r_init_last), startCol = 7, startRow = r)
-addStyle(wb, "Travel", st_total, rows = r, cols = 7)
-r_init_total <- r
-
-r <- r + 2
-writeData(wb, "Travel", "Monthly round — each investigator covers both their farms in one day-trip",
-          startCol = 1, startRow = r)
-addStyle(wb, "Travel", st_section, rows = r, cols = 1)
-r <- r + 1
-writeData(wb, "Travel", data.frame(a = "Item", b = "Basis", c = "Cost"),
-          startCol = 1, startRow = r, colNames = FALSE)
-addStyle(wb, "Travel", st_head, rows = r, cols = 1:3, gridExpand = TRUE)
-mth <- list(
-  list("Mileage and meals", "N_INVESTIGATORS x MONTHS trips at MONTHLY_TRIP_DRIVE",
-       "N_INVESTIGATORS * MONTHS * MONTHLY_TRIP_DRIVE"),
-  list("Overnight stays", "MONTHLY_ON_FRAC of those trips at NIGHT_RATE",
-       "N_INVESTIGATORS * MONTHS * MONTHLY_ON_FRAC * NIGHT_RATE")
-)
-r_m_first <- r + 1
-for (m in mth) {
-  r <- r + 1
-  writeData(wb, "Travel", m[[1]], startCol = 1, startRow = r)
-  writeData(wb, "Travel", m[[2]], startCol = 2, startRow = r)
-  writeFormula(wb, "Travel", paste0("=", m[[3]]), startCol = 3, startRow = r)
-  addStyle(wb, "Travel", st_money, rows = r, cols = 3)
-  addStyle(wb, "Travel", st_wrap, rows = r, cols = 2)
-}
-r <- r + 1
-writeData(wb, "Travel", "Monthly round total", startCol = 1, startRow = r)
-addStyle(wb, "Travel", st_section, rows = r, cols = 1)
-writeFormula(wb, "Travel", sprintf("=SUM(C%d:C%d)", r_m_first, r - 1), startCol = 3, startRow = r)
-addStyle(wb, "Travel", st_total, rows = r, cols = 3)
-r_mth_total <- r
-
-r <- r + 2
-writeData(wb, "Travel", "TRAVEL TOTAL", startCol = 1, startRow = r)
-addStyle(wb, "Travel", st_section, rows = r, cols = 1)
-writeFormula(wb, "Travel", sprintf("=G%d + C%d", r_init_total, r_mth_total), startCol = 3, startRow = r)
-addStyle(wb, "Travel", st_grand, rows = r, cols = 3)
-createNamedRegion(wb, "Travel", cols = 3, rows = r, name = "TRAVEL_TOTAL")
-setColWidths(wb, "Travel", cols = 1:7, widths = c(44, 11, 11, 10, 14, 15, 14))
-
-# ===========================================================================
-# DATA
-# ===========================================================================
-line_sheet("Data", "Data storage",
-  paste("STORAGE_BASIS on the Inputs sheet switches between charging the whole monitored herd (1)",
-        "and enrolled cows only (2). The camera watches every cow in the pen, so 1 is the planning basis."),
-  list(
-    list("Storage",
-         "IF whole herd: COWS_MONITORED x STORAGE_RATE x MONTHS. IF enrolled only: ENROLLED x STORAGE_RATE x MONTHS",
-         "IF(STORAGE_BASIS=1, COWS_MONITORED, ENROLLED) * STORAGE_RATE * MONTHS")
-  ))
-writeData(wb, "Data", "For reference — the basis not chosen", startCol = 1, startRow = 8)
-addStyle(wb, "Data", st_section, rows = 8, cols = 1)
-writeData(wb, "Data", "Whole monitored herd", startCol = 1, startRow = 9)
-writeFormula(wb, "Data", "=COWS_MONITORED*STORAGE_RATE*MONTHS", startCol = 3, startRow = 9)
-writeData(wb, "Data", "Enrolled cows only", startCol = 1, startRow = 10)
-writeFormula(wb, "Data", "=ENROLLED*STORAGE_RATE*MONTHS", startCol = 3, startRow = 10)
-writeData(wb, "Data", "Difference — worth asking Nedap which it is", startCol = 1, startRow = 11)
-writeFormula(wb, "Data", "=C9-C10", startCol = 3, startRow = 11)
-addStyle(wb, "Data", st_money, rows = 9:11, cols = 3, gridExpand = TRUE)
-
-# ===========================================================================
-# SUMMARY
-# ===========================================================================
-addWorksheet(wb, "Summary")
-writeData(wb, "Summary", "Preliminary budget — three-arm SmartSight study", startCol = 1, startRow = 1)
-addStyle(wb, "Summary", st_title, rows = 1, cols = 1)
-writeData(wb, "Summary",
-  "All formulas. Change an input on the Inputs sheet and every figure here updates.",
-  startCol = 1, startRow = 2)
-addStyle(wb, "Summary", st_note, rows = 2, cols = 1)
-
-writeData(wb, "Summary", data.frame(a = "Category", b = "Cost", c = "Share"),
-          startCol = 1, startRow = 4, colNames = FALSE)
-addStyle(wb, "Summary", st_head, rows = 4, cols = 1:3, gridExpand = TRUE)
-cats <- list(c("Personnel", "PERSONNEL_TOTAL"), c("Travel", "TRAVEL_TOTAL"), c("Data", "DATA_TOTAL"))
 r <- 4
-for (c_ in cats) {
+put(1, r, "INPUTS", st_sect); r <- r + 1
+
+inputs <- list(
+  c("DAY_RATE",        2500,  "Daily fee, $ per investigator per day"),
+  c("N_HERDS",         6,     "# of farms"),
+  c("N_INVESTIGATORS", 3,     "# of investigators (Gerard, New York, Midwest)"),
+  c("INIT_DAYS",       1,     "Initial visit days per farm"),
+  c("MONTHLY_DAYS",    0.5,   "Monthly visit days per farm"),
+  c("MO_ENROL",        6,     "Months of ENROLMENT — farm visits and their travel run only here"),
+  c("MO_FOLLOWUP",     12,    "Months of FOLLOW-UP — passive data collection, no farm visits"),
+  c("ANALYSIS_DAYS",   15,    "Analysis and reporting days"),
+  c("PM_DAYS_MO",      1,     "Project management days per month"),
+  c("HERD_SIZE",       3000,  "Cows per farm"),
+  c("STORAGE_RATE",    0.06,  "Data storage, $ per cow per month"),
+  c("CONTINGENCY",     0.10,  "Contingency, fraction of subtotal"),
+  c("ENROLLED",        6000,  "Cows enrolled (for cost per cow)"),
+  c("AIR_NY",          800,   "Airfare Vancouver-Buffalo, return"),
+  c("AIR_MW",          650,   "Airfare Vancouver-Denver, return"),
+  c("CAR_DAY",         80,    "Rental car, $ per day"),
+  c("NIGHT",           180,   "Accommodation, $ per night"),
+  c("PER_DIEM",        80,    "Meals and incidentals, $ per day"),
+  c("TRIP_DRIVE",      350,   "Monthly trip mileage and meals, $ per trip"),
+  c("ON_FRAC",         0.5,   "Share of monthly trips needing an overnight")
+)
+for (x in inputs) {
+  put(1, r, as.numeric(x[[2]]), st_in)
+  label(2, r, x[[3]])
+  createNamedRegion(wb, SH, cols = 1, rows = r, name = x[[1]], overwrite = TRUE)
   r <- r + 1
-  writeData(wb, "Summary", c_[[1]], startCol = 1, startRow = r)
-  writeFormula(wb, "Summary", paste0("=", c_[[2]]), startCol = 2, startRow = r)
-  writeFormula(wb, "Summary", sprintf("=B%d/$B$8", r), startCol = 3, startRow = r)
-  addStyle(wb, "Summary", st_money, rows = r, cols = 2)
-  addStyle(wb, "Summary", createStyle(numFmt = "0%"), rows = r, cols = 3)
 }
 r <- r + 1
-writeData(wb, "Summary", "Subtotal", startCol = 1, startRow = r)
-writeFormula(wb, "Summary", "=SUM(B5:B7)", startCol = 2, startRow = r)
-addStyle(wb, "Summary", st_total, rows = r, cols = 2)
+put(1, r, "DERIVED", st_sect); r <- r + 1
+for (d in list(c("FARMS_EACH", "N_HERDS/N_INVESTIGATORS", "Farms per investigator"),
+               c("HALF_DAY", "DAY_RATE*MONTHLY_DAYS", "$ per monthly half-day visit"),
+               c("COWS", "N_HERDS*HERD_SIZE", "Cows monitored in total"))) {
+  put(1, r, d[[2]], st_part, formula = TRUE)
+  label(2, r, d[[3]])
+  createNamedRegion(wb, SH, cols = 1, rows = r, name = d[[1]], overwrite = TRUE)
+  r <- r + 1
+}
+
+# ===========================================================================
+# THE STAIRCASE
+# ===========================================================================
+r <- r + 2
+put(1, r, "THE BUDGET", st_sect)
+put(2, r, "read right to drill in", st_note)
+r <- r + 2
+
+TOTAL_ROW <- r
 r <- r + 1
-writeData(wb, "Summary", "Contingency", startCol = 1, startRow = r)
-writeFormula(wb, "Summary", "=B8*CONTINGENCY", startCol = 2, startRow = r)
-addStyle(wb, "Summary", st_money, rows = r, cols = 2)
+
+# --- B: PERSONNEL ----------------------------------------------------------
+PERS_ROW <- r; r <- r + 1
+
+# C: initial visits
+INIT_ROW <- r; r <- r + 1
+put(4, r, "DAY_RATE", st_part, formula = TRUE); label(5, r, "Daily fee"); r <- r + 1
+put(4, r, "N_HERDS*INIT_DAYS + 2*FARMS_EACH*INIT_DAYS", st_part, formula = TRUE)
+label(5, r, "Visit-days: Gerard at all farms, each collaborator at their own two"); IDAYS <- r; r <- r + 1
+put(3, INIT_ROW, sprintf("D%d*D%d", INIT_ROW + 1, IDAYS), st_item, formula = TRUE)
+label(4, INIT_ROW, "Initial farm visits")
+
+# C: monthly visits
+MON_ROW <- r; r <- r + 1
+put(4, r, "N_HERDS", st_part, formula = TRUE); label(5, r, "# of farms to visit"); M1 <- r; r <- r + 1
+put(4, r, "MO_ENROL*MONTHLY_DAYS", st_part, formula = TRUE)
+label(5, r, "Visit-days per farm — enrolment months only, follow-up is passive"); M2 <- r; r <- r + 1
+put(4, r, "DAY_RATE", st_part, formula = TRUE); label(5, r, "Daily fee"); M3 <- r; r <- r + 1
+put(3, MON_ROW, sprintf("D%d*D%d*D%d", M1, M2, M3), st_item, formula = TRUE)
+label(4, MON_ROW, "Monthly farm visits")
+
+# C: project management
+PM_ROW <- r; r <- r + 1
+put(4, r, "PM_DAYS_MO", st_part, formula = TRUE); label(5, r, "# of days per month"); P1 <- r; r <- r + 1
+put(4, r, "MO_ENROL+MO_FOLLOWUP", st_part, formula = TRUE); label(5, r, "Total months"); P2 <- r; r <- r + 1
+put(4, r, "DAY_RATE", st_part, formula = TRUE); label(5, r, "Daily fee"); P3 <- r; r <- r + 1
+put(3, PM_ROW, sprintf("D%d*D%d*D%d", P1, P2, P3), st_item, formula = TRUE)
+label(4, PM_ROW, "Project management")
+
+# C: analysis
+AN_ROW <- r; r <- r + 1
+put(4, r, "ANALYSIS_DAYS", st_part, formula = TRUE); label(5, r, "# of days (three weeks)"); A1 <- r; r <- r + 1
+put(4, r, "DAY_RATE", st_part, formula = TRUE); label(5, r, "Daily fee"); A2 <- r; r <- r + 1
+put(3, AN_ROW, sprintf("D%d*D%d", A1, A2), st_item, formula = TRUE)
+label(4, AN_ROW, "Analysis and reporting")
+
+put(2, PERS_ROW, sprintf("C%d+C%d+C%d+C%d", INIT_ROW, MON_ROW, PM_ROW, AN_ROW), st_cat, formula = TRUE)
+label(3, PERS_ROW, "PERSONNEL")
+
+# --- B: TRAVEL -------------------------------------------------------------
+TRAV_ROW <- r; r <- r + 1
+
+INITTR_ROW <- r; r <- r + 1
+trips <- list(
+  c("AIR_NY + 4*CAR_DAY + 3*NIGHT + 4*PER_DIEM", "Gerard to Buffalo \u2014 both New York farms"),
+  c("AIR_MW + 4*CAR_DAY + 3*NIGHT + 4*PER_DIEM", "Gerard to Denver \u2014 both Midwest farms"),
+  c("400 + 2*NIGHT + 3*PER_DIEM",                "Gerard, West Coast \u2014 his own two farms, driving"),
+  c("350 + 1*NIGHT + 2*PER_DIEM",                "New York collaborator \u2014 regional"),
+  c("350 + 1*NIGHT + 2*PER_DIEM",                "Midwest collaborator \u2014 regional"))
+t_first <- r
+for (t in trips) { put(4, r, t[[1]], st_part, formula = TRUE); label(5, r, t[[2]]); r <- r + 1 }
+put(3, INITTR_ROW, sprintf("SUM(D%d:D%d)", t_first, r - 1), st_item, formula = TRUE)
+label(4, INITTR_ROW, "Initial round \u2014 one trip to every farm")
+
+MONTR_ROW <- r; r <- r + 1
+put(4, r, "N_INVESTIGATORS*MO_ENROL", st_part, formula = TRUE)
+label(5, r, "Trips \u2014 one per investigator per enrolment month, both farms in a day"); T1 <- r; r <- r + 1
+put(4, r, "TRIP_DRIVE + ON_FRAC*NIGHT", st_part, formula = TRUE)
+label(5, r, "Cost per trip, mileage and meals plus a part-share of a night"); T2 <- r; r <- r + 1
+put(3, MONTR_ROW, sprintf("D%d*D%d", T1, T2), st_item, formula = TRUE)
+label(4, MONTR_ROW, "Monthly rounds")
+
+put(2, TRAV_ROW, sprintf("C%d+C%d", INITTR_ROW, MONTR_ROW), st_cat, formula = TRUE)
+label(3, TRAV_ROW, "TRAVEL")
+
+# --- B: DATA ---------------------------------------------------------------
+DATA_ROW <- r; r <- r + 1
+put(4, r, "COWS", st_part, formula = TRUE)
+label(5, r, "Cows monitored \u2014 the camera watches the whole pen, not only study cows"); G1 <- r; r <- r + 1
+put(4, r, "STORAGE_RATE", st_part, formula = TRUE); label(5, r, "$ per cow per month"); G2 <- r; r <- r + 1
+put(4, r, "MO_ENROL+MO_FOLLOWUP", st_part, formula = TRUE); label(5, r, "Months"); G3 <- r; r <- r + 1
+put(2, DATA_ROW, sprintf("D%d*D%d*D%d", G1, G2, G3), st_cat, formula = TRUE)
+label(3, DATA_ROW, "DATA")
+
+# --- B: CONTINGENCY --------------------------------------------------------
+CONT_ROW <- r; r <- r + 1
+put(3, r, sprintf("B%d+B%d+B%d", PERS_ROW, TRAV_ROW, DATA_ROW), st_item, formula = TRUE)
+label(4, r, "Subtotal"); S1 <- r; r <- r + 1
+put(3, r, "CONTINGENCY", st_part, formula = TRUE); label(4, r, "Rate"); S2 <- r; r <- r + 1
+put(2, CONT_ROW, sprintf("C%d*C%d", S1, S2), st_cat, formula = TRUE)
+label(3, CONT_ROW, "CONTINGENCY")
+
+put(1, TOTAL_ROW, sprintf("B%d+B%d+B%d+B%d", PERS_ROW, TRAV_ROW, DATA_ROW, CONT_ROW),
+    st_grand, formula = TRUE)
+put(2, TOTAL_ROW, "TOTAL BUDGET", createStyle(textDecoration = "bold", fontSize = 13))
+
+# ---- per-cow, per-herd ----------------------------------------------------
 r <- r + 1
-writeData(wb, "Summary", "Optional lines (see below)", startCol = 1, startRow = r)
-writeFormula(wb, "Summary", "=B16+B17", startCol = 2, startRow = r)
-addStyle(wb, "Summary", st_money, rows = r, cols = 2)
+put(1, r, sprintf("A%d/ENROLLED", TOTAL_ROW), createStyle(numFmt = "$#,##0.00"), formula = TRUE)
+label(2, r, "Per enrolled cow"); r <- r + 1
+put(1, r, sprintf("A%d/N_HERDS", TOTAL_ROW), createStyle(numFmt = "$#,##0"), formula = TRUE)
+label(2, r, "Per farm"); r <- r + 2
+
+# ---- optional lines, same staircase ---------------------------------------
+put(1, r, "NOT INCLUDED ABOVE \u2014 set the flag to 1 to fold either into the total",
+    st_sect); r <- r + 1
+put(1, r, 0, st_in); label(2, r, "Include camera subscription?"); INC_SUB <- r
+createNamedRegion(wb, SH, cols = 1, rows = r, name = "INC_SUB", overwrite = TRUE); r <- r + 1
+put(1, r, 0.65, st_in); label(2, r, "Subscription $ per cow per month, range 0.65-0.80")
+createNamedRegion(wb, SH, cols = 1, rows = r, name = "SUB_RATE", overwrite = TRUE); r <- r + 1
+put(2, r, "INC_SUB*COWS*SUB_RATE*(MO_ENROL+MO_FOLLOWUP)", st_cat, formula = TRUE)
+label(3, r, "Camera subscription \u2014 larger than everything above combined; settle with Nedap first")
 r <- r + 1
-writeData(wb, "Summary", "TOTAL", startCol = 1, startRow = r)
-writeFormula(wb, "Summary", "=B8+B9+B10", startCol = 2, startRow = r)
-addStyle(wb, "Summary", st_grand, rows = r, cols = 2)
+put(1, r, 0, st_in); label(2, r, "Include extra trimming?")
+createNamedRegion(wb, SH, cols = 1, rows = r, name = "INC_TRIM", overwrite = TRUE); r <- r + 1
+put(1, r, 0.406, st_in); label(2, r, "Extra trims per enrolled cow (pilot: 90.4% trimmed vs 49.8%)")
+createNamedRegion(wb, SH, cols = 1, rows = r, name = "XTRIM", overwrite = TRUE); r <- r + 1
+put(1, r, 18, st_in); label(2, r, "Cost per trim, $")
+createNamedRegion(wb, SH, cols = 1, rows = r, name = "TRIM_COST", overwrite = TRUE); r <- r + 1
+put(2, r, "INC_TRIM*ENROLLED*(2/3)*XTRIM*TRIM_COST", st_cat, formula = TRUE)
+label(3, r, "Extra trimming \u2014 arms 1 and 2 only, total over the study, not annual")
+r <- r + 2
 
-writeData(wb, "Summary", "Per enrolled cow", startCol = 1, startRow = 13)
-writeFormula(wb, "Summary", "=B11/ENROLLED", startCol = 2, startRow = 13)
-writeData(wb, "Summary", "Per herd", startCol = 1, startRow = 14)
-writeFormula(wb, "Summary", "=B11/N_HERDS", startCol = 2, startRow = 14)
-addStyle(wb, "Summary", createStyle(numFmt = "$#,##0.00"), rows = 13, cols = 2)
-addStyle(wb, "Summary", st_money, rows = 14, cols = 2)
+put(1, r, "WHAT RUNS WHEN", st_sect); r <- r + 1
+put(1, r, paste("Enrolment and follow-up are costed separately because they are different",
+                "kinds of work. Farm visits and their travel run through ENROLMENT only \u2014",
+                "once a farm has stopped enrolling, follow-up is passive data collection and",
+                "needs nobody on site. Project management, data storage and the camera",
+                "subscription run across both, so they use MO_ENROL + MO_FOLLOWUP."), st_note)
 
-writeData(wb, "Summary", "Optional — set the include flag to 1 on the Inputs sheet",
-          startCol = 1, startRow = 15)
-addStyle(wb, "Summary", st_section, rows = 15, cols = 1)
-writeData(wb, "Summary", "Camera subscription", startCol = 1, startRow = 16)
-writeFormula(wb, "Summary", "=INC_SUBSCRIPTION*COWS_MONITORED*SUB_RATE*MONTHS",
-             startCol = 2, startRow = 16)
-writeData(wb, "Summary",
-  "At the full monitored herd. Larger than everything above combined, so settle with Nedap first.",
-  startCol = 3, startRow = 16)
-writeData(wb, "Summary", "Extra trimming the protocol causes", startCol = 1, startRow = 17)
-writeFormula(wb, "Summary",
-  "=INC_TRIMMING*ENROLLED*PROTOCOL_ARMS_FRAC*EXTRA_TRIMS_ALERT*TRIM_COST",
-  startCol = 2, startRow = 17)
-writeData(wb, "Summary",
-  paste("Total over the study, not per year. Only enrolled cows in arms 1 and 2 are trimmed by protocol,",
-        "so this is not a whole-herd cost. A real farm cost the arms do not share equally, and who pays is open."),
-  startCol = 3, startRow = 17)
-addStyle(wb, "Summary", st_money, rows = 16:17, cols = 2, gridExpand = TRUE)
-addStyle(wb, "Summary", st_note, rows = 16:17, cols = 3, gridExpand = TRUE)
-
-writeData(wb, "Summary", "Still not costed anywhere", startCol = 1, startRow = 19)
-addStyle(wb, "Summary", st_section, rows = 19, cols = 1)
-for (k in seq_along(nc <- c(
-  "Farm compensation or incentive payments",
-  "Publication and open-access charges",
-  "Statistical consulting beyond the analysis days above",
-  "Institutional overhead — depends on whose institution holds the award")))
-  writeData(wb, "Summary", nc[k], startCol = 1, startRow = 19 + k)
-
-setColWidths(wb, "Summary", cols = 1:3, widths = c(36, 16, 70))
-
-invisible(worksheetOrder(wb) <- c(5, 1, 2, 3, 4))
-invisible(activeSheet(wb) <- 5)
+setColWidths(wb, SH, cols = 1:6, widths = c(14, 15, 15, 15, 58, 12))
+freezePane(wb, SH, firstActiveRow = 4)
+# activeSheet can still point at an index that removeWorksheet() deleted, and
+# worksheetOrder() restores it afterwards - so reset it before reordering.
+bud <- which(names(wb) == "Budget")
+invisible(activeSheet(wb) <- bud)
+invisible(worksheetOrder(wb) <- c(bud, setdiff(seq_along(names(wb)), bud)))
+invisible(activeSheet(wb) <- 1)
 saveWorkbook(wb, OUT, overwrite = TRUE)
-cat("wrote", OUT, "\n")
+cat("wrote", OUT, "- sheets:", paste(names(wb), collapse = ", "), "\n")
