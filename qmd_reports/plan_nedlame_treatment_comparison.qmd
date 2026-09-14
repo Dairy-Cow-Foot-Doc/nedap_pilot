@@ -51,7 +51,7 @@ This document records the analysis plan as approved, and notes where implementat
    >
    > The bump is real but it is a **repeat-lesion** effect. It appears only when every lesion event is counted (29–45 band = **76**, n = 478, which is roughly the n = 444 the original analysis used). Restrict to first diagnoses and it disappears whether or not the eligibility exclusions are applied (11 either way).
    >
-   > So the *mechanism* was right — that bump is the trim cycle re-alerting — but it was measured across all lesion events while the window governs first diagnoses only. **The process the window was thought to be holding out is already excluded by the first-diagnosis rule.**
+   > **And the stated mechanism was wrong too.** Gerard asked what "trim cycle" actually meant — whether it referred to alerts *after* a trim. It does not. Checking the repeat-lesion cases directly: **55% of the 29–45 band have a trim sitting BETWEEN the alert and the lesion**, against 0% in the 0–14 day bands, and post-trim re-alerting is only weakly enriched (33% vs 11%). So the bump is a cow whose alert was already acted on and who was trimmed, whose *later* lesion is then paired with that same old alert — the 20444 / 10390 pattern. **It is exactly what Round 34's completed-cycle rule removes**, which is why the bump is absent now for a reason rather than by luck. Do not describe it as re-alerting.
    >
    > The honest justification is diminishing returns: 21 days captures **88%** of cases with any prior alert, and 28 days adds **9** more. With the tail that flat, **a wider window would be equally defensible** — the trough argument was doing work the data does not support. Now stated this way in the report under `#sec-lookback`.
    >
