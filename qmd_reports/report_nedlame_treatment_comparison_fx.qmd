@@ -304,16 +304,20 @@ sensor_hits <- q4_sensor |>
          # speak to the pipeline if the pipeline existed when it fired.
          sensor_hit_ever = !is.na(attention_date) & attention_date < date_event &
            attention_date >= nedlame_start_date,
-         # The 124: flagged before the lesion, but only before alerting was
-         # live. Kept as its own category rather than folded into the residual,
-         # so neither label lies - "No Flag Found" stays true of the cases it
-         # names, and these cows are not silently promoted to a blind spot.
          sensor_hit_pre_golive = !is.na(attention_date) & attention_date < date_event &
+           attention_date < nedlame_start_date,
+         # A flag inside a FULL 28 days of the lesion that fired before go-live.
+         # It needs the uncapped window: lookback_days_used stops at go-live, so
+         # it can never contain one. These cows were seen by the camera and had
+         # no route to DairyComp - the real "before go-live" group (Round 38).
+         sensor_hit_28d_pre_golive = !is.na(attention_date) & attention_date < date_event &
+           attention_date >= date_event - params$q4_lookback_days &
            attention_date < nedlame_start_date) |>
   group_by(id_animal, lact_number, date_event) |>
   summarize(sensor_fired_in_window = any(sensor_hit),
             sensor_fired_ever      = any(sensor_hit_ever),
             sensor_fired_pre_golive = any(sensor_hit_pre_golive),
+            sensor_fired_28d_pre_golive = any(sensor_hit_28d_pre_golive),
             .groups = "drop")
 
 # The attention export only gives the day a flag STARTED. A LOW episode that
@@ -351,25 +355,34 @@ q4_sensor <- q4_sensor |>
       # started there OR one still running (LMSV > 0). Gerard's point: the old
       # "outside the window" 20 were the same thing as the pipeline 136.
       sensor_fired_in_window | coalesce(scored_in_window, FALSE) ~ "Flagged, No Alert Raised",
-      sensor_fired_ever | sensor_fired_pre_golive ~ "Flagged Earlier, Not in Window",
-      TRUE ~ "No Flag Found"
+      sensor_fired_28d_pre_golive ~ "Flagged Before Alerting Went Live",
+      # No flag in the 28 days, and DairyComp held no score for her on any live
+      # day of it - she scored above the LOW trigger throughout. Round 38 folded
+      # in the cows whose only flag was older (median 79 days, mostly a 0-1 day
+      # LOW episode): an old flag on a cow then scored normal for four weeks says
+      # nothing about this lesion. The six with SkyView scores had a 28-day
+      # minimum of 70.7-83. n_never_flagged keeps the no-flag-ever subset.
+      TRUE ~ "No Flag in Window"
     ), levels = c(
       "Alert Arrived in Time", "Alerted Earlier, No Trim Followed", "Flagged, No Alert Raised",
-      "Flagged Earlier, Not in Window", "No Flag Found", "No Data (Outside Coverage)"
+      "Flagged Before Alerting Went Live", "No Flag in Window", "No Data (Outside Coverage)"
     ))
   )
 
 misses_in_coverage <- q4_sensor |> filter(in_coverage, is_miss)
-n_pipeline_loss   <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised")
-n_flagged_earlier <- sum(misses_in_coverage$detection_group_3way == "Flagged Earlier, Not in Window")
-n_true_miss       <- sum(misses_in_coverage$detection_group_3way == "No Flag Found")
+n_pipeline_loss      <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised")
+n_flagged_pre_golive <- sum(misses_in_coverage$detection_group_3way == "Flagged Before Alerting Went Live")
+n_true_miss          <- sum(misses_in_coverage$detection_group_3way == "No Flag in Window")
 # These three split the misses on a string. Rename a level anywhere and the
 # comparison quietly matches nothing: the counts go to zero, the page still
 # renders, and the numbers just come out wrong. Happened in the farm report.
-stopifnot(n_pipeline_loss + n_flagged_earlier + n_true_miss == nrow(misses_in_coverage))
+stopifnot(n_pipeline_loss + n_flagged_pre_golive + n_true_miss == nrow(misses_in_coverage))
 # Each must be non-empty for the prose below to read correctly, and an empty one
 # is the signature of the rename bug above rather than of a real result.
-stopifnot(n_pipeline_loss > 0, n_flagged_earlier > 0, n_true_miss > 0)
+stopifnot(n_pipeline_loss > 0, n_flagged_pre_golive > 0, n_true_miss > 0)
+# Inside the blind spot: never flagged at all, versus an older flag only.
+n_never_flagged <- sum(misses_in_coverage$detection_group_3way == "No Flag in Window" &
+                         !misses_in_coverage$sensor_fired_ever & !misses_in_coverage$sensor_fired_pre_golive)
 # Of the flagged-no-alert group, how many are there only because of LMSV - the
 # flag was running, not starting, inside the window.
 n_pipeline_score_only <- sum(misses_in_coverage$detection_group_3way == "Flagged, No Alert Raised" &
@@ -456,9 +469,11 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
     - This excludes the first lactation animals that stopped being entered in the SmartSight instance in August.
 
-  - **`r n_flagged_earlier` were flagged, but not in the `r params$q4_lookback_days` days before the lesion.**
+  - **`r n_flagged_pre_golive` were flagged in the `r params$q4_lookback_days` days before the lesion, but before alerting went live.**
 
-  - **`r n_true_miss` had no camera flag at all.** This is the camera's genuine blind spot.
+  - **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.** This is the camera's blind spot.
+
+    - `r n_never_flagged` were never flagged at all. The rest had only an older flag and scored normal in the window.
 
     - Digital dermatitis is over-represented among them and white line under-represented.
 
@@ -1204,17 +1219,21 @@ Using the raw camera flag export data, the breakdown of those missed cow is as f
 
     -   Why no alert was raised is shown below.
 
-2.  **`r n_flagged_earlier` the camera flagged her, but not in the `r params$q4_lookback_days` days before the lesion.**
+2.  **`r n_flagged_pre_golive` the camera flagged her in the `r params$q4_lookback_days` days before the lesion, but before alerting went live on `r format(nedlame_start_date)`.**
 
-    -   No flag started in the window, and DairyComp held no score for her in it.
+    -   The camera saw her. There was no route to DairyComp yet.
 
-3.  **`r n_true_miss` had no camera flag at all.** This is the only group the camera did not see.
+3.  **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.** This is the group the camera did not see.
+
+    -   `r n_never_flagged` were never flagged at all.
+
+    -   `r n_true_miss - n_never_flagged` had an older flag only. DairyComp held no score for them on any live day in the window, so they scored above the LOW trigger throughout.
 
 ### Why the warning window is `r params$q4_lookback_days` days {#sec-lookback}
 
 **It is `r params$q4_lookback_days` days because that is the horizon DairyComp itself runs on.** The decline routes gate on `FTDAT<-28` - a cow trimmed inside 28 days cannot raise a decline alert - and the post-trim suppression in this report uses the same `r params$recent_trim_suppression_days` days. Matching the analysis window to the operational one means the report is asking the question the farm's own system is set up to answer, rather than imposing a number of its own.
 
-**The headline does not depend on it.** `r n_misses` cows got no useful warning, and that figure is identical at a 14, 21, 28 or 45-day window. Widening the window moves a case from *alerted earlier* to *alert arrived in time* - both of which are warnings - so the count of cows who got neither cannot change. The `r n_true_miss` with no camera flag at all is likewise fixed. What the window does move is the split *within* those groups: how many misses are attributed to the pipeline rather than to a flag too old to count, and how many cohort alerts are credited as arriving in time.
+**The headline does not depend on it.** `r n_misses` cows got no useful warning, and that figure is identical at a 14, 21, 28 or 45-day window. Widening the window moves a case from *alerted earlier* to *alert arrived in time* - both of which are warnings - so the count of cows who got neither cannot change. The `r n_never_flagged` never flagged at all are likewise fixed. What the window does move is the split *within* those groups: how many misses are attributed to the pipeline rather than to the blind spot, and how many cohort alerts are credited as arriving in time.
 
 For completeness, the distribution behind it - every lesion case in the pilot window that had *any* prior `NEDLAME`, by days from the most recent prior alert to the lesion:
 
@@ -1266,10 +1285,10 @@ The figure below shows the lesion types found at all (cohort and non cohort cows
   - an alert arrived before the window opened and no trim happened in between.
 - **Flagged, No Alert Raised**
   - the camera flagged her inside the window, or a flag was still running, but no `NEDLAME` was raised. Mostly the enrollment rules declining the flag on purpose - see @fig-pipeline-loss-injury-plot.
-- **Flagged Earlier, Not in Window**
-  - the camera flagged her, but only more than `r params$q4_lookback_days` days before the lesion or before go-live.
-- **No Flag Found**
-  - no camera flag of any kind before the lesion.
+- **Flagged Before Alerting Went Live**
+  - the camera flagged her in the `r params$q4_lookback_days` days before the lesion, but before `r format(nedlame_start_date)`.
+- **No Flag in Window**
+  - no camera flag in the `r params$q4_lookback_days` days before the lesion.
 
 Where a cow had two different lesions on the same day, each type is counted. The same type coded twice on one day counts once.
 
@@ -1288,8 +1307,8 @@ Lesion types with fewer than 20 cases are combined into one bar - separately the
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
 STATUS_LEV <- c("Alert Arrived in Time", "Alerted Earlier, No Trim Followed",
-                "Flagged, No Alert Raised", "Flagged Earlier, Not in Window",
-                "No Flag Found")
+                "Flagged, No Alert Raised", "Flagged Before Alerting Went Live",
+                "No Flag in Window")
 
 les_base <- q4_sensor |>
   filter(in_coverage) |>
@@ -1405,7 +1424,7 @@ p_lesion_rate / p_lesion_mix
 
 - Digital dermatitis is the clear gap. The camera caught **`r pctl('dd', STATUS_LEV[1])`%** of DD cases in time against **`r pctl('wld', STATUS_LEV[1])`%** of white line
 
-- DD is **`r pctm('dd', "No Flag Found")`%** of the cases with no camera flag at all against **`r pctm('dd', STATUS_LEV[1])`%** of those where the alert arrived in time.
+- DD is **`r pctm('dd', "No Flag in Window")`%** of the cases with no camera flag in the window against **`r pctm('dd', STATUS_LEV[1])`%** of those where the alert arrived in time.
 
 None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss.
 

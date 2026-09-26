@@ -1744,3 +1744,18 @@ Inside the 243: score never 1-30 **187** (17 of them with no score in DairyComp 
 
 - **The DD sentence quoted the wrong group.** It used `STATUS_LEV[5]` for "no camera flag at all", but Round 35's new level had made `[5]` the pre-go-live group. It now looks the level up by name.
 - `step3_pipeline_losses.R` builds its case sheet from the shared verdict rather than from flag starts, which would have silently dropped the 107 score-only cases. It also reads `LMSV` the same way as the report.
+
+## Round 38: the 37 "flagged earlier" split into two groups we already had
+
+Gerard, on *Flagged Earlier, Not in Window*: *"I'm still not convinced about the 37 ... I suspect they fall into other categories."* He was right.
+
+- **No missing data.** All 37 had a milk-file row on every live day, and none had a flag episode open in the window.
+- **8 were flagged inside a full 28 days, but before go-live.** LOW flags 4-22 days before the lesion (May 13-31), lesions June 4-11. The camera saw them; there was no route to DairyComp. Cows 7475, 22887, 10726, 10190, 10527, 9194, 22450, 9160. **This is the real "before go-live" group** - not the 124 Round 35 started from.
+- **29 had no flag in the 28 days.** Their only flag was older (median 79 days, 33-328), usually a 0-1 day LOW episode. DairyComp held no `LMSV` for them on any live day in the window, so they scored above the LOW trigger throughout. The 6 in the SkyView file had a 28-day minimum of 70.7-83. 3 were trimmed since the old flag (9496, 10764, 7131).
+
+Applied:
+
+- New level order: *Flagged, No Alert Raised* 243 -> *Flagged Before Alerting Went Live* **8** -> *No Flag in Window* **58**. The pre-go-live test uses the uncapped 28 days (`sensor_hit_28d_pre_golive`), since `lookback_days_used` stops at go-live.
+- `n_true_miss` is now **58**; `n_never_flagged` (**29**) keeps the no-flag-ever subset.
+- **The blind spot doubles (29 -> 58), and it now depends on the window.** The lookback section says the never-flagged 29 are fixed, not the 58. Gerard accepted this as the honest version.
+- DD still over-represented: 62% of the blind spot against 22% of alerts that arrived in time.
