@@ -66,7 +66,11 @@ These are not caveats to mention — they determine whether the study can answer
 | Reproduction | Dropped | The herd's records show a one-day difference in days to first service. Nothing to power against. |
 | Economics | Reported, not powered | The inputs do not affect the sample size, so a reader can substitute their own without changing precision. |
 
-## START HERE: two decisions are open
+## START HERE (2026-09-26): read `design/review-proposal-2026-09-26.md` first
+
+It supersedes the sizing below. Gerard wants **lower alert rates than the pilot, about 7,200 enrolled with a random slope, and under 18 months** (21 is too long). The review proposes 8 herds x 850, a fixed study end with culling at 180 days (about 15 months budgeted), lists 8 errors in draft 3, and says to **re-measure D2 over 90 days first**. None of it is applied yet. The budget is `design/budget_nedap_3arm (version 2).xlsx` - edit the WORKBOOK, never re-run `p32_budget_xlsx.R` (stale, would wipe Gerard's Excel edits).
+
+## Two decisions are open (from 2026-09-10)
 
 `design/review-proposal-2026-09-10.md` holds both in full. **Do not paper over either one** - each changes what the proposal says, and both were left for Gerard deliberately.
 
