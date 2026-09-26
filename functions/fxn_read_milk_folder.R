@@ -51,18 +51,22 @@ fxn_read_milk_folder <- function(folder = "data/milk",
   map2(files, file_dates, \(.file, .date) {
     read_csv(
       .file,
-      col_select = any_of(c("ID", "LACT", "DMLK1")),
+      # LMSV is the Nedap locomotion score as DairyComp held it that morning -
+      # the value the `Low` enrolment command (LMSV=1-30) actually tests. It
+      # rides in the milk file because both come from the same VAS export.
+      col_select = any_of(c("ID", "LACT", "DMLK1", "LMSV")),
       col_types = cols(
         ID = col_character(),
         LACT = col_double(),
-        DMLK1 = col_double()
+        DMLK1 = col_double(),
+        LMSV = col_double()
       ),
       show_col_types = FALSE
     ) |>
       mutate(milk_date = .date)
   }) |>
     list_rbind() |>
-    rename(id = ID, reported_lact_number = LACT, dmlk1 = DMLK1) |>
+    rename(id = ID, reported_lact_number = LACT, dmlk1 = DMLK1, lmsv = any_of("LMSV")) |>
     filter(!is.na(id))
 }
 
@@ -90,5 +94,5 @@ fxn_resolve_milk_to_lactation <- function(milk_long, animal_lactations,
     slice_min(dim, n = 1, with_ties = FALSE) |>
     ungroup() |>
     filter(dim <= max_dim) |>
-    select(id_animal, id, lact_number, reported_lact_number, milk_date, dim, dmlk1)
+    select(id_animal, id, lact_number, reported_lact_number, milk_date, dim, dmlk1, any_of("lmsv"))
 }

@@ -890,11 +890,15 @@ fxn_build_staff_catch <- function(q4, chklame, staff_window_days = 7) {
 # implemented in the workbook and not in the report, and they disagreed by
 # about ten cases.
 #
-# What remains unexplained is a floor, not a count of confirmed bugs: score at
-# flag is not in the data, so a LOW-only case could equally be a score of 31-69
-# that was correctly declined. Only cases where a DECLINE route fired have no
-# score gate left to hide behind.
-fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_formatted, events_all, lame_data) {
+# The Low route also needs LMSV=1-30, and that gate used to be uncheckable -
+# score-at-flag was "not in the data", so every LOW-only case was "cannot tell".
+# It was in the data all along: LMSV rides in the daily VAS milk file. From
+# 2026-06-03 it equals the prior day's Nedap score (97-98% within 3 points of
+# the SkyView export) and is sent ONLY for cows under the LOW threshold (~70),
+# else 0. So each LOW-only case is now judged day by day on what DairyComp held.
+# See lmsv_gate_check below, and the plan doc's Round 37.
+fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_formatted, events_all, lame_data,
+                                         lmsv_resolved) {
   leg_abovefoot_injury_history <- lame_data |>
     filter(protocols == "Leg-AboveFoot" | injury == 1) |>
     select(id_animal, hist_date = date_event) |>
@@ -1078,65 +1082,109 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
     # flag means DairyComp should have raised an alert
     summarize(all_dsnlm_blocked = all(flag_dsnlm_blocked), .groups = "drop")
   
+  # FIFTH mechanism, and the one that settles the old "cannot tell" pile: the
+  # Low route's own score gate, LMSV=1-30, checked on every day DairyComp held a
+  # score for her inside the window. On each such day the other Low gates apply
+  # too - FTDAT<-90, DSNLM=90-1, no upper-leg history - exactly as above.
+  # A day with LMSV 1-30 and all three clear is a day the Low command should
+  # have raised a NEDLAME. None did, as of Round 37; the rule stays so a future
+  # data pull cannot hide one.
+  lmsv_gate_check <- pipeline_loss_cases |>
+    select(id_animal, lact_number, date_event, lookback_days_used) |>
+    left_join(lmsv_resolved |> select(id_animal, lact_number, lmsv_date = milk_date, lmsv),
+              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    filter(lmsv_date < date_event, lmsv_date >= date_event - lookback_days_used) |>
+    left_join(trims_gate, by = "id_animal", relationship = "many-to-many") |>
+    group_by(id_animal, lact_number, date_event, lmsv_date, lmsv) |>
+    summarize(ftdat_block = any(!is.na(gate_trim_date) & gate_trim_date < lmsv_date &
+                                  gate_trim_date >= lmsv_date - 90), .groups = "drop") |>
+    left_join(nedlame_gate, by = "id_animal", relationship = "many-to-many") |>
+    group_by(id_animal, lact_number, date_event, lmsv_date, lmsv, ftdat_block) |>
+    summarize(dsnlm_block = any(!is.na(ned_date) & ned_date < lmsv_date &
+                                  ned_date >= lmsv_date - 90), .groups = "drop") |>
+    left_join(leg_abovefoot_injury_history, by = "id_animal", relationship = "many-to-many") |>
+    group_by(id_animal, lact_number, date_event, lmsv_date, lmsv, ftdat_block, dsnlm_block) |>
+    summarize(uplam_block = any(!is.na(hist_date) & hist_date < lmsv_date), .groups = "drop") |>
+    mutate(low_day = lmsv >= 1 & lmsv <= 30,
+           open_day = low_day & !ftdat_block & !dsnlm_block & !uplam_block) |>
+    group_by(id_animal, lact_number, date_event) |>
+    summarize(lmsv_days_scored = sum(lmsv > 0), lmsv_low_days = sum(low_day),
+              lmsv_open_days = sum(open_day),
+              lmsv_low_all_ftdat = all(ftdat_block[low_day]), .groups = "drop")
+
   pipeline_loss_cases <- pipeline_loss_cases |>
     left_join(late_arrival_check, by = c("id_animal", "lact_number", "date_event")) |>
   left_join(dsnlm_check, by = c("id_animal", "lact_number", "date_event")) |>
     left_join(pipeline_loss_fired_types, by = c("id_animal", "lact_number", "date_event")) |>
     left_join(injury_history_check, by = c("id_animal", "lact_number", "date_event")) |>
     left_join(attention_gate_check, by = c("id_animal", "lact_number", "date_event")) |>
+    left_join(lmsv_gate_check, by = c("id_animal", "lact_number", "date_event")) |>
     mutate(
+      # A case with no attention START in the window is here because DairyComp
+      # held a score for her (LMSV > 0 means she was under the LOW threshold), so
+      # the flag she carried was a LOW one - usually an episode opened before the
+      # window and still running.
+      low_only = coalesce(low_only, TRUE),
       all_attentions_blocked = coalesce(all_attentions_blocked, FALSE),
       alert_arrived_late = coalesce(alert_arrived_late, FALSE),
     all_dsnlm_blocked = coalesce(all_dsnlm_blocked, FALSE),
-      injury_explained = low_only & has_injury_leg_history,
-      by_design = all_attentions_blocked | injury_explained | alert_arrived_late | all_dsnlm_blocked
+      across(c(lmsv_days_scored, lmsv_low_days, lmsv_open_days), \(x) coalesce(x, 0L)),
+      injury_explained = low_only & has_injury_leg_history
     )
-  
+
   n_pipeline_loss_low_only <- sum(pipeline_loss_cases$low_only, na.rm = TRUE)
   n_pipeline_loss_injury_explained <- sum(pipeline_loss_cases$injury_explained, na.rm = TRUE)
   n_pipeline_loss_ftdat_blocked <- sum(pipeline_loss_cases$all_attentions_blocked, na.rm = TRUE)
   n_pipeline_loss_late <- sum(pipeline_loss_cases$alert_arrived_late, na.rm = TRUE)
 n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE)
-  n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design, na.rm = TRUE)
-  n_pipeline_loss_unexplained <- nrow(pipeline_loss_cases) - n_pipeline_loss_by_design
 
-  # Of what is left, most cannot be adjudicated at all. The Low route requires a
-  # score of 1-30 and score-at-flag is not in the data, so a LOW-only case is
-  # indistinguishable from a cow correctly declined for scoring 31-69. Only the
-  # cases where a DECLINE route fired have no score gate left to hide behind -
-  # those are the ones that are genuinely unexplained.
-  pipeline_loss_cases <- pipeline_loss_cases |>
-    mutate(verdict = case_when(
-      by_design ~ "Working as designed",
-      low_only  ~ "Cannot tell - LOW only, no score at flag",
-      TRUE      ~ "Genuine pipeline loss"
-    ))
   # ONE reason per case, in a fixed precedence, so the categories sum to the
   # total. The counts used to be independent - a case both FTDAT-blocked and
   # late was counted under each - so the prose bullets added to more than the
   # number of cases and disagreed with the figure beside them.
+  #
+  # The order asks the questions in sequence: did an alert arrive at all (then
+  # nothing was blocked)? Did the score ever allow the Low route? Only then,
+  # which gate blocked it. DairyComp ANDs all the Low conditions, so a cow whose
+  # score never reached 1-30 is blocked whatever her trim or injury history -
+  # labelling her "upper-leg history" (as the old order did, 13 -> 43 once LMSV
+  # cases joined) credits a gate that never had to act. The LMSV rows replace
+  # what used to be "Cannot tell: LOW only, no score at flag".
   pipeline_loss_cases <- pipeline_loss_cases |>
     mutate(reason = case_when(
+      alert_arrived_late     ~ "An alert did arrive, one day too late",
+      low_only & lmsv_low_days == 0 ~ "Working as designed: score never 1-30 (LMSV gate)",
       all_attentions_blocked ~ "Working as designed: flag inside its FTDAT window",
       all_dsnlm_blocked      ~ "Working as designed: already alerted (DSNLM)",
       injury_explained       ~ "Working as designed: upper-leg history blocks Low",
-      alert_arrived_late     ~ "An alert did arrive, one day too late",
-      low_only               ~ "Cannot tell: LOW only, no score at flag",
+      low_only & lmsv_open_days > 0 ~ "Genuine pipeline loss: the Low route was open",
+      low_only & lmsv_low_days > 0 & lmsv_low_all_ftdat ~ "Working as designed: flag inside its FTDAT window",
+      low_only               ~ "Working as designed: already alerted (DSNLM)",
       TRUE                   ~ "Genuine pipeline loss: a decline flag vanished"
-    ))
+    ),
+    by_design = !str_starts(reason, "Genuine"),
+    verdict = if_else(by_design, "Working as designed", "Genuine pipeline loss"))
+
+  n_pipeline_loss_by_design <- sum(pipeline_loss_cases$by_design)
   n_only_ftdat  <- sum(pipeline_loss_cases$reason == "Working as designed: flag inside its FTDAT window")
   n_only_dsnlm  <- sum(pipeline_loss_cases$reason == "Working as designed: already alerted (DSNLM)")
   n_only_injury <- sum(pipeline_loss_cases$reason == "Working as designed: upper-leg history blocks Low")
   n_only_late   <- sum(pipeline_loss_cases$reason == "An alert did arrive, one day too late")
-  stopifnot(n_only_ftdat + n_only_dsnlm + n_only_injury + n_only_late ==
+  n_only_score  <- sum(pipeline_loss_cases$reason == "Working as designed: score never 1-30 (LMSV gate)")
+  stopifnot(n_only_ftdat + n_only_dsnlm + n_only_injury + n_only_late + n_only_score ==
               n_pipeline_loss_by_design)
+  # Inside the score-gate group: cows with a LOW flag for whom DairyComp held no
+  # score at all (LMSV 0 every day, or no milk-file row). The rule still could
+  # not fire, but whether the score was never sent or was overwritten between
+  # Nedap's export and the VAS file cannot be told from these files.
+  n_score_never_sent <- sum(pipeline_loss_cases$reason == "Working as designed: score never 1-30 (LMSV gate)" &
+                              pipeline_loss_cases$lmsv_days_scored == 0)
 
-  n_pipeline_loss_unknowable <- sum(pipeline_loss_cases$verdict == "Cannot tell - LOW only, no score at flag")
-  n_pipeline_loss_genuine    <- sum(pipeline_loss_cases$verdict == "Genuine pipeline loss")
-  stopifnot(n_pipeline_loss_by_design + n_pipeline_loss_unknowable + n_pipeline_loss_genuine ==
-              nrow(pipeline_loss_cases))
+  n_pipeline_loss_genuine     <- sum(!pipeline_loss_cases$by_design)
+  n_pipeline_loss_genuine_low <- sum(pipeline_loss_cases$reason == "Genuine pipeline loss: the Low route was open")
+  stopifnot(n_pipeline_loss_by_design + n_pipeline_loss_genuine == nrow(pipeline_loss_cases))
 
-  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, nedlame_gate = nedlame_gate, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late)
+  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, nedlame_gate = nedlame_gate, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, lmsv_gate_check = lmsv_gate_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_pipeline_loss_genuine_low = n_pipeline_loss_genuine_low, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late, n_only_score = n_only_score, n_score_never_sent = n_score_never_sent)
 }
 
 

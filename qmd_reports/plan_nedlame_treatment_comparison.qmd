@@ -1697,3 +1697,50 @@ Over all 136 pipeline-loss cases the alerts that arrive *after* the lesion land 
 - **The exec summary is frozen at Round 22** (339 misses, a 21-day window, `report_..._clean.html`, and its own unrelated "144" meaning pipeline losses). Gerard, 2026-09-16: *"ignore exec summary we can probably delete"* - not to be regenerated; decide whether it goes.
 
 Verified: renders clean, `check_report.R` 0 ERROR / 0 WARN against the full log, workbook rebuilt clean, and every count above was read back out of the rendered HTML rather than taken from the console.
+
+## Round 37: the score was in the milk file all along - the "cannot tell" pile is the LMSV gate
+
+Gerard was not comfortable with the misses section: *"I do not feel the 309/577 is an accurate representation"*. He proposed dropping the 124 pre-go-live cases from the bottom line, and asked whether the 20 flagged more than 28 days out were *"basically the same as the 136"*.
+
+### The score was already in the repo
+
+- `LMSV` is a column in every `data/milk/UMN_milk_SV_*.csv` (Gerard pointed this out). The milk loader just never read it. `LMSW1` is always `???`; `LMSFD` has been frozen since ~2026-02-02. Neither is used.
+- **From 2026-06-03, `LMSV` = the prior day's Nedap score.** Checked against the SkyView export (330 first-lactation cows): 97-98% within 3 points, every week to the cut-off.
+- **It is sent only for cows under the LOW threshold (~70).** Everyone else reads 0. `LMSV > 0` agrees with an open attention episode on 95% of cow-days. So 0 = not flagged, not missing.
+- **Before June it is a different field.** Pre-Feb it ran opposite to the score (r ~ -0.5), it froze Feb-Mar, and **the go-live file (06-02) is still the old kind** - 96% of cows carry a value against ~45% from 06-03. That file made 4 cases look like open Low-route losses and 6 no-flag cows look scored on a first pass. Hence `params$lmsv_valid_from`.
+- The 8 `Low`-route NEDLAMEs on SkyView cows all had a prior-day score <= 30 (max exactly 30). `LMSV` is the field `LMSV=1-30` tests.
+
+### Why the Low route almost never fires
+
+- Nedap raised the LOW trigger from ~50 to ~70 in the week of **2026-04-12** (herd LOW flags ~150/wk -> 1,670, then ~1,000/wk; declines flat). Gerard: done *"to send more scores into DairyComp"*.
+- The `Low` command still needs 1-30, so nearly every LOW flag is blocked by design: 13,199 LOW flags after go-live, 81 `Low` NEDLAMEs out of 2,422.
+
+### What changed in the report
+
+- **"Flagged, No Alert Raised" now also counts a flag still running.** Any day in the window with `LMSV > 0`. It moved 107 cases in: most of the 124 (a LOW episode opened before go-live and never closed) and 15 of Gerard's 20.
+- **The two "earlier" groups merge** into *Flagged Earlier, Not in Window*: flagged only more than 28 days out or before go-live, and no score in DairyComp inside the window.
+- **"Cannot tell" is gone.** `fxn_build_pipeline_by_design()` now takes `lmsv_resolved` and checks the Low gates on every day with `LMSV` 1-30 (`FTDAT<-90`, `DSNLM=90-1`, upper-leg history, all cow-level).
+- **Precedence:** alert arrived late -> score never 1-30 -> FTDAT -> DSNLM -> upper-leg -> Low route open (genuine) -> decline vanished (genuine). The score goes before the other Low gates: DairyComp ANDs them, and the old order labelled 43 cows "upper-leg" whose score never got low enough for it to matter.
+- `fxn_resolve_milk_to_lactation()` gets `max_dim = 1000` for `LMSV`. The 450 default dropped three real cows at 480-700 DIM (6925, 9290, 9824).
+
+| miss bucket | Round 35 | Round 37 |
+|---|---|---|
+| Flagged, No Alert Raised | 136 | **243** |
+| Flagged Earlier, Outside the Window | 20 | - |
+| Flagged Before Alerting Went Live | 124 | - |
+| Flagged Earlier, Not in Window | - | **37** |
+| No Flag Found | 29 | **29** |
+| **total misses** | **309** | **309** |
+
+Inside the 243: score never 1-30 **187** (17 of them with no score in DairyComp at all), FTDAT 27, upper-leg 6, alert a day late 11, DSNLM 0, **genuine 12** (all decline routes). **No cow had the Low route open and no NEDLAME.**
+
+### Decided
+
+- **The 124 stay in the bottom line.** Gerard proposed dropping them (309/577 -> 185/453). Not applied: the cut picks cases by their outcome (misses only), and most of them turned out to be flagged while live. The outcome-blind alternative, if ever wanted, is lesions >= go-live + 28 d: 197/401 (49.1%).
+- **Gerard's 20 were the same as the 136**, as he suspected: 0 trimmed between flag and lesion, and 15 still flagged inside the window. Both earlier "unexplained" cows are explained: 21290 by `FTDAT<-90`, 10722 by the score gate.
+- **For the next study, save Nedap's alert files and daily scores as sent.** Gerard: the Nedap export and the VAS file run at different times, so an alert can be overwritten or a true error can hide. The 17 LOW-flagged cows with no score in DairyComp cannot be told apart without them.
+
+### Also fixed
+
+- **The DD sentence quoted the wrong group.** It used `STATUS_LEV[5]` for "no camera flag at all", but Round 35's new level had made `[5]` the pre-go-live group. It now looks the level up by name.
+- `step3_pipeline_losses.R` builds its case sheet from the shared verdict rather than from flag starts, which would have silently dropped the 107 score-only cases. It also reads `LMSV` the same way as the report.

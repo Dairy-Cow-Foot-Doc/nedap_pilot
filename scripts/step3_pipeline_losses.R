@@ -18,6 +18,7 @@ suppressPackageStartupMessages({library(tidyverse); library(arrow); library(writ
 source("functions/fxn_read_nedap_attentions.R"); source("functions/fxn_load_os_fxns.R")
 suppressMessages(fxn_load_os_fxns()); source("functions/fxn_code_lesions.R")
 source("functions/fxn_collapse_lesions.R"); source("functions/fxn_nedlame_analysis.R")
+source("functions/fxn_read_milk_folder.R")
 
 params <- list(milk_window_pre = 14, milk_window_post = 30, milk_baseline_days = 7,
                # Must track the report's params block. It was left at 21 when the
@@ -26,7 +27,7 @@ params <- list(milk_window_pre = 14, milk_window_post = 30, milk_baseline_days =
                # the same drift that made it stale once before.
                q4_lookback_days = 28, history_after_date = "2026-06-01",
                recent_trim_suppression_days = 28, post_trim_exclusion_days = 7,
-               analysis_end_date = "2026-08-27")
+               analysis_end_date = "2026-08-27", lmsv_valid_from = "2026-06-03")
 CUT <- as.Date(params$analysis_end_date)
 
 events_all <- read_parquet("data/intermediate_files/events_all_columns.parquet")
@@ -51,8 +52,20 @@ sh <- qs |> filter(in_coverage) |> select(id_animal, lact_number, date_event, lo
   left_join(att |> select(id_animal, lact_number, attention_date), by = c("id_animal","lact_number"), relationship = "many-to-many") |>
   mutate(h = !is.na(attention_date) & attention_date < date_event & attention_date >= date_event - lookback_days_used) |>
   group_by(id_animal, lact_number, date_event) |> summarize(fired = any(h), .groups = "drop")
+# Same rule as the report's lmsv-data / q4-sensor-build chunks: a day with
+# LMSV > 0 inside the window means a flag was still running, so she counts as
+# flagged even with no attention START in the window.
+lmsv_resolved <- fxn_read_milk_folder(from = params$lmsv_valid_from, to = params$analysis_end_date) |>
+  fxn_resolve_milk_to_lactation(animal_lactations, max_dim = 1000) |> filter(!is.na(lmsv))  # see report lmsv-data
+sc <- qs |> filter(in_coverage) |> select(id_animal, lact_number, date_event, lookback_days_used) |>
+  left_join(lmsv_resolved |> select(id_animal, lact_number, lmsv_date = milk_date, lmsv),
+            by = c("id_animal","lact_number"), relationship = "many-to-many") |>
+  mutate(h = !is.na(lmsv) & lmsv > 0 & lmsv_date < date_event & lmsv_date >= date_event - lookback_days_used) |>
+  group_by(id_animal, lact_number, date_event) |> summarize(scored = any(h), .groups = "drop")
 qs <- qs |> left_join(sh, by = c("id_animal","lact_number","date_event")) |>
-  mutate(grp = case_when(!in_coverage ~ "outside", caught_by_nedap ~ "caught", warned_not_acted ~ "warned", fired ~ "pipeline", TRUE ~ "truemiss"))
+  left_join(sc, by = c("id_animal","lact_number","date_event")) |>
+  mutate(grp = case_when(!in_coverage ~ "outside", caught_by_nedap ~ "caught", warned_not_acted ~ "warned",
+                         fired | coalesce(scored, FALSE) ~ "pipeline", TRUE ~ "truemiss"))
 pl <- qs |> filter(grp == "pipeline")
 cat("pipeline-loss candidates:", nrow(pl), "\n")
 
@@ -68,10 +81,10 @@ q4_sensor <- qs |>
   # drifted the function silently matched nothing and returned zero for everything
   mutate(detection_group_3way = if_else(grp == "pipeline",
                                         "Flagged, No Alert Raised", "other"))
-bd <- fxn_build_pipeline_by_design(q4_sensor, att, events_formatted, events_all, lame_data)
+bd <- fxn_build_pipeline_by_design(q4_sensor, att, events_formatted, events_all, lame_data, lmsv_resolved)
 plc <- bd$pipeline_loss_cases
 cat("by design:", bd$n_pipeline_loss_by_design,
-    " unexplained:", bd$n_pipeline_loss_unexplained, "\n")
+    " genuine:", bd$n_pipeline_loss_genuine, "\n")
 
 # attention-level detail is presentation only - the verdict above is what must
 # agree with the report
@@ -103,30 +116,25 @@ flags <- pl |> select(id_animal, lact_number, date_event, lookback_days_used) |>
            dsnlm_blocked ~ "by design: already alerted recently (DSNLM)",
            TRUE ~ "NOT EXPLAINED by FTDAT or DSNLM"))
 
-# one row per case, statuses derived from the shared verdict
-case <- flags |> group_by(id_animal, lact_number, date_event) |>
+# One row per case, built from the SHARED verdict rather than from the flag
+# starts. Round 37 added cases flagged only through LMSV (a flag still running,
+# none starting in the window); building from `flags` would silently drop them.
+flag_summary <- flags |> group_by(id_animal, lact_number, date_event) |>
   summarize(n_flags = n(),
             flag_types = paste(sort(unique(alert_type)), collapse = "+"),
             first_flag = min(attention_date), last_flag = max(attention_date),
-            .groups = "drop") |>
-  left_join(plc |> select(id_animal, lact_number, date_event,
-                          all_attentions_blocked, all_dsnlm_blocked,
-                          alert_arrived_late, injury_explained, low_only, by_design),
-            by = c("id_animal","lact_number","date_event")) |>
-  mutate(injury_hist = coalesce(injury_explained, FALSE),
-         status = case_when(
-           alert_arrived_late     ~ "NOT LOST - the alert reached DairyComp a day later",
-           all_attentions_blocked ~ "BY DESIGN - every flag inside its FTDAT window",
-           all_dsnlm_blocked      ~ "BY DESIGN - every flag suppressed by DSNLM (already alerted)",
-           injury_explained       ~ "BY DESIGN - LOW-only on a cow with upper-leg/injury history",
-           low_only               ~ "CANNOT ADJUDICATE - LOW only, score at flag unavailable",
-           TRUE                   ~ "CHECK FIRST - decline flag fired, no score gate applies"),
-         priority = case_when(
-           str_starts(status, "CHECK FIRST") ~ 1L,
-           str_starts(status, "CANNOT")      ~ 2L,
-           TRUE                              ~ 3L))
+            .groups = "drop")
+case <- plc |>
+  select(id_animal, lact_number, date_event, reason, by_design, injury_explained,
+         lmsv_days_scored, lmsv_low_days, all_dsnlm_blocked) |>
+  left_join(flag_summary, by = c("id_animal","lact_number","date_event")) |>
+  mutate(n_flags = coalesce(n_flags, 0L),
+         flag_types = coalesce(flag_types, "none started - LOW still running (LMSV)"),
+         injury_hist = coalesce(injury_explained, FALSE),
+         status = reason,
+         priority = if_else(by_design, 3L, 1L))
 
-stopifnot(sum(!case$by_design) == bd$n_pipeline_loss_unexplained)
+stopifnot(nrow(case) == nrow(plc), sum(!case$by_design) == bd$n_pipeline_loss_genuine)
 
 LTC <- c("dd","footrot","wld","sole_ulcer","injury","cork","hemorrhage","sole_fracture","toe_ulcer","thin","other")
 les <- lame_lesion_recent |> select(id_animal, lact_number, date_event, all_of(LTC)) |>
@@ -151,7 +159,8 @@ cases <- case |> left_join(idmap, by = "id_animal") |> left_join(les, by = c("id
             lookback_days = lookback_days_used_placeholder <- NULL,
             arm = coalesce(tx_group, "not in pilot cohort"),
             n_nedlame_ever = coalesce(n_nedlame_ever, 0L), first_nedlame_ever,
-            injury_history = injury_hist) |>
+            injury_history = injury_hist,
+            lmsv_days_scored, lmsv_days_1_30 = lmsv_low_days) |>
   arrange(priority, desc(n_flags), desc(lesion_date))
 
 flag_detail <- flags |> left_join(idmap, by = "id_animal") |>
@@ -167,15 +176,16 @@ readme <- tibble::tribble(
   ~Field, ~Meaning,
   "Purpose", "Every case where the Nedap sensor flagged a cow but no NEDLAME event appeared in DairyComp, so the alert never reached the cowcard.",
   "Population", paste0(nrow(cases), " lesion cases, from the ", nrow(qs), " qualifying cases in the analysis window (to ", format(CUT), ")."),
-  "priority 1 = CHECK FIRST", "A decline flag fired. The decline routes carry NO score gate, so no by-design rule can explain these. They are the clean integration failures.",
-  "priority 2 = CANNOT ADJUDICATE", "Only a LOW flag fired. The Low route requires a score of 1-30, and score-at-flag is not in the data - so a score of 31-69 is indistinguishable from a lost flag.",
-  "NOT LOST (priority 3)", "A NEDLAME reached DairyComp the day after the lesion. The ~5am batch stamps the load date, so a flag late on day D appears as D+1 - outside a lookback that only looks backward. Usually the camera reacting to the trim itself. The cow was still missed, but nothing was lost in transit. Added 2026-09-09 after cow 7207.",
-  "priority 3 = BY DESIGN", "DairyComp was correctly declining to raise an alert: the cow was trimmed too recently (FTDAT), had already been alerted recently (DSNLM), or has upper-leg/injury history that blocks the Low route.",
+  "priority 1 = Genuine pipeline loss", "A decline flag fired (no score gate), or the Low route was open - LMSV 1-30 with no other gate - and still no NEDLAME. The clean integration failures.",
+  "priority 3 = Working as designed", "DairyComp was correctly declining to raise an alert: trimmed too recently (FTDAT), already alerted (DSNLM), upper-leg/injury history, or the score never 1-30 (LMSV gate, Low route only).",
+  "An alert did arrive (priority 3)", "A NEDLAME reached DairyComp the day after the lesion. The ~5am batch stamps the load date, so a flag late on day D appears as D+1 - outside a lookback that only looks backward. The cow was still missed, but nothing was lost in transit. Added 2026-09-09 after cow 7207.",
+  "LMSV", "DairyComp's copy of the Nedap score, from the daily VAS milk file. From 2026-06-03 it equals the prior day's score, and is sent only for cows under the LOW threshold (~70); otherwise 0. The go-live file (06-02) still held an older field and is not used. Round 37.",
+  "flag_types = none started", "No attention started in the window, but DairyComp held a score for her in it - a LOW flag opened earlier and still running.",
   "DSNLM", "Exclusion criterion: a cow already alerted in the last N days is not re-flagged, so the cowcard does not fill with duplicate alarms. 90 days on the Low route, 7 on the decline routes. Confirmed by Gerard 2026-09-09; earlier versions of this analysis had it backwards.",
   "FTDAT", "Days since the most recent LAME diagnosis OR trim - not trims alone. 90 days on the Low route, 28 on the decline routes.",
   "Sheet: cases", "One row per lesion case, with the overall verdict.",
   "Sheet: flag_detail", "One row per individual sensor flag, showing exactly which rule blocked it - use this to see why a specific flag produced nothing.",
-  "Caveat", "The by-design counts are a floor. Score at flag is unavailable, and the trim lookup is scoped to the current lactation while the real FTDAT may look back further."
+  "Caveat", "The Nedap export and the VAS file run at different times, so an alert or score can be overwritten between them. Only saving the files as sent would settle a disputed case."
 )
 
 f <- "reports/qmd_reports/pipeline_losses.xlsx"
