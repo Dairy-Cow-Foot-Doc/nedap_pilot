@@ -68,7 +68,12 @@ These are not caveats to mention — they determine whether the study can answer
 
 ## START HERE (2026-09-26): read `design/review-proposal-2026-09-26.md` first
 
-It supersedes the sizing below. Gerard wants **lower alert rates than the pilot, about 7,200 enrolled with a random slope, and under 18 months** (21 is too long). The review proposes 8 herds x 850, a fixed study end with culling at 180 days (about 15 months budgeted), lists 8 errors in draft 3, and says to **re-measure D2 over 90 days first**. None of it is applied yet. The budget is `design/budget_nedap_3arm (version 2).xlsx` - edit the WORKBOOK, never re-run `p32_budget_xlsx.R` (stale, would wipe Gerard's Excel edits).
+**Read its section E first** - it records what is DONE. It supersedes the sizing, tau and timeline text further down this skill.
+
+- **Current design (draft 4, `9664f79`): 4,000 enrolled, six herds, 12 months.** Milk adjusted for each cow's baseline (D2 re-measured over 90 days, `p38`), arm-by-herd random slope, planned at the 90th bootstrap percentile. Every cow followed to one study end; culling and recurrence at 180 days; culling on ALL enrolled cows.
+- Planning alert rate 0.010-0.020 per cow per week, NOT the pilot's 0.024 (Gerard: the pilot is a high-alert herd).
+- Budget: `design/budget_nedap_3arm (version 3).xlsx`, $220,250. Edit the WORKBOOK by XML surgery; never re-run `p32_budget_xlsx.R` (stale, would wipe Gerard's Excel edits).
+- Still open: D1, 6 v 8 herds, whether dry-off stays secondary.
 
 ## Two decisions are open (from 2026-09-10)
 
