@@ -92,7 +92,7 @@ power_rs <- function(N, k, var_mean, tau = 0.25, R = 40000) {
   mean(abs(m / sqrt((s2 + t2) / k)) > za)
 }
 size_rs <- function(var_mean, k, tau = 0.25) {
-  Ns <- seq(600, 12000, 100)
+  Ns <- seq(600, 20000, 100)
   for (N in Ns) if (power_rs(N, k, var_mean, tau) >= 0.80) return(N)
   NA
 }
@@ -122,3 +122,9 @@ for (p in names(q)[2:3]) for (k in c(6, 8)) {
   cat(sprintf("  planning at the %s percentile, %d herds: %s enrolled (tau 0.25)\n", p, k,
               format(size_rs(q[[p]], k), big.mark = ",")))
 }
+
+# ---- herd-count table for the proposal (section 2), at the PLANNING variance ----
+cat("\n== Enrolled for 80% power at the 90th-percentile variance, by herds and tau ==\n")
+herd_tab <- expand_grid(tau = c(0.25, 0.5, 0.75), k = c(4, 6, 8, 10)) |>
+  mutate(enrolled = map2_dbl(tau, k, \(t, kk) size_rs(q[[3]], kk, t)))
+print(herd_tab |> pivot_wider(names_from = k, values_from = enrolled, names_prefix = "herds_"))
