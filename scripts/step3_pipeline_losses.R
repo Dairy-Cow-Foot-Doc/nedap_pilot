@@ -20,7 +20,11 @@ suppressMessages(fxn_load_os_fxns()); source("functions/fxn_code_lesions.R")
 source("functions/fxn_collapse_lesions.R"); source("functions/fxn_nedlame_analysis.R")
 
 params <- list(milk_window_pre = 14, milk_window_post = 30, milk_baseline_days = 7,
-               q4_lookback_days = 21, history_after_date = "2026-06-01",
+               # Must track the report's params block. It was left at 21 when the
+               # report moved to 28 (7264f67), which would have rebuilt the
+               # workbook on a different window from the section it documents -
+               # the same drift that made it stale once before.
+               q4_lookback_days = 28, history_after_date = "2026-06-01",
                recent_trim_suppression_days = 28, post_trim_exclusion_days = 7,
                analysis_end_date = "2026-08-27")
 CUT <- as.Date(params$analysis_end_date)

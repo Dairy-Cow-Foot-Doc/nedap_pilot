@@ -1042,13 +1042,32 @@ fxn_build_pipeline_by_design <- function(q4_sensor, attentions_resolved, events_
   #
   # This was implemented in the standalone pipeline-loss workbook but never in
   # the report, so the two disagreed by ~10 cases. Living here, both get it.
+  #
+  # DSNLM is a COW-LEVEL date item, exactly like FTDAT - "days since last
+  # NEDLAME" does not reset at freshening. This lookup used to join on
+  # lact_number as well, which hid every alert raised in a prior lactation: a
+  # recently freshened cow looked as though she had never been alerted and
+  # passed a gate DairyComp itself would have applied. That is the same bug
+  # Round 28 fixed in `trims_gate` above, left behind in the sibling check
+  # because the two were written a round apart. Gerard, 2026-09-16: "make
+  # dsnlm same as trims-gate".
+  #
+  # The 90-day Low gate is wide enough that a prior-lactation alert lands
+  # inside it routinely, so this is not a theoretical exposure. As with
+  # trims_gate, the temporal work is done by the ned_date < attention_date
+  # filter below, so dropping lact_number cannot let a LATER alert suppress an
+  # EARLIER flag.
+  nedlame_gate <- events_all |>
+    filter(Event == "NEDLAME") |>
+    select(id_animal, ned_date = date_event) |>
+    distinct()
+
   dsnlm_check <- pipeline_loss_cases |>
     select(id_animal, lact_number, date_event, lookback_days_used) |>
     left_join(attentions_resolved |> select(id_animal, lact_number, attention_date, alert_type),
               by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
     filter(attention_date < date_event, attention_date >= date_event - lookback_days_used) |>
-    left_join(nedlame_any |> select(id_animal, lact_number, ned_date),
-              by = c("id_animal", "lact_number"), relationship = "many-to-many") |>
+    left_join(nedlame_gate, by = "id_animal", relationship = "many-to-many") |>
     mutate(dsnlm_days = if_else(alert_type == "LOW", 90, 7),
            prior_alert = !is.na(ned_date) & ned_date < attention_date &
                          ned_date >= attention_date - dsnlm_days) |>
@@ -1117,7 +1136,7 @@ n_pipeline_loss_dsnlm <- sum(pipeline_loss_cases$all_dsnlm_blocked, na.rm = TRUE
   stopifnot(n_pipeline_loss_by_design + n_pipeline_loss_unknowable + n_pipeline_loss_genuine ==
               nrow(pipeline_loss_cases))
 
-  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late)
+  list(pipeline_loss_cases = pipeline_loss_cases, leg_abovefoot_injury_history = leg_abovefoot_injury_history, pipeline_loss_fired_types = pipeline_loss_fired_types, injury_history_check = injury_history_check, trims_gate = trims_gate, attention_gate_check = attention_gate_check, nedlame_any = nedlame_any, nedlame_gate = nedlame_gate, late_arrival_check = late_arrival_check, dsnlm_check = dsnlm_check, n_pipeline_loss_low_only = n_pipeline_loss_low_only, n_pipeline_loss_injury_explained = n_pipeline_loss_injury_explained, n_pipeline_loss_ftdat_blocked = n_pipeline_loss_ftdat_blocked, n_pipeline_loss_late = n_pipeline_loss_late, n_pipeline_loss_dsnlm = n_pipeline_loss_dsnlm, n_pipeline_loss_by_design = n_pipeline_loss_by_design, n_pipeline_loss_unexplained = n_pipeline_loss_unexplained, n_pipeline_loss_unknowable = n_pipeline_loss_unknowable, n_pipeline_loss_genuine = n_pipeline_loss_genuine, n_only_ftdat = n_only_ftdat, n_only_dsnlm = n_only_dsnlm, n_only_injury = n_only_injury, n_only_late = n_only_late)
 }
 
 

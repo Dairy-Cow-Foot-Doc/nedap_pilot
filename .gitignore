@@ -84,6 +84,8 @@ data/milk/*.parquet
 # data/ subfolders above, just not dropped into a subfolder this time
 data/*.csv
 data/*.xlsx
+# raw SkyView locomotion-score exports (per-cow daily scores)
+data/data_skyview/
 
 *.html
 

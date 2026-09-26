@@ -1605,3 +1605,95 @@ Gerard: *"flagged, not alerted in time is a misnomer - shouldn't it be flagged f
 
 - **The `vocab` guard** in `fxn_build_pipeline_by_design()` turned a rename split across two sessions and three files into a loud stop that named the categories present. Verified twice - the intermediate render failed exactly there both times. **Quarto still exited 0 on those failed renders**, which is why `check_report.R` requires an `Output created` line.
 - **A new guard on `n_miss_pilot == 0`.** The misses section states `n_miss_unenrolled` and splits it with herd-wide counts, which is valid only while no miss sits inside the cohort. The two arithmetic `stopifnot`s already there never caught the original `119 + 194 = 313` under a stated 310, **because both sums were individually true - they were just taken over different populations.** Assert the condition the *prose* depends on, not one that merely happens to hold.
+
+## Round 35: the flag bucket that predates the pipeline - 124 of the 144 could never have produced an alert
+
+Gerard, on the 144 in *Flagged Earlier, Outside the Window*: *"if they had flags why didn't they get a NEDLAME - is that the 90 day rider in Dairycomp or what is going on."*
+
+It is not, and the answer turned out to be much more basic than any DairyComp rule.
+
+### DSNLM cannot explain any of them, and that is structural
+
+Checked cow-level across **all** lactations, not the lactation-scoped join: **0 of the 144 had a `NEDLAME` at any point before their lesion.** 43 got their first one afterwards. `DSNLM` suppresses a *repeat* alert, so it needs a prior alert to suppress - it can never apply to this bucket. It is a live explanation for part of the *other* bucket (*Flagged, No Alert Raised*), where the cow does have alert history, and conflating the two is easy because **there are two different 90-day riders**:
+
+| rule | counts days since | what it blocks | applies here |
+|---|---|---|---|
+| `FTDAT<-90` | last `LAME` / `FOOTRIM` / `TRIM` | the `Low` route | **yes** - 10 cases |
+| `DSNLM=90-1` | last `NEDLAME` | a repeat alert | **no** - needs a prior alert |
+
+The stale exec summary makes this worse: it uses "144" to mean *pipeline losses* (Round 22 vintage), a different population from the 144 this bucket held.
+
+### The real cause: the category reached back nine months before the pipeline existed
+
+`sensor_hit_ever` had **no lower bound** - any attention before the lesion counted. The attention export starts **2025-08-25**; DairyComp could not receive a `NEDLAME` until **2026-06-02**. So a flag from April 2026 was being read as *"the camera produced signal and none of it became an alert."*
+
+**124 of the 144 have no camera flag at all on or after go-live.** Median silence before the lesion 57 days, max 343. Of those 124, 58 had a full 28-day live window in which the camera raised nothing - functionally a blind spot for that lesion, with a stale flag from an older episode attached.
+
+Only **20** could possibly represent a lost alert. Running the same four by-design rules on their post-go-live flags: **10 `FTDAT`-blocked, 8 `LOW`-only (score gate, unjudgeable), 2 unexplained** - a decline route fired and no alert appeared, cows **10722** (lesion 2026-08-04) and **21290** (2026-08-13).
+
+### Applied, per Gerard's ruling
+
+*"we should just look at lesions after go live date not all lesions so I think bounding by sensor ever fired is correct we can then show how many fired prior to start date."*
+
+`sensor_hit_ever` is now bounded at `nedlame_start_date`. The 124 are **not** folded into the residual - they get their own level, **"Flagged Before Alerting Went Live"** - because folding them in would have made `No Flag Found` false for 124 of the 153 it would then have named, which is the exact defect Round 34 caught in `"Never Flagged (True Miss)"`. Splitting also keeps `n_true_miss` at **29**, the figure already quoted elsewhere.
+
+| miss bucket | before | after |
+|---|---|---|
+| Flagged, No Alert Raised | 136 | 136 |
+| Flagged Earlier, Outside the Window | 144 | **20** |
+| Flagged Before Alerting Went Live | - | **124** |
+| No Flag Found | 29 | 29 |
+| **total misses** | **309** | **309** |
+
+Both new counts are invariant to the window, for the same reason `n_true_miss` is: no width of lookback can reach a flag that does not exist in the live era.
+
+### The count Gerard asked for needs an uncapped window
+
+*"say for example of the x lesion found after june start date y had an alert within the 28 days before the lesion but were not caught as no pipeline existed."*
+
+Asked over `lookback_days_used` this is **0 by construction** - the window is capped at `min(28, days since go-live)`, so it can never contain a pre-go-live flag, and the zero would say nothing about the farm. Asked over a full 28 days it is real: **38 misses had a flag inside 28 days that fired before go-live, and for 18 of them it was the only flag in that window** - the sole warning they got was undeliverable. The remaining 20 were flagged again after go-live and already count as pipeline losses. All 18 have lesions between 2026-06-04 and 2026-06-25, i.e. inside the first 28 days of the pilot. More broadly **112 of the 309 misses** sit on a window the go-live cap had shortened.
+
+### `DSNLM` made cow-level, and it moves nothing
+
+Gerard: *"make dsnlm same as trims-gate."* Done - `dsnlm_check` now joins a cow-level `nedlame_gate` on `id_animal` alone, the way `trims_gate` has since Round 28. As there, the temporal filter (`ned_date < attention_date`) does the work that `lact_number` was never doing, so a later alert still cannot suppress an earlier flag.
+
+**Measured effect on every reported number: none.** Exactly **1 of the 136** pipeline-loss cases changes its `DSNLM` verdict (1 flag of 349), and that case was already `FTDAT`-blocked, which wins the precedence. The reason table is identical either way: `FTDAT` 46, upper-leg 13, late 8, `DSNLM` **0** - by design **67**, cannot tell 57, genuine **12**.
+
+`DSNLM` staying at 0 is near-structural, not luck - it needs a prior `NEDLAME` before the flag, and the warned-not-acted and completed-cycle rules remove those cows from the miss population first (Round 27, confirmed again here). **The fix is still right**: it was the same defect as Round 28's in the sibling check, and the 90-day `Low` gate is wide enough that a prior-lactation alert lands inside it routinely. A correctness fix whose measured blast radius is zero is worth recording as zero, so nobody re-derives it looking for movement that is not there.
+
+### Workbook window resynced
+
+`scripts/step3_pipeline_losses.R` was still on `q4_lookback_days = 21` after the report moved to 28 in `7264f67`, so the workbook would have been rebuilt on a different window from the section it documents - the same drift that made it stale once before. Now 28, and the two agree exactly: 136 candidates, 67 by design, 57 cannot tell, 12 genuine.
+
+### `late_arrival_check`: measured, inert, left alone
+
+Gerard: *"check the late_arrival check I doubt there are any."* Checked, and the answer is two-sided.
+
+**The lactation-scoping is inert.** Cow-level and lactation-scoped give **identical** verdicts - 8 cases either way, not one flips. Unlike `DSNLM`, this join never had anything to hide: a `NEDLAME` one day after a lesion is in the same lactation in reality, and the DIM 0-1 cases Round 34 found are the only way the raw field could disagree. **Left as-is**, since changing it would be churn with a measured effect of zero. Recorded here so it is not re-raised as a latent bug a third time.
+
+**But there are 8, and they look exactly like the mechanism predicts** - a `NEDLAME` dated one day after the lesion, which is the ~5am batch stamping the load date:
+
+```
+10383  lesion 2026-08-18  NEDLAME 2026-08-19
+20007  lesion 2026-07-09  NEDLAME 2026-07-10
+21497  lesion 2026-06-11  NEDLAME 2026-06-12
+22557  lesion 2026-07-02  NEDLAME 2026-07-03  (+ another 07-04)
+8888   lesion 2026-07-30  NEDLAME 2026-07-31
+8915   lesion 2026-08-13  NEDLAME 2026-08-14
+9093   lesion 2026-06-11  NEDLAME 2026-06-12  (+ another 06-13)
+9340   lesion 2026-08-13  NEDLAME 2026-08-14  (+ another 08-15)
+```
+
+### The `days_late == 1` test is deliberately tight, and should stay tight
+
+Over all 136 pipeline-loss cases the alerts that arrive *after* the lesion land at +1 (8), **+2 (9), +3 (9)**, +4 (2), +6, +7, +14 (2). So there are 20 more cases with an alert within three days that the rule does **not** credit.
+
+**That is correct and should not be widened.** The +1 rule rests on a specific mechanism - no attention in the export fires before 05:00, so an attention on day D is stamped D+1 by the next morning's batch. A +2 or +3 alert cannot be the same flag arriving late; it is a *different* attention, and the farm has already said the camera commonly re-reads a cow's gait after the trim. Widening would relabel post-trim re-flagging as "the alert did arrive", which is the opposite of true. It would also move 9 cases from *cannot tell* into *working as designed* (67 -> 76) on a false premise.
+
+**And it cannot rescue the genuine 12 either way: not one of them has a `NEDLAME` at +1, +2 or +3.** Nine never got one after the lesion at all; the other three at +4, +26 and +65 days. The genuine set does not depend on where this threshold sits.
+
+### Still open
+
+- **The exec summary is frozen at Round 22** (339 misses, a 21-day window, `report_..._clean.html`, and its own unrelated "144" meaning pipeline losses). Gerard, 2026-09-16: *"ignore exec summary we can probably delete"* - not to be regenerated; decide whether it goes.
+
+Verified: renders clean, `check_report.R` 0 ERROR / 0 WARN against the full log, workbook rebuilt clean, and every count above was read back out of the rendered HTML rather than taken from the console.
