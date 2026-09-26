@@ -90,3 +90,13 @@ cannot: 82.5% of staff checks are followed by a trim within one day, median gap
 1 day, so it records a trim that happened rather than a cow who was booked. The
 pilot has no prospective record of intent, which is the argument for capturing
 the farm's trim list in the trial.
+
+## Draft 4 resize (2026-09-26) - supersedes p10, p12 and p13 for the current draft
+
+| Script | Produces |
+|---|---|
+| `p38_milk_sample_size_90d_baseline.R` | D2 over the full 90 days: baseline correlation r = 0.889, Var(cow 90-day mean) 42.4 kg² with baseline vs 98.3 without; bootstrap 90th percentile 51.9; **4,000 enrolled at 6 herds** with an arm-by-herd random slope (tau 0.25); the section 2 herd-count table. Takes a few minutes (bootstrap). |
+| `p39_outcome_baselines_180d.R` | Recurrence at 180 days 36.1% cow-level (29.5% same-lactation; the old 48.7% matches neither); culling within 180 days of a pre-go-live camera flag, all flagged cows, 16.0%. |
+| `p40_detectable_differences_v2.R` | What 4,000 detects, culling on all enrolled cows; dry-off baseline 22.4% and the share reaching dry-off inside follow-up (21% / 51% / 68% at 6 / 9 / 12 months); break-even on all enrolled (0.25-0.6 points). |
+
+`p16_breakeven_with_culling.R` now takes one trim cost ($18) and one cull cost ($1,650) from the top of the file; section 4 prints the ledger the proposal quotes.

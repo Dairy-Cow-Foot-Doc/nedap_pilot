@@ -104,3 +104,32 @@ Ordered by how much they matter.
 3. Fix B1 (culling denominator) - it changes the detectable-difference table.
 4. Re-size §5, update §6, timeline and the budget together.
 5. Fix B3-B7 in the same pass.
+
+------------------------------------------------------------------------
+
+## E. Done (same day, second pass) - read this first next session
+
+Gerard: *"if we go 12 months total ... Fix the 3 problems ... redo the sample size by including base line milk, how would we handle cows that calve during the study ... Do suggested or as you recommended."*
+
+**D2 settled, and it rescued the timeline** (`p38`). Baseline-adjusted milk holds over 90 days (r = 0.889). Planned at the 90th bootstrap percentile of the variance, with the random slope: **4,000 enrolled at six herds** (3,800 at eight). Without the baseline: 7,500. So section A4 (8 herds) is no longer needed; six herds stays, eight noted as stronger.
+
+**Applied to the draft (draft 4, `9664f79`):**
+
+- 12 months: enrolment up to 6 (2.6-5.1 expected at 3,000-cow herds, 0.010-0.020), every cow followed to one study end, at least 6 months after the last cow. Culling and recurrence at 180 days; 365 where cows reach it.
+- **B1** culling on all enrolled cows, 16.0% at 180 days, detects 3.8 points; ±2.8 interval.
+- **B3/B4** one trim cost ($18) and one cull cost ($1,650); break-even 0.7-1.8 points per lame cow (0.25-0.6 on all enrolled).
+- **B5** alert-rate tables at 0.010-0.020; **B6/B7** stale figures removed; §6 random slope + Kenward-Roger + baseline covariate; chronicity re-based (8,000 to power it).
+- **Cows that calve during the study** (§2): enrolled once, keep their arm as a strategy for every alert; milk read in the enrolment lactation only (drying off = attrition); culling and recurrence follow the cow across calving; dry-off lesion at the enrolment lactation's dry-off.
+
+**12 months, answered:** cure (60-day recheck) and milk are complete for every cow. Culling at 180 days is complete for every cow with enrolment at 6 months or less. Recurrence at 180 needs a lesion first, so the last few weeks of enrolees fall short and are censored. **Nobody reaches 365 days in all cows** - that is the price, and 93% of the culling gap is in by 180.
+
+**New problems found on the way:**
+
+- **Recurrence 48.7% could not be reproduced.** Same-lactation 36.7%, cow-level 52.4% at 365. Now 36.1% at 180, cow-level, scripted.
+- **Dry-off lesion is the outcome the 12-month design hurts most** - only 21% of cows reach dry-off within 6 months of their alert. Kept as secondary, stated as weakest. Candidate to demote to descriptive.
+- **Binary outcomes have no between-herd term in their sizing** - the pilot cannot estimate it. Stated in §5.
+- **The milk variance rests on 114 cows.** Hence the 90th-percentile planning value. Refit when more pilot milk arrives.
+
+**Budget v3** (`design/budget_nedap_3arm (version 3).xlsx`): 6 + 6 months, 4,000 enrolled. **$220,250** by hand-check ($182,500 personnel, $24,790 travel, $12,960 data), $55 per enrolled cow. Excel recalculates on open. The buffer is the enrolment slack (6 months budgeted, 2.6-5.1 expected). Gerard prefers to over-budget and be negotiated down - options if he wants more: keep 9 enrolment months (visits), or add analysis days.
+
+**Still open:** D1 (ledger denominators - "milk alone does not cover it" kept verbatim); herd count final (6 v 8); whether dry-off stays secondary.
