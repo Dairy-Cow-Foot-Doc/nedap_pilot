@@ -39,12 +39,13 @@ These are not caveats to mention — they determine whether the study can answer
 
 **Ascertainment is the central problem.** The pilot's headline benefit (58 more cows with a lesion found, 170/397 TX vs 127/452 Control) is entirely explained by TX cows being trimmed 90.4% of the time against Control's 49.8%. Because allocation was random, lesion incidence is equal by construction — the difference measures who got inspected, not who got sick. A three-arm design repeats this at greater cost unless it either imposes a common inspection schedule across arms or picks an outcome that does not depend on being looked at.
 
-**Detection is the only outcome this farm can power.** Milk needs 585 cows/arm to detect 5 percentage points and 1,737 for the 2.9 points actually observed — 75 weeks of accrual at 69 alerts/week. Culling had 53 events total. The miss rate (54.1% of 579 lesion cases) has the largest effect and smallest variance of anything measured.
+**Detection is the only outcome this farm can power.** Milk needs 585 cows/arm to detect 5 percentage points and 1,737 for the 2.9 points actually observed — 75 weeks of accrual at 69 alerts/week. Culling had 53 events total. The miss count (309 of 577 lesion cases, nearly all in never-enrolled cows - do not quote it as a cohort miss rate) has the largest effect and smallest variance of anything measured.
 
-**Two things must come from Nedap as a condition of the study**, because the pilot could not close them:
+**Two things must come from Nedap as a condition of the study** (§7 of the draft, rewritten 2026-09-26 after pilot Rounds 37-38):
 
-- **Score at flag.** Its absence left 69 pipeline cases permanently unjudgeable — a `Low` flag on a cow scoring 31-69 who was correctly declined is indistinguishable from a lost flag.
-- **The daily file-in log.** 119 of 313 misses were cows the camera flagged whose alert never reached DairyComp. The export shows episode start/end and completion but not the daily payload, so the mechanism could not be identified.
+- **The alert and score files as sent, with timestamps.** Score at flag is NOT missing - DairyComp's `LMSV` is in the daily VAS milk file, and it showed every former "cannot tell" case was the Low score gate. What is missing is what Nedap sent and when: export and VAS timing differ, so overwrites and true errors cannot be told apart (17 LOW-flagged cows with no score in DC). Of 243 lesion cows flagged live with no alert, 231 were by design and 12 genuine.
+- **The alert rules frozen for the study.** Nedap moved the LOW trigger ~50 -> ~70 in April 2026 while the `Low` command still needed `LMSV=1-30`: 13,199 LOW flags after go-live, 81 `Low` alerts. Enrolment is at the alert, so this changes who is enrolled.
+- **`EDAY=LMSFD` is not safe as written**: `LMSFD` has been frozen in the DC export since ~2026-02-02.
 
 **Pre-specify the miss definition.** The lookback window is a judgement call that moved the answer: 21 days vs unbounded took the Control miss rate from 27.9% to 10.7% while barely touching TX. Also specify how a cow alerted *outside* the window is treated — the pilot settled on "alerted, not a miss, if nobody acted between the alert and the lesion", after starting somewhere else.
 

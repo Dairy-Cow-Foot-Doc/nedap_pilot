@@ -2,7 +2,7 @@
 
 ## A proposal for a three-arm randomised trial
 
-**Draft 2 — 2026-09-10.** All figures attributed to the pilot are computed from its data; derivations and validation are held separately and available on request.
+**Draft 3 — 2026-09-26.** All pilot figures are computed from its data. Derivations are held separately and available on request.
 
 ------------------------------------------------------------------------
 
@@ -48,11 +48,18 @@ The proposed arms are as follows.
 
 For all 3 arms **if farm staff identify a cow as lame she is trimmed, regardless of arm.**
 
-**How an alert reaches the trim list is arm-dependent, and it is the single most important thing to implement correctly.** In the pilot a treated-arm alert **auto-added** the cow to the list — that is the system's default behaviour, and it is visible in the data: of the same-day trims, 23 treated-arm cows had no prior staff check, which is the protocol firing rather than anyone noticing her. In this design the alert must add her **within a week in arm 1, at four weeks in arm 2, and never in arm 3**. Arm 3 records the alert and does nothing with it. **If the auto-add fires for every arm, arm 3 is trimmed by the system instead of by farm practice, and the primary contrast is destroyed at source — silently, from the first day, with nothing in the data to show it.**
+**How an alert reaches the trim list must differ by arm. This is the most important thing to set up correctly.**
 
-**Arm 3 is regular farm practice, not an untreated arm.** In the pilot the equivalent group was trimmed 49.8% of the time, mostly by routine trimming.
+- In the pilot a treated-arm alert **auto-added** the cow to the trim list. That is the system default.
+  - It shows in the data: 23 treated-arm same-day trims had no prior staff check.
+- In this design the alert adds her **within a week in arm 1, at four weeks in arm 2, and never in arm 3.**
+- **If the auto-add fires for every arm, arm 3 is trimmed by the system.** The primary contrast is gone from day one, and nothing in the data will show it.
 
-- Selecting herds that do **little mid-lactation trimming** sharpens this contrast and is an eligibility criterion below — though it also moves arm 3 away from the pilot's 49.8%, which the contamination and dilution figures assume.
+**Arm 3 is regular farm practice, not an untreated arm.**
+
+- In the pilot the equivalent group was trimmed 49.8% of the time, mostly by routine trimming.
+- Herds with **little mid-lactation trimming** sharpen this contrast. That is an eligibility criterion below.
+  - It also moves arm 3 away from the pilot's 49.8%, which the contamination and dilution figures assume.
 
 **Arm 2 is contaminated by design.**
 
@@ -66,9 +73,18 @@ For all 3 arms **if farm staff identify a cow as lame she is trimmed, regardless
 
 ### Enrolment
 
-A cow enters **at her first SmartSight alert** and is randomised at that moment, in **blocks by lameness history (new / chronic) and lactation group (1 / 2 / 3+)**. Blocking balances the arms on the two covariates most likely to modify the effect, costs nothing, and improves precision on the main comparison.
+- A cow enters **at her first SmartSight alert** and is randomised then.
+- Randomisation is **blocked by lameness history (new / chronic) and lactation group (1 / 2 / 3+).**
+  - Blocking balances the arms on the two covariates most likely to change the effect. It costs nothing and improves precision.
+- **The alert rules are frozen for the whole study** - see §7.
+  - In the pilot, Nedap moved the LOW trigger seven weeks before go-live, and the farm's `Low` command no longer matched it.
+  - Enrolment is "at the alert", so a change to what counts as an alert changes who is enrolled.
 
-Enrolling at freshening instead was considered and rejected. It does not change the treatment contrast — cows are still only treated when alerted — so it buys nothing for these outcomes, at ×1.6 the cows and roughly double the calendar time. It would only earn that if detection accuracy were a study question. It is not — the pilot report accompanying this proposal covers detection, and what remains open is whether acting on the alerts pays.
+**Enrolling at freshening was considered and rejected.**
+
+- It does not change the treatment contrast. Cows are still only treated when alerted.
+- It costs ×1.6 the cows and about double the calendar time.
+- It would only pay if detection accuracy were a study question. It is not - the pilot report covers detection.
 
 ### Eligibility
 
@@ -76,7 +92,10 @@ Enrolling at freshening instead was considered and rejected. It does not change 
 
 Herds are run by collaborating investigators, two in each region.
 
-**The geographic spread cuts both ways and the herd count is the answer to it.** Herds in different regions differ in housing, flooring, climate and trimming practice, which raises the between-herd variation in the treatment effect — the thing herd count protects against. Six herds is the right response to that spread, not a reason to narrow it:
+**The regional spread is a reason for more herds, not fewer regions.**
+
+- Housing, flooring, climate and trimming practice differ by region.
+- That raises the between-herd variation in the treatment effect, which is what herd count protects against.
 
 | Between-herd SD of the effect | 4 herds         | **6 herds** | 10 herds |
 |-------------------------------|-----------------|-------------|----------|
@@ -84,28 +103,38 @@ Herds are run by collaborating investigators, two in each region.
 | 0.50 kg                       | ×1.96           | **×1.49**   | ×1.24    |
 | 0.75 kg                       | *no n suffices* | **×3.78**   | ×1.79    |
 
-**The sample size is planned at a 0.25 kg between-herd SD**, costing ×1.09 at six herds against ×1.14 at four. The rest of the table is the sensitivity, and it is why the herd count matters: at 0.5 kg six herds would need 8,200 enrolled where four would need 10,800, and at 0.75 kg four herds cannot deliver the target at any sample size while six still can. **Herds are cheaper insurance than cows.**
+- **The sample size is planned at 0.25 kg**: ×1.09 at six herds, ×1.14 at four.
+- The rest of the table is the sensitivity.
+  - At 0.5 kg, six herds need 8,200 enrolled; four need 10,800.
+  - At 0.75 kg, four herds cannot reach the target at any size. Six still can.
+- **Herds are cheaper insurance than cows.**
 
 **Each participating herd must have:**
 
 - **Reliable** hoof trimming data — complete and consistently coded, checkable before enrolment.
-- **Low routine-trimming frequency.** Power on the primary contrast more than doubles between a herd that trims routinely at 10% and one at 60% (75% versus 33% at identical enrolment). This is a bigger lever than sample size and is visible in existing records.
+- **Low routine-trimming frequency.**
+  - Power on the primary contrast is 75% in a herd trimming routinely at 10%, against 33% at 60%, at the same enrolment.
+  - This is a bigger lever than sample size, and it shows in existing records.
 - Trained trimming staff; daily milk weights; able to run SmartSight.
 
 **Cows**
 
+**A minimum of 5 days in milk.** A cow alerted in her first days after calving is excluded. She re-enters if alerted later.
 
-**A minimum of 5 days in milk.** A cow alerted in her first days after calving is excluded, and re-enters if she is alerted later. Cows just fresh walk abnormally for reasons that are not hoof lesions, so an alert there is as likely to be transition-period gait as lameness. **It costs almost nothing:** in the pilot the median cow was alerted at **DIM 150**, and a DIM 5 floor would have excluded **11 of 849 cows, 1.3% of enrolment**. It also removes the stale-lactation allocation error outright — all three pilot cases sat at DIM 0–1 — so one criterion closes a randomisation defect and a false-positive source together.
+- Fresh cows walk abnormally for reasons that are not hoof lesions.
+- **It costs almost nothing.** The median pilot cow was alerted at **DIM 150**. A DIM 5 floor would have excluded **11 of 849 cows (1.3%)**.
+- It also removes the stale-lactation allocation error. All three pilot cases were at DIM 0–1.
+- *Stated honestly:* the pilot cannot show fresh-cow alerts are more often wrong. Only 14 cows were alerted at DIM 0–5; a 20-point difference would need about 100 per group. The floor rests on physiology and its low cost.
 
-*Stated honestly:* the pilot cannot demonstrate that fresh-cow alerts are more often spurious. Only 14 cows were alerted at DIM 0–5, where detecting even a 20-point difference in lesion yield would need about 100 per group. The floor rests on the physiology and on costing about 1% of enrolment — cheap enough to adopt without proof.
+**No lameness-history restriction.**
 
-**No lameness-history restriction.** Excluding cows treated in the current lactation would remove 38.7% of the herd — but unevenly: **54.8% of lactation 3+ against 15.8% of first lactation**, skewing the study young, away from the cows the system is sold to manage. Handle history by stratifying randomisation on it and adjusting in every model.
+- Excluding cows treated this lactation would remove 38.7% of the herd.
+- It falls unevenly: **54.8% of lactation 3+ against 15.8% of first lactation.** That skews the study young, away from the cows the system is sold to manage.
+- Handle history by blocking on it and adjusting in every model.
 
 ------------------------------------------------------------------------
 
 ## 3. What the design answers
-
-Now that the arms are defined, the comparisons they support:
 
 +-----------------------+-----------------------+----------------------------------------------------------------------------+
 |                       | Comparison            | Answers                                                                    |
@@ -115,19 +144,24 @@ Now that the arms are defined, the comparisons they support:
 | **Secondary**         | Arm 1 v arm 2         | Does acting *quickly* pay — and is the responsive protocol worth its cost? |
 +-----------------------+-----------------------+----------------------------------------------------------------------------+
 
-**Arm 1 versus arm 3 is the primary comparison** and carries the efficacy claim. It is also the only milk contrast powerable at a realistic size, and the only one insensitive to how long production is measured for — see §4.
-
-**Arm 1 versus arm 2 answers the operational question a farm faces**, which is not usually whether to act but how fast. A one-week response costs more in labour and scheduling than a four-week one, and this comparison is what says whether that is worth buying.
+- **Arm 1 v 3 carries the efficacy claim.** It is also the only milk contrast powerable at a realistic size, and the only one that holds whatever the measurement window (§4).
+- **Arm 1 v 2 is the question a farm actually faces** - not whether to act, but how fast.
+  - A one-week response costs more labour and scheduling than a four-week one. This comparison says whether that is worth buying.
 
 ### Why the trial needs three arms rather than two
 
-A cow trimmed in arm 1 with no lesion found is **unidentifiable from that trim alone**. She is either a camera false positive, or a true positive whose lesion was prevented by early intervention. The two have opposite economic signs: the first is a wasted trim, the second is the system working.
-
-**Arm 2 separates them.** If a meaningful share of arm-2 cows show a visible lesion at four weeks where arm-1 cows had none at one week, the arm-1 empty trims were prevention rather than error. Since 54.9% of arm-1 trims are expected to find nothing, and extra trimming costs about \$19 per lame cow, **this distinction moves the economic verdict by roughly the entire extra-trimming cost.**
+- **An arm-1 trim that finds no lesion cannot be read on its own.**
+  - Either the camera was wrong (a wasted trim), or early trimming prevented the lesion (the system working).
+  - The two have opposite economic signs.
+- **Arm 2 separates them.** If arm-2 cows show lesions at four weeks where arm-1 cows had none at one week, the empty arm-1 trims were prevention.
+- 54.9% of arm-1 trims are expected to find nothing, at about \$19 per lame cow in extra trimming. **This one distinction moves the economic verdict by roughly the whole extra-trimming cost.**
 
 ### What the pilot already puts on the ledger
 
-Acting on alerts means **trimming more cows**. In the pilot the trimmed arm was trimmed 90.4% of the time against the control arm's 49.8% — about **one extra trim per lame cow** — and 54.9% of those trims found no lesion.
+Acting on alerts means **trimming more cows.**
+
+- The trimmed arm was trimmed 90.4% of the time against Control's 49.8% - about **one extra trim per lame cow.**
+- 54.9% of those trims found no lesion.
 
 Per lame cow, with the break-even calculator's own IOFC of \$0.254/kg:
 
@@ -142,8 +176,6 @@ Per lame cow, with the break-even calculator's own IOFC of \$0.254/kg:
 **Milk alone does not cover the cost.** The shortfall is what culling, recurrence and treatment labour must close. At \$1,650 net per cull avoided, roughly **0.9 to 1.5 percentage points of avoided culling** would close it.
 
 #### Economic assumptions
-
-Stated explicitly, since the ledger depends on them:
 
 +------------------------+-----------------------+----------------+-------------------------------+
 | Input                  | Value used            | Range          | Source                        |
@@ -167,7 +199,7 @@ Stated explicitly, since the ledger depends on them:
 | Camera subscription    | \$0.65–0.80/cow/month |                | Reported estimates            |
 +------------------------+-----------------------+----------------+-------------------------------+
 
-**None of these affect the sample size.** The study is powered on the milk contrast alone (§5); the economic inputs enter only the interpretation, where they convert measured effects into dollars. A reader who disagrees with any of them can substitute their own and the study's precision is unchanged — which is the main practical argument for not powering on the economics.
+**None of these affect the sample size.** The study is powered on milk (§5). The economic inputs only convert measured effects into dollars, so a reader can substitute their own without changing the study's precision.
 
 ------------------------------------------------------------------------
 
@@ -175,42 +207,51 @@ Stated explicitly, since the ledger depends on them:
 
 ### Primary
 
-**Daily milk production, arm 1 versus arm 3**, from 14 days before the alert to 90 days after, indexed to days since alert and normalised to each cow's own pre-alert baseline.
+**Daily milk, arm 1 versus arm 3**, from 14 days before the alert to 90 days after.
 
-The pre-alert period is included both as the normalising baseline and because the pre-alert slope shows how much production was already lost before the camera fired.
-
-*Why arm 1 v 3 only:* this contrast is insensitive to the measurement window (2,982 to 3,228 cows from 28 to 180 days) and is the only milk comparison powerable at a realistic size. Arm 1 v 2 on milk reaches 43% power at 6,000 cows over 60 days.
+- Indexed to days since alert, and normalised to each cow's own pre-alert baseline.
+- The pre-alert slope also shows how much milk was already lost before the camera fired.
+- *Why arm 1 v 3 only:* it holds across windows (2,982 to 3,228 cows from 28 to 180 days). Arm 1 v 2 on milk reaches only 43% power at 6,000 cows over 60 days.
 
 ### Secondary
 
 **1. Cure at a standardised recheck — white line and sole ulcer. Primary comparison: arm 1 versus arm 2.**
 
-Cure is read from the follow-up trim coming back trim-only. There is no hoof recheck event in this herd's data (`RECK` is reproductive), so the study must create one: a scheduled re-examination at a fixed interval after treatment.
+Cure is read from the follow-up trim coming back trim-only. This herd has no hoof recheck event (`RECK` is reproductive), so the study must create one at a fixed interval after treatment.
 
-- **Sized on white line and sole ulcer**, where the baseline is well estimated (49.3% cure at 60 days) and rechecks are already standard practice at 60.2% coverage.
-- **Foot rot excluded** — its apparent 15.5% cure rate is a recording artifact. 60% of its "non-cures" fall within 7 days and 46% are re-coded foot rot, consistent with the trimmer recording the lesion and staff recording the treatment separately.
-- **A minimum 14-day gap applies to foot rot only.** White line and sole ulcer show no early clustering (10–11% within a week, medians of 29–35 days), so their early returns are genuine failures and must be counted.
-- **DD collected opportunistically**, not by standardised recheck, which is not feasible on farm.
+- **Sized on white line and sole ulcer.** The baseline is well estimated (49.3% cure at 60 days) and rechecks are already standard at 60.2% coverage.
+- **Foot rot excluded.** Its 15.5% cure rate is a recording artifact: 60% of its "non-cures" fall within 7 days and 46% are re-coded foot rot.
+- **A 14-day minimum gap applies to foot rot only.** White line and sole ulcer show no early clustering (10–11% within a week, medians 29–35 days), so their early returns are real failures.
+- **DD collected opportunistically.** A standardised DD recheck is not feasible on farm.
 
-**Why arms 1 and 2 carry this outcome.** Both are trimmed by protocol, so cure is measured on the same population in each and the comparison is clean by construction. It is also the clinically important question: **does a lesion left for four weeks still heal as well?** That is what a farm is really deciding when it weighs a responsive protocol against a scheduled one.
+**Why arms 1 and 2 carry cure.**
 
-**Arm 3 is reported too, with its caveat stated.** In arm 3 only cows the farm catches are trimmed, so cure there is measured on **farm-detected lesions**, which may be more severe because they were noticed. The pilot cannot settle whether that matters — among control cows, cure was 14.7% (n = 34) in staff-detected against 18.2% (n = 11) in routine-detected, p = 1.0, an interval that spans everything of interest. So:
+- Both are trimmed by protocol, so cure is measured on the same kind of cow in each.
+- It is the clinical question: **does a lesion left four weeks still heal as well?**
 
-- **Record how every arm-3 cow came to be trimmed** — staff `CHKLAME` or routine round — and report cure separately by route. Routine-round cows are the closer analogue to a protocol trim, since the routine round is not triggered by anyone noticing her.
-- Present arm 3's cure as **descriptive, not as an unbiased treatment contrast.**
+**Arm 3 is reported too, with its caveat.**
 
-**One dilution to note on the 1-versus-2 comparison.** About a third of arm 2 is treated before its protocol week, by staff or the routine round. The design detects a **10.5-point** observed difference; among cows who actually waited the four weeks that corresponds to roughly a **16-point** true difference. Both figures should be reported, alongside the per-protocol analysis.
+- In arm 3 only cows the farm catches are trimmed, so its cure is on **farm-detected lesions**, which may be more severe.
+- The pilot cannot say whether that matters: Control cure was 14.7% (n = 34) staff-detected against 18.2% (n = 11) routine-detected. Too few to tell.
+- **Record how every arm-3 cow came to be trimmed** - staff `CHKLAME` or routine round - and report cure by route.
+- Present arm 3's cure as **descriptive, not an unbiased treatment contrast.**
+
+**Dilution on the 1 v 2 comparison.** About a third of arm 2 is treated early.
+
+- The design detects a **10.5-point** observed difference.
+- Among cows who actually waited four weeks, that is about a **16-point** true difference.
+- Report both, alongside the per-protocol analysis.
 
 **2. Lesion prevalence at the routine dry-off trim.**
 
-Every cow is trimmed around dry-off regardless of arm, which makes this the one lesion measure not confounded by inspection rate. Verified: dry-off trim coverage was **88.6% in Control against 92.7% in TX, p = 0.62**.
+Every cow is trimmed around dry-off whatever her arm, so this is the one lesion measure not driven by inspection rate. Coverage was **88.6% in Control against 92.7% in TX.**
 
-- **It is a window, not a day.** Trims cluster 21 to 7 days *before* dry-off; a ±7-day definition catches only 9.6% of them, −45 to +7 catches about 90%.
-- **Restricted to cows with at least 90 days between alert and dry-off**, which retains 66% of alerted cows. The third excluded are those alerted late in lactation — a selection on DIM, so report DIM at alert for retained and excluded groups.
+- **It is a window, not a day.** Trims cluster 21 to 7 days *before* dry-off. ±7 days catches only 9.6% of them; −45 to +7 catches about 90%.
+- **Only cows with at least 90 days from alert to dry-off.** That keeps 66% of alerted cows. The rest were alerted late in lactation, so report DIM at alert for both groups.
 
 **3. Culling, followed for 365 days.**
 
-Not six months. The lameness–culling gap widens with the window and has not flattened at six:
+Not six months. The lameness–culling gap is still widening at six:
 
 | Window       | No early lesion | Early lesion | Gap      |
 |--------------|-----------------|--------------|----------|
@@ -218,15 +259,15 @@ Not six months. The lameness–culling gap widens with the window and has not fl
 | 180 days     | 34.0%           | 40.8%        | +6.8     |
 | **365 days** | **45.0%**       | **52.3%**    | **+7.3** |
 
-The pilot's own three-month figure had the *wrong sign* — lame cows culled less — which is what a window shorter than the process produces.
+The pilot's own three-month figure had the *wrong sign* - lame cows culled less. That is what a window shorter than the process produces.
 
 **4. Recurrence within 365 days** of a first lesion, counting only lesions 14+ days later. Baseline 48.7%.
 
 ### Not outcomes
 
-- **Reproduction.** The herd's records show nothing: median days to first service 77 versus 78, services 1.93 versus 1.94, and lesion cows marginally *more* likely to conceive. No effect size to power against.
-- **Lesion severity.** Not standardisable across farms and trimmers; between-observer variation would swamp the treatment effect.
-- **Detection sensitivity.** Not estimable from an alert-triggered cohort at any sample size.
+- **Reproduction.** Nothing in the herd's records: median days to first service 77 v 78, services 1.93 v 1.94. No effect to power against.
+- **Lesion severity.** Not standardisable across farms and trimmers.
+- **Detection sensitivity.** Not estimable from an alert-triggered cohort at any size.
 
 ------------------------------------------------------------------------
 
@@ -234,7 +275,7 @@ The pilot's own three-month figure had the *wrong sign* — lame cows culled les
 
 **Target: 6,000 cows enrolled across three arms.**
 
-Powered on the primary milk contrast, at 80% power and two-sided α = 0.05, using variance components measured from the pilot (between-cow SD 9.39 kg, weekly residual SD 4.79 kg on weekly averages after adjusting for the lactation curve, parity and history):
+Powered on the primary milk contrast, 80% power, two-sided α = 0.05. Variance components from the pilot: between-cow SD 9.39 kg, weekly residual SD 4.79 kg, after adjusting for lactation curve, parity and history.
 
 +-----------------------------+----------------+----------------+-------------------------------------------+
 | Observed arm-1-v-3 contrast | Per arm        | Three arms     | With ×1.28 attrition, ×1.09 heterogeneity |
@@ -246,15 +287,15 @@ Powered on the primary milk contrast, at 80% power and two-sided α = 0.05, usin
 | 1.2 kg/day                  | 989            | 2,967          | 4,200                                     |
 +-----------------------------+----------------+----------------+-------------------------------------------+
 
-**1.0 kg/day is the realistic target.** The three-arm simulation, with farm detection parameterised from the pilot, gives an observed arm-1-v-3 contrast of 1.01 kg for a 1.5 kg true treatment effect — and the pilot's own observed 1.05 kg implies a true effect near 1.5 kg once its 49.8%-trimmed control arm is accounted for.
-
-**Attrition is ×1.28**, driven more by drying off (15.8% by day 90) than by culling (6.2%).
+- **1.0 kg/day is the realistic target.**
+  - The three-arm simulation gives a 1.01 kg observed contrast for a 1.5 kg true effect.
+  - The pilot's observed 1.05 kg implies a true effect near 1.5 kg, once its 49.8%-trimmed Control arm is allowed for.
+- **Attrition is ×1.28**, mostly drying off (15.8% by day 90) rather than culling (6.2%).
+- **Herd heterogeneity is ×1.09** at the 0.25 kg planning value. It is not a cluster design effect: randomisation is *within* herd, so herd is a block and removes between-herd variance.
 
 ### What each herd supplies
 
-At 6,000 enrolled that is **1,000 alerted cows per herd** across six, or 1,500 across four.
-
-Participating herds are expected to run **2,000 to 5,000 cows**. At the pilot farm's alert rate of about 0.020 per cow per week:
+At 6,000 enrolled: **1,000 alerted cows per herd** across six, or 1,500 across four. At the pilot farm's alert rate of about 0.020 per cow per week:
 
 +----------------+-----------------+--------------------------+----------------------+
 | Herd size      | Alerts per week | **6 herds** (1,000 each) | 4 herds (1,500 each) |
@@ -266,7 +307,7 @@ Participating herds are expected to run **2,000 to 5,000 cows**. At the pilot fa
 | 5,000 cows     | 100             | **10 weeks**             | 15 weeks             |
 +----------------+-----------------+--------------------------+----------------------+
 
-**So enrolment closes in roughly three to six months, not a year.**
+**Enrolment closes in three to six months, not a year.**
 
 ### Timeline
 
@@ -280,15 +321,13 @@ Participating herds are expected to run **2,000 to 5,000 cows**. At the pilot fa
 | **Total from first enrolment to last observation** | **15–18 months**                                         |
 +----------------------------------------------------+----------------------------------------------------------+
 
-**The 365-day culling follow-up is what sets the duration, not recruitment.** That is worth stating plainly, because the instinct is to assume a six-herd study takes longer than a smaller one. It does not: more herds shorten the enrolment phase, and the follow-up window is fixed regardless. Six herds of 2,000–5,000 cows finish enrolment sooner than four would, and both are dominated by the year of follow-up.
-
-Shortening the follow-up to six months would cut the study to 9–12 months, but at the cost of the culling outcome: the lameness–culling gap is still widening at six months (6.8 points against 7.3 at twelve), so a six-month endpoint understates the effect the economics depends on.
-
-**Herd heterogeneity is ×1.09** at the 0.25 kg planning value, not a cluster design effect. Randomisation is *within* herd, so herd is a blocking factor and blocking *removes* between-herd variance. The `1 + (m−1)·ICC` inflation applies to studies that randomise whole herds; this does not.
+- **The 365-day culling follow-up sets the duration, not recruitment.**
+  - More herds shorten enrolment. The year of follow-up is fixed either way.
+- A six-month follow-up would cut the study to 9–12 months, but lose the culling outcome. The gap is still widening at six months (6.8 against 7.3 points at twelve).
 
 ### What this design detects
 
-Smallest difference detectable at 80% power at 6,000 enrolled (2,000 per arm), after allowing for attrition and herd heterogeneity. Contrasts are arm 1 versus arm 3 except where noted:
+Smallest difference detectable at 80% power at 6,000 enrolled (2,000 per arm), after attrition and herd heterogeneity. Arm 1 v 3 unless noted:
 
 +-----------------------------------------------+---------------------------+---------------------------------------------------+
 | Outcome                                       | Cows contributing per arm | **Smallest detectable difference**                |
@@ -304,33 +343,38 @@ Smallest difference detectable at 80% power at 6,000 enrolled (2,000 per arm), a
 | Cure, white line and sole ulcer *(arm 1 v 2)* | 348                       | **10.5 points** on a 49.3% baseline               |
 +-----------------------------------------------+---------------------------+---------------------------------------------------+
 
-**Cure is targeted at a 15-point improvement**, which the design detects with 98% power; the 10.5-point figure above is the floor at 80%. Detecting a 10-point difference as the stated target would need about 10,000 enrolled, which is not worth a 65% larger study when milk is the primary endpoint.
-
-**Recurrence and dry-off prevalence come free** at the enrolment the milk contrast requires, and both are detectable at clinically meaningful sizes.
+- **Cure is targeted at +15 points**, detected with 98% power. 10.5 points is the floor at 80%.
+  - A 10-point target would need about 10,000 enrolled - not worth a 65% larger study when milk is primary.
+- **Recurrence and dry-off prevalence come free** at the size milk requires.
 
 ### The limitation, stated up front
 
-**A ±5.2-point interval on culling cannot distinguish the 1.3 points that break-even needs from zero.** No feasible study can: detecting 1.3 points would take on the order of 200,000 cows.
-
-**So this study will *estimate* whether the system pays. It will not *prove* it.** A good estimate with honest uncertainty is what a purchasing decision needs, but it is not a hypothesis test and this proposal does not claim one.
-
-*A composite dollar endpoint was considered as a way around this and rejected: adding a \$1,500 event occurring at 46% imports enough variance to require 43,000 cows. The composite is the right thing to report and the wrong thing to power on.*
+- **A ±5.2-point interval on culling cannot tell the 1.3 points break-even needs from zero.**
+  - No feasible study can. Detecting 1.3 points would take on the order of 200,000 cows.
+- **So this study will *estimate* whether the system pays. It will not *prove* it.** An honest estimate is what a purchasing decision needs. It is not a hypothesis test, and this proposal does not claim one.
+- *A composite dollar endpoint was considered and rejected.* A \$1,500 event at 46% adds enough variance to need 43,000 cows. The composite is the right thing to report and the wrong thing to power on.
 
 ------------------------------------------------------------------------
 
 ## 6. Analysis
 
-**Milk.** Mixed linear model on weekly averages: arm, DIM spline, lactation group, lesion history, breed, herd as fixed effects; cow random intercept. **Arm enters as a main effect.** The `arm × history` interaction is **estimated and reported, but the study is not powered for it** — see below.
+**Milk.** Mixed linear model on weekly averages.
+
+- Fixed: arm, DIM spline, lactation group, lesion history, breed, herd. Random: cow intercept.
+- **Arm is a main effect.** The `arm × history` interaction is estimated and reported, but not powered - see below.
 
 **Cure and lesion at dry-off.** Mixed logistic, same covariates, herd random effect.
 
 ### The chronicity interaction: explored, not powered
 
-Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 34% → 48% → 52% across parity, and cure falls from 51.9% in new cows to 45.0% in chronic ones (p = 0.007). Those are **main effects**, and adjusting for them is free. Whether the *treatment benefit* also differs by chronicity is untested — the pilot has no randomised treatment contrast to test it with.
+- Chronic cows do worse. Recurrence rises 34% → 48% → 52% across parity; cure falls from 51.9% in new cows to 45.0% in chronic ones.
+  - Those are **main effects**, and adjusting for them is free.
+- Whether the *treatment benefit* differs by chronicity is untested. The pilot has no randomised contrast to test it with.
+- **The study estimates it and reports it with its interval.**
+  - At 6,000 enrolled the interaction's 95% interval is about ±0.83 kg/day, against ±0.59 kg for the main effect.
+  - Only a large new-v-chronic difference would show. The estimate still tells a follow-up study whether to target one group.
 
-**The study will estimate that interaction and report it with its interval, without being sized for it.** At 6,000 enrolled the interaction term carries a 95% interval of about ±0.83 kg/day against ±0.59 kg for the main effect, so only a large difference between new and chronic cows would reach significance. The estimate is still worth having: it is what would tell a follow-up study whether to target one group.
-
-**If Nedap wants it powered**, the cost is available and it is substantial:
+**If Nedap wants it powered**, the cost is substantial:
 
 |                           | Explored           | Powered             |
 |---------------------------|--------------------|---------------------|
@@ -338,51 +382,85 @@ Chronic cows do worse on both outcomes the pilot can measure: recurrence rises 3
 | Cure, WLD/SU +15 points   | \~3,000            | \~4,700             |
 | Accrual at 69 alerts/week | 87 farm-weeks      | 174 farm-weeks      |
 
-Milk binds in both cases. Powering the interaction is **2.0× the study** — about 29 weeks of accrual across six herds rather than 15 — because the reported coefficient becomes a within-stratum effect estimated from half the cows. Verified rather than assumed: the penalty is exactly 2.00× on the linear milk model and 1.59× on the logistic cure model.
+- Milk binds in both. Powering the interaction is **2.0× the study** - about 29 weeks of accrual across six herds rather than 15.
+- Verified: the penalty is 2.00× on the linear milk model and 1.59× on the logistic cure model.
 
-**Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culled cows are a competing risk for recurrence, not an attrition adjustment.
+**Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culling is a competing risk for recurrence, not attrition.
 
-**Staggered entry.** Censor explicitly. Do not restrict to cows with complete follow-up — that selects the earliest-enrolled and is the trap the pilot's day-30 milk figures fell into.
+**Staggered entry.** Censor explicitly. Do not restrict to cows with complete follow-up - that selects the earliest enrolled, the trap the pilot's day-30 milk figures fell into.
 
-**Record separately, because only one is standardisable:** staff `CHKLAME` detections and routine-round trims. They differ threefold in median time-to-trim (7 versus 23 days) and routine coverage is the herd-varying nuisance.
+**Record separately:** staff `CHKLAME` detections and routine-round trims. Median time to trim differs threefold (7 v 23 days), and routine coverage varies by herd.
 
-**Pre-specify before enrolment opens** — each of these moved answers materially in the pilot:
+**Pre-specify before enrolment opens.** Each of these moved answers in the pilot.
 
-- **What counts as a miss for a cow who was alerted and never examined.** The single decision doing the most work here, and it moves the *contrast*, not just the levels. In the pilot it took the control arm from 27.9% to 11.5% and the trimmed arm from 12.4% to 10.1% — so it moved the **arm contrast from 15.4 points to 1.4**, and the choice was made after the data were seen. The same cows over the same window support either “control misses fifteen points more than the trimmed arm” or “the arms are within a point and a half of each other”. It lands asymmetrically by construction: twenty such cows in the control arm against four in the trimmed one. **Wherever one arm is obliged to act and another is not, a cow alerted and never examined is an outcome in the first and a protocol deviation in the second** — so any definition that treats them differently swings the contrast by an amount comparable to the effects this study is powered to detect. Settle it before unblinding.
-- **How an alert's date relates to the detection behind it — and the one-line fix that makes the question go away.** The import runs about 05:00 and stamps the *load* day, so **68% of pilot alerts are dated at least a day after the attention that produced them**. An attention on the day a lesion is diagnosed therefore usually surfaces as an alert only the next morning, too late to have driven that diagnosis. The exception is the 15% of attentions landing before 05:00, which load the same morning and can legitimately have warned. **This is measured, not assumed:** across 96 DairyComp command logs every `NEDLAME` is written between **05:31 and 05:35**, immediately after the lameness file-in, and trimming never begins before 05:35 — so on a same-day cow the alert always precedes the trim. **Do not reason about this — remove it:** adding `EDAY=LMSFD` to the `ENTER` command stamps the event with the camera's detection date instead of the command's run date. That must be in place before enrolment opens, because it cannot be reconstructed afterwards.
-- **Which lactation a cow is in at the moment she is alerted.** The alert command reads whatever DairyComp holds when it runs. A cow calving overnight may not have `FRESH` keyed in until after the morning command, so her alert is written against the **previous** lactation. In the pilot this hit 3 of 1,608 alerts — but **3 of the 8 alerts falling at DIM 0–1**, which is the rate that matters, because that is the only window where it can happen. The pilot resolved lactation by date rather than trusting the field, so its analysis was unaffected. **A trial has no such recovery: lactation group is a randomisation block, and a cow allocated on a stale lactation is enrolled wrongly — no later analysis repairs an allocation.** **The DIM 5 enrolment floor above removes this by construction** — all three pilot cases were at DIM 0–1. Belt and braces: also run the alert command after the morning's fresh events are entered, and resolve lactation by date rather than trusting the event's own `lact_number`. Note which record to believe: the camera only sees a cow once she is in the milking string, so **an attention is itself evidence she has calved**, whatever the lactation field says.
-- **The farm's trim list, saved on every trim day.** A trim event records what was *done*; the list records what was *intended*. The pilot has the first and not the second, so a cow scheduled and not trimmed — moved pen, refused the chute, dried off, sold — is indistinguishable from a cow nobody ever noticed. **`CHKLAME` does not fill this gap:** at the pilot farm it is recorded essentially at the trim, 82.5% within a day and a median gap of one day, so it documents a trim that happened rather than a cow who was booked. **In a trial, compliance is an outcome.** “Not trimmed within a week” means one thing if the farm never listed her and something else entirely if she was listed and missed — the first is the protocol failing, the second is execution, and only one of them is about the system being tested. The list is also the cleanest way to record *why* an arm-3 cow was trimmed, which §4 already asks for: being on the routine round's list and being on it because staff flagged her are different rows, not an inference from event codes. **A worked example of the cost of not having it:** 24 of the pilot's 52 same-day trims turned out to have a staff check entered the day *before* the alert — they were already on the list, and the camera did not put them there. Establishing that took archaeology on `CHKLAME` lags and a read of 96 DairyComp command logs. With the list saved, it is a lookup.
+- **What counts as a miss for a cow alerted and never examined.** The single biggest lever, and it moves the *contrast*.
+  - In the pilot it took Control from 27.9% to 11.5% and the trimmed arm from 12.4% to 10.1% - the **arm gap went from 15.4 points to 1.4.** The choice was made after seeing the data.
+  - It lands unevenly by construction: twenty such cows in Control against four in the trimmed arm.
+  - **Where one arm must act and another need not, an alerted-never-examined cow is an outcome in one arm and a protocol deviation in the other.** Settle it before unblinding.
+- **The warning window.** The pilot used 28 days, to match DairyComp's `FTDAT<-28`.
+  - The miss count did not move at 14-45 days. What moved was which category each miss fell in.
+  - The camera's blind spot depends on it: 29 cows were never flagged, but 58 had no flag in the 28 days.
+- **How an alert's date relates to the detection behind it.**
+  - The import runs about 05:00 and stamps the *load* day. **68% of pilot alerts are dated at least a day after the attention behind them.**
+  - Measured: across 96 DairyComp command logs every `NEDLAME` is written 05:31-05:35, and trimming never starts before 05:35. On a same-day cow the alert always comes first.
+  - **Fix it at source, and check the fix first.** `EDAY=LMSFD` in the `ENTER` command would stamp the camera's date. **But `LMSFD` has been frozen in DairyComp's export since about 2026-02-02.** As it stands it would date every alert in early February. Confirm `LMSFD` updates daily before relying on it.
+- **Which lactation a cow is in when she is alerted.**
+  - A cow calving overnight may not have `FRESH` entered before the morning command, so her alert is written against the **previous** lactation.
+  - It hit 3 of 1,608 pilot alerts - but **3 of the 8 at DIM 0–1**, the only window where it can happen.
+  - **In a trial, lactation group is a randomisation block. A cow allocated on a stale lactation is enrolled wrongly, and no later analysis repairs it.**
+  - The DIM 5 floor removes this. Also run the alert command after fresh events are entered, and resolve lactation by date.
+- **The farm's trim list, saved on every trim day.**
+  - A trim event records what was *done*. The list records what was *intended*.
+  - Without it, a cow booked but not trimmed - moved pen, refused the chute, dried off, sold - looks the same as a cow nobody noticed.
+  - `CHKLAME` does not fill the gap: 82.5% are entered within a day of the trim.
+  - **In a trial, compliance is an outcome.** It also records *why* an arm-3 cow was trimmed, which §4 asks for.
+  - Cost of not having it: showing that 24 of 52 pilot same-day trims were already booked took a read of 96 command logs. With the list, it is a lookup.
 - That alerts landing 1–7 days after a trim are mostly the camera reacting to the trimmed cow.
 - That "trimmed" means `LAME` + `FOOTRIM` + `TRIM`, never a subset.
-- **The denominator for every rate — specifically whether it includes cases in which the failure could not have occurred.** A rate averaged over cases that were never at risk looks reassuringly small. The pilot's stale-lactation rate is 0.19% of all alerts but **37% of alerts in the calving window**, which is the only window where it can happen at all; the second is the figure a trial is exposed to. Fix which denominator each reported rate uses before the analysis, not after seeing it.
+- **The denominator for every rate.** A rate averaged over cases that could never fail looks small.
+  - The pilot's stale-lactation rate is 0.19% of all alerts but **37% of alerts in the calving window** - the only window where it can happen. Fix each denominator before the analysis.
 
 ------------------------------------------------------------------------
 
 ## 7. What we need from Nedap
 
-1.  **Score at flag, in the export.** Its absence left 69 pilot cases permanently unjudgeable, because a `Low` flag on a cow outside the enrollment score range who was correctly declined is indistinguishable from a lost flag.
+These are conditions of the study, not wishes.
 
-2.  **The daily file-in log, or independent instrumentation of the integration.** In the pilot, **119 apparent misses were cows the camera *did* flag whose alert never reached DairyComp** — and once cohort membership is judged at the lesion rather than across the whole study, **every one of them falls among cows who were never enrolled, and none among cows already in.** That is not a coincidence but the mechanism: a lost alert is precisely what prevents enrolment, so the failure and its consequence are the same event. A decline flag fired, no gate explains the silence, no `NEDLAME` appeared, and **a cow who met the enrolment criteria never entered the study.** It is invisible from inside DairyComp — she simply never appears — and was detectable here only because the raw attention export could be checked against the imported record. **A three-arm trial depends on enrolment working, so this is a design risk, not a pilot curiosity.** Logging every raw flag with a timestamp, independent of the import, removes it.
+1.  **The alert and score files as sent, with timestamps.**
 
-    Of the 119, **11 were confirmed genuine losses** — a decline flag with no gate explaining the silence. A further **51 cannot be judged either way**, because they are `Low`-only and score at flag is missing, so the true count is **between 11 and 62**. The remaining 57 were the system working as designed. **The two asks are therefore one ask:** the file-in log says whether a flag arrived, and score at flag says whether it should have — without both, 51 cases stay unjudgeable.
+    - DairyComp does receive the score (`LMSV`), once a day in the farm export. That settled what the pilot first thought was unjudgeable.
+      - Every one of the pilot's "cannot tell" cases turned out to be the `Low` route's score gate working as designed.
+    - What DairyComp's copy cannot show is what Nedap sent, and when.
+      - The Nedap export and the DairyComp file run at different times. An alert or score can be overwritten, or lost, without a trace.
+      - In the pilot, 17 cows had a LOW flag but DairyComp held no score for them. These files cannot say whether it was never sent or overwritten.
+    - **Log every raw flag and score with a timestamp, independent of the DairyComp import.**
 
-    *And a limitation worth naming before Nedap does.* Because a lost alert is what prevents enrolment, this analysis is **structurally blind to alerts lost for cows already under surveillance** — not unlikely to find them, unable to. If Nedap asks how often an alert was dropped for a cow already being watched, the pilot cannot answer, and neither will the trial without the file-in log.
+2.  **The alert rules, frozen for the study.**
 
-Without these the study measures the camera and the integration together and cannot separate them, which is what happened in the pilot.
+    - In mid-April, before the pilot went live, Nedap moved the LOW trigger from a score of about 50 to about 70, to send more scores into DairyComp.
+    - The farm's `Low` command still required a score of 1-30. So nearly every LOW flag was blocked by design: 13,199 LOW flags after go-live, 81 `Low` alerts out of 2,422.
+    - **Agree the thresholds and the DairyComp commands before enrolment, and change neither during it.**
+
+**Why this matters for enrolment.** In the pilot, 243 cows with a lesion were flagged by the camera while alerting was live, but no alert reached DairyComp.
+
+- 231 were the enrolment rules working as designed.
+- **12 were genuine losses:** a decline flag fired, no rule explains the silence, and no `NEDLAME` appeared.
+- **Every one was a cow who was never enrolled.** A lost alert is exactly what prevents enrolment, so the failure and its consequence are one event.
+  - It is invisible from inside DairyComp. It showed here only because the raw camera export could be checked against the import.
+- **A limitation to name before Nedap does:** the pilot cannot see alerts lost for cows *already* enrolled. Neither will the trial, without the raw log.
+
+Without these, the study measures the camera and the integration together and cannot separate them. That is what happened in the pilot.
 
 ------------------------------------------------------------------------
 
 ## 8. Decisions taken
 
-**Settled:** randomisation is **blocked on chronicity and lactation group**, and the chronicity interaction is **explored, not powered**. The cost of powering it is given in §6 should Nedap want it: 12,000 enrolled rather than 6,000.
-
-**Settled:** **six herds** across three regions, two each, with four as a stated minimum. Six is the right count for a geographically spread study, not merely a convenient one — see §2 and §5.
-
-**Settled:** the **economic inputs are stated assumptions**, listed in §3. They do not affect the sample size, since the study is powered on milk, so a reader who prefers different figures can substitute them without changing the study's precision.
-
-**Settled:** cure is targeted at **+15 points**. §5 states what the design detects on every outcome rather than only the powered one.
-
-**Settled:** the **cure comparison is primarily arms 1 versus 2**, where both arms are protocol-trimmed and the contrast is clean. Arm 3 is reported with its selection caveat stated and its detection route recorded. This is the clinically important question — does a lesion left four weeks still heal as well — and it is also the timing question the three-arm design exists to answer.
+- **Randomisation blocked on chronicity and lactation group.** The chronicity interaction is explored, not powered. Powering it costs 12,000 enrolled (§6).
+- **Six herds** across three regions, two each. Four is the stated minimum (§2, §5).
+- **Economic inputs are stated assumptions** (§3). They do not affect the sample size.
+- **Cure targeted at +15 points.** §5 states what the design detects on every outcome.
+- **Cure compared primarily on arms 1 v 2**, where both are protocol-trimmed. Arm 3 is reported with its caveat and its detection route recorded.
+- **Alert rules and DairyComp commands frozen for the study** (§2, §7).
 
 ------------------------------------------------------------------------
 
@@ -403,3 +481,6 @@ Without these the study measures the camera and the integration together and can
 | Culling gap at 365 days                    | 7.3 points             |
 | Alerts per week, pilot farm                | 69                     |
 | Cows alerted per lactation                 | 62%                    |
+| Lesion cows flagged live, no alert         | 243                    |
+| Of those, genuine integration losses       | 12                     |
+| LOW flags after go-live / `Low` alerts     | 13,199 / 81            |

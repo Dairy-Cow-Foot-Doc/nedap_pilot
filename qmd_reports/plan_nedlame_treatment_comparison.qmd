@@ -1759,3 +1759,16 @@ Applied:
 - `n_true_miss` is now **58**; `n_never_flagged` (**29**) keeps the no-flag-ever subset.
 - **The blind spot doubles (29 -> 58), and it now depends on the window.** The lookback section says the never-flagged 29 are fixed, not the 58. Gerard accepted this as the honest version.
 - DD still over-represented: 62% of the blind spot against 22% of alerts that arrived in time.
+
+### The window section cut to bullets, and one stale figure fixed
+
+- Gerard: *"The 28 day justification still reads like a novel."* Now six bullets plus the table. The window's history (the 29-45 day bump, the repeat-lesion explanation) lives here in Rounds 35-36, not in the report.
+- **The "28 days captures X%" sentence summed the 0-21 bands** - it was the 21-day share, left over from before `7264f67`. Now sums to 28 days: **92%**.
+
+### Proposal draft 3 (`design/proposal_nedap_3arm_draft.md`)
+
+- Restyled to short bullets. All figures kept except the three p-values and the superseded pipeline counts.
+- **§7 rewritten.** "Score at flag" is no longer the ask - DairyComp has it (`LMSV`). The asks are now (1) the alert and score files as sent, with timestamps, and (2) the alert rules frozen for the study. Pipeline figures updated to 243 flagged live / 231 by design / 12 genuine.
+- **§6: `EDAY=LMSFD` flagged as unsafe as written.** `LMSFD` has been frozen in the DairyComp export since ~2026-02-02, so it would date every alert in early February.
+- §2 and §8: alert rules frozen for the study, because enrolment is at the alert.
+- D1 and D2 (`design/review-proposal-2026-09-10.md`) are untouched and still open.

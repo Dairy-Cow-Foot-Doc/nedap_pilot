@@ -1231,11 +1231,19 @@ Using the raw camera flag export data, the breakdown of those missed cow is as f
 
 ### Why the warning window is `r params$q4_lookback_days` days {#sec-lookback}
 
-**It is `r params$q4_lookback_days` days because that is the horizon DairyComp itself runs on.** The decline routes gate on `FTDAT<-28` - a cow trimmed inside 28 days cannot raise a decline alert - and the post-trim suppression in this report uses the same `r params$recent_trim_suppression_days` days. Matching the analysis window to the operational one means the report is asking the question the farm's own system is set up to answer, rather than imposing a number of its own.
+- **It matches DairyComp.** The decline routes block a cow trimmed in the last 28 days (`FTDAT<-28`). The post-trim rule in this report uses the same `r params$recent_trim_suppression_days` days.
 
-**The headline does not depend on it.** `r n_misses` cows got no useful warning, and that figure is identical at a 14, 21, 28 or 45-day window. Widening the window moves a case from *alerted earlier* to *alert arrived in time* - both of which are warnings - so the count of cows who got neither cannot change. The `r n_never_flagged` never flagged at all are likewise fixed. What the window does move is the split *within* those groups: how many misses are attributed to the pipeline rather than to the blind spot, and how many cohort alerts are credited as arriving in time.
+- **The miss count does not depend on it.** `r n_misses` at a 14, 21, 28 or 45-day window.
 
-For completeness, the distribution behind it - every lesion case in the pilot window that had *any* prior `NEDLAME`, by days from the most recent prior alert to the lesion:
+  - A wider window only moves a cow from *alerted earlier* to *alert arrived in time*. Both are warnings.
+
+- **It does move the split.** A wider window puts more misses in *Flagged, No Alert Raised* and fewer in *No Flag in Window*.
+
+  - Only the `r n_never_flagged` never flagged at all are fixed.
+
+- **Most alerts come within a week of the lesion** (@tbl-lookback-rationale).
+
+- The window never reaches back before go-live.
 
 ```{r}
 #| label: tbl-lookback-rationale
@@ -1263,17 +1271,7 @@ lookback_gaps |>
   tab_source_note("The window is measured backward from the lesion only.")
 ```
 
-The signal decays steeply - most alerts that precede a lesion do so within a week - and then runs out into a thin, flat tail. `r params$q4_lookback_days` days captures `r round(100 * sum(lookback_gaps$cases[lookback_gaps$band %in% c("0-7","8-14","15-21")]) / sum(lookback_gaps$cases))`% of all cases that had any prior alert. Extending to 28 days would add `r lookback_gaps$cases[lookback_gaps$band == "22-28"]` more.
-
-The gap decays steeply - most alerts that precede a lesion do so within a week - and then runs out into a thin, flat tail with no structure in it.
-
-**An earlier version of this report argued the window differently, and that argument does not hold.** It reported a second rise at 29-45 days and put the window in the trough before it. On the population the window actually governs - first diagnoses - there is no second rise. The bump is real, but it appears only when **repeat** lesions in the same lactation are counted: including them the 29-45 band holds 76 cases instead of `r lookback_gaps$cases[lookback_gaps$band == "29-45"]`.
-
-Checking what those repeat cases are: **55% of them have a trim sitting between the alert and the lesion**, against 0% in the 0-14 day bands. So the bump is not the camera re-alerting after a trim, as was previously written - it is a cow whose alert was already acted on, who was trimmed, and whose *later* lesion is then being paired with that same old alert. Those cases are excluded from this report by the completed-cycle rule, so the bump is gone for a reason, not by luck.
-
-Treat `r params$q4_lookback_days` days as **a defensible operational choice, not a natural constant.** Anything from roughly 14 to 45 days leaves the miss count untouched; what moves is the attribution within it.
-
-A separate rule also applies: `lookback_days_used` is capped at how long `NEDLAME` had been live as of each lesion, so the window never reaches back before the system existed.
+- `r params$q4_lookback_days` days covers **`r round(100 * sum(lookback_gaps$cases[lookback_gaps$band %in% c("0-7","8-14","15-21","22-28")]) / sum(lookback_gaps$cases))`%** of lesions with any prior alert.
 
 ## What Lesions are being missed?
 
