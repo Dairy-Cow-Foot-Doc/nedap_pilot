@@ -133,3 +133,32 @@ Gerard: *"if we go 12 months total ... Fix the 3 problems ... redo the sample si
 **Budget v3** (`design/budget_nedap_3arm (version 3).xlsx`): 6 + 6 months, 4,000 enrolled. **$220,250** by hand-check ($182,500 personnel, $24,790 travel, $12,960 data), $55 per enrolled cow. Excel recalculates on open. The buffer is the enrolment slack (6 months budgeted, 2.6-5.1 expected). Gerard prefers to over-budget and be negotiated down - options if he wants more: keep 9 enrolment months (visits), or add analysis days.
 
 **Still open:** D1 (ledger denominators - "milk alone does not cover it" kept verbatim); herd count final (6 v 8); whether dry-off stays secondary.
+
+------------------------------------------------------------------------
+
+## F. Third pass, 2026-09-29 - open decisions closed, aligned with the final report
+
+Gerard: *"we don't need a cost ledger/cow etc as we just want to show total $. Go with 6 herds and leave 8 as preference but requires more budget. Make dry off lesion descriptive but add if we extend study to 18 months we could make it an outcome. Then align proposal with report."*
+
+- **D1 closed by removing it.** The per-lame-cow ledger and "Milk alone does not cover the cost" are gone from §3. §3 now says the study reports total dollars by arm. §5 break-even is stated on all enrolled cows only (0.25-0.6 points).
+- **New §9 Budget**, from `budget_nedap_3arm (version 3).xlsx` by hand-check: \$220,250 (\$182,500 / \$24,790 / \$12,960). The workbook's cached values are stale (e.g. D46 = 18 months); Excel recalculates on open.
+  - Eight herds: +\$44,320 (2 herds x 6 visit-days x \$2,500 + 4 initial visit-days + data), plus travel -> "about \$45,000, about \$265,000".
+  - 18 months: +\$15,000 project management + \$6,480 data = \$21,480 -> "about \$242,000". Visits unchanged (follow-up is passive).
+  - Not included: subscription \$140,400-172,800 (64-79% of the budget - the workbook label "larger than everything above combined" is no longer true); extra trimming 4,000 x 2/3 x 0.406 x \$18 = \$19,488.
+- **Six herds**; eight stated as preference needing budget. "Herds are cheaper insurance than cows" was wrong at the planning value (8 herds saves 200 cows for ~\$45k) - reworded as insurance against tau 0.5-0.75.
+- **Dry-off lesion descriptive.** At 18 months (12 months after the last enrolment, 68% reach dry-off, 906/arm) it detects 5.2 points vs 9.0 - same power.prop.test basis that gives 9.0 at 287.
+- **Aligned with the final report:**
+  - §6 miss definition: "no NEDLAME at any time before the lesion"; the 27.9/11.5, 15.4 -> 1.4 and "twenty v four" figures (pre-Round-35 lookback framing) removed. 0/262 and 309/315 quoted.
+  - §6 "miss count did not move at 14-45 days" removed (true by definition, Round 39). Window now described as sorting misses, not deciding them.
+  - §7 item 2: the LOW threshold (<30 v <70) is an open question to settle with Nedap before freezing.
+  - §7 new item 3: every cow on the SmartSight instance, checked monthly - 160 first-lactation cows absent after 2026-06-24 (report, "Was a Miss a NEDAP Now problem?").
+- **Not done (Gerard handling):** header still "Draft 4", §1 intro, other small items.
+- **Recurrence moved from descriptive to secondary, arm 1 v 2** (Gerard asked why randomisation would not protect it). The first lesion is found by protocol in both arms 1 and 2, so the at-risk cows are comparable - the same argument as cure. Arm 1 v 3 is not: arm 3's first lesions are farm-caught only. 467 per arm with a first lesion (35% of 1,333) detects 8.5 points on 36.1% (re-checked). ITT and per-protocol; time-to-recurrence because arm 2 trims later alerts at four weeks.
+
+### F2. Sample-size pass after Gerard's edits (2026-09-29, `p41`)
+
+- **The 1.05 kg is not what the pilot shows on the study's own outcome.** It was milk as % of baseline, unadjusted (97.9 v 95.4 at days 25-30). Baseline-adjusted kg, same cows and days: **+0.08 kg (SE 0.57)**; raw kg -0.24; days 1-30 adjusted -0.32. The % figure is flattered by TX new cows' lower baseline (39.5 v 41.8 kg). §5 now calls 1.0 kg a design target, not a pilot estimate; "implies a true effect near 1.5 kg" removed. The 4,000 is unchanged - it was always sized to detect 1.0 kg.
+- **New v chronic, pilot (days 1-30, adjusted):** new +0.39 kg (-0.64 to 1.42), chronic -1.45 (-2.75 to -0.15), difference 1.84 (0.18 to 3.50). Gerard expected this direction.
+- **§6's chronicity numbers were wrong.** "±1.0 kg interaction interval" was a within-subgroup interval at a 50/50 split; "8,000 to power it" (2x) was also the 50/50 subgroup figure. At 61% new, 6 herds, tau 0.25, the random-slope simulation gives at 4,000: overall ±0.65, new ±0.81, chronic ±1.02, difference ±1.29. To power the difference: 4,700 (1.84 kg), 7,100 (1.5 kg), 16,700 (1.0 kg). Still "estimated, not powered" - Gerard has not chosen to power it.
+- **Routine trimming depends on DIM at alert** (pilot Control, >= 60 d follow-up, n = 147): routine-trimmed within 60 days 2.5% at DIM 0-60, 59.5% at 61-120, 34.5% at 121-200, 16.7% at 200+; 28.6% overall. Herd routine trims sit at DIM 90-150 (lact 1-2) and 120-200 (3+). The 1.0 kg target assumes about this dilution. The 4,500 / 6,400 at 45% / 60% coverage are scaled from the old working-doc sweep, not re-simulated.
+- **Corrected (same day):** I first said Gerard's <=2x-per-lactation criterion was looser than the pilot. Wrong - the pilot herd IS a 2x herd: completed lactations dried off 2025-09 to 2026-09 (n = 2,819) average 1.9 / 2.0 / 2.4 non-staff trims (lact 1 / 2 / 3+), 50% exactly two; mid-lactation 1.1-1.6 plus dry-off ~80%. So the criterion matches the herd the 28.6% came from. What drives dilution is where the mid-lactation trim falls relative to alerts, not the count. Later-alert rule (his §2 text) will raise extra trimming above the §9 figure, which came from first alerts over a 3-month window.

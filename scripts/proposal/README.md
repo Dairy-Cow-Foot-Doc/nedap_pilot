@@ -100,3 +100,9 @@ the farm's trim list in the trial.
 | `p40_detectable_differences_v2.R` | What 4,000 detects, culling on all enrolled cows; dry-off baseline 22.4% and the share reaching dry-off inside follow-up (21% / 51% / 68% at 6 / 9 / 12 months); break-even on all enrolled (0.25-0.6 points). |
 
 `p16_breakeven_with_culling.R` now takes one trim cost ($18) and one cull cost ($1,650) from the top of the file; section 4 prints the ledger the proposal quotes.
+
+## New v chronic (2026-09-29)
+
+| Script | Produces |
+|---|---|
+| `p41_chronicity_sample_size.R` | Pilot TX effect by history on the p38 baseline-adjusted model (new +0.39, chronic -1.45, difference 1.84 kg, days 1-30); the overall contrast on the same model (+/-0 - the old 1.05 kg was % of baseline, unadjusted); enrolment to power the new-v-chronic difference with p38's random-slope simulation (4,700 / 7,100 / 16,700 at 1.84 / 1.5 / 1.0 kg) and the intervals at 4,000. Supersedes p14 for the current draft. |
