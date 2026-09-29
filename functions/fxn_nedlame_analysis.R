@@ -1281,6 +1281,7 @@ fxn_build_lesion_yield <- function(q2_lesion, q2_any) {
        pct_lesion_arm_tx = tx$pct, pct_lesion_arm_ctl = ctl$pct,
        n_trimmed_tx = ttx$n_event, n_trimmed_ctl = tctl$n_event,
        pct_trimmed_tx = ttx$pct, pct_trimmed_ctl = tctl$pct,
+       n_expected_lesion_tx = round(tx$cows * ctl$n_event / ctl$cows),
        n_extra_lesion_cows = round(tx$n_event - tx$cows * ctl$n_event / ctl$cows))
 }
 

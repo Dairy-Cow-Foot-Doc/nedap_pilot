@@ -461,15 +461,15 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
 - Trimming off the alert (Trim Treatment (**TX**) group) found a lesion in **`r n_extra_lesion_cows` more cows** than the control approach.
 
-  - **`r pct_trimmed_tx`**% of TX cows were trimmed against **`r pct_trimmed_ctl`**% of Control.
+  - **`r pct_trimmed_tx`**% of TX cows were trimmed against **`r pct_trimmed_ctl`**% of Control indicating good study protocol compliance for TX group and routine trimming and detection in the Control group.
   - **No clear difference in milk or culling over 30 days.**
-    - The milk curves slightly favour TX, but cow-to-cow variation dwarfs the group difference
+    - The milk curves slightly favour TX, but cow-to-cow variation is bigger than the group difference
     - With only `r n_culls` culls in total the study cannot answer the culling question.
   - More longer term follow up is required to measure other outcomes such as repeat lesions and longer-run production.
 
 ## Other Descriptive Data
 
-- **`r n_miss_pilot` of the `r n_cases_pilot` lesion cases in the pilot cohort were missed.** Every one had a `NEDLAME` before the lesion was found.
+- **By design, `r n_miss_pilot` of the `r n_cases_pilot` lesion cases in the pilot cohort were missed.** Every one had a `NEDLAME` before the lesion was found.
 
 - **`r n_miss_unenrolled` of the `r n_cases_unenrolled` lesion cases outside the pilot cohort had no `NEDLAME` before the lesion was found.**
 
@@ -489,19 +489,19 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
     - `r n_never_flagged` were never flagged at all.
 
-    - The rest had only an older flag and scored normal in the `r params$q4_lookback_days` day window.
+    - The rest had only an older flag and scored normal in the `r params$q4_lookback_days` day window before trimming.
 
     - Digital dermatitis is over-represented among cows with no camera flag.
 
 ## Future Thoughts
 
-The pilot gave valuable insight for the proposed follow up study and details of that proposal will follow.
+The pilot gave valuable insight and raised questions for the proposed follow up study and details of that proposal will follow.
 
 - For the next study, we need to store Nedap's alert files and all daily scores as they are sent.
 
-- Effect sizes and alert rates were used to determine sample sizes.
+- What is the right threshold for "LOW" declining cows?
 
-More details about the pilot are below.
+- Effect sizes and alert rates were used to determine sample sizes.
 
 # Setup in DairyComp
 
@@ -610,6 +610,7 @@ n_sd_staff_first <- sd_trim |>
 - **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim** based on DairyComp logs and raw NEDAP flag exports
 
   - They were flagged before trimming and considered part of the cohorts
+  - The assumption being that the NEDAP alert command was run at 5 am before trimming occurred.
 
 With above exclusions and conditions it resulted in
 
@@ -623,7 +624,7 @@ With above exclusions and conditions it resulted in
 
 The tables below describe the cows enrolled by treatment group to ensure groups were similar.
 
-- The high number of low declines is not surprising considering we moved the low threshold to allow more scores to get into DairyComp.
+- The high number of **LOW** declines is not surprising considering we moved the low threshold to allow more scores to get into DairyComp.
   - For Future: What is the right score to flag cows that are declining should it be \<30 or should we keep \<70?
 
 ::: panel-tabset
@@ -938,7 +939,7 @@ invisible(list2env(fxn_build_control_trim_drivers(
 
 In the Control arm a cow is trimmed if she is flagged by farms staff (CHKLAME) or she is due for her routine trimming. The table below shows that the majority of trims in the Control group were due to routine trimming as only **`r n_ctl_staff` (`r pct_ctl_staff`%)** had a `CHKLAME` event.
 
-- The rate of lesions an time after an alert of the CHKLAME vs routine trimming differs
+- The rate of lesions and time after an alert of the CHKLAME vs routine trimming differs
   - Staff-flagged trims found a lesion **`r pct_lesion_staff`%** of the time at a median of **`r med_days_staff`** days.
   - Routine trims found a lesion **`r pct_lesion_routine`%** of the time at a median of **`r med_days_routine`** days.
 
@@ -965,7 +966,7 @@ From the time to lesion curve above ( @fig-q2-lesion-plot) it is clear that TX f
 
 - In Control cows that was `r n_lesion_ctl` of `r n_cows_ctl` (`r pct_lesion_arm_ctl`%).
 
-Rate-adjusted for the unequal arms, that is **`r n_extra_lesion_cows` more cows with a lesion identified**.
+If the TX cows had been found at the Control rate, we would have expected about `r n_expected_lesion_tx` cows with a lesion. TX found `r n_lesion_tx`, so using the camera identified **`r n_extra_lesion_cows` more cows with a lesion**. Because cows were randomised, both groups should carry a similar number of lesions. These are therefore extra lesions *found*, not extra lesions *present*: the cows that could benefit from earlier treatment.
 
 **Note:** *the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). This is appropriate as we are trying to measure the impact of the technology.*
 
@@ -977,7 +978,7 @@ The tables below compares what % of cows with a NEDAP alert were flagged by farm
 
 Overall farm staff flags about 20% of cows with an alert.
 
-- This differs by alert type with more cows with low scores or strong declines being flagged. This reinforces the question about what is the correct score to start flagging low and declining.
+- This differs by alert type with more cows with low scores or strong declines being flagged. This reinforces the question about what is the correct score to start flagging **LOW** and declining.
 
 ```{r}
 #| label: q3-build
@@ -1489,6 +1490,13 @@ n_legs_front <- sum(q4_legs$n[str_detect(as.character(q4_legs$leg), "Front")])
 
 ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group_3way)) +
   geom_col(width = 0.7) +
+  # Same idea as panel A of the lesion-type figure, but on a middle segment, so
+  # position_stack() places it rather than pct / 2. Blank (not NA) labels on the
+  # other groups keep the stacking identical without a "removed rows" warning.
+  # Black because that segment is viridis yellow.
+  geom_text(aes(label = if_else(detection_group_3way == "No Flag in Window",
+                                paste0(round(pct), "%"), "")),
+            position = position_stack(vjust = 0.5), colour = "black", size = 3.4) +
   geom_text(data = leg_totals, inherit.aes = FALSE,
             aes(x = leg, y = 101, label = paste0("n=", total_cases)),
             hjust = 0, size = 3, colour = "grey30") +
@@ -1632,6 +1640,4 @@ pipeline_loss_cases |>
 invisible(list2env(fxn_build_staff_catch(q4, chklame), environment()))
 ```
 
-Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed by routine trimming or because staff picked them out),
-
-- `r sum(staff_catch$staff_flagged)` (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
+Of the `r nrow(staff_catch)` cows whose lesion had no `NEDLAME` alert recorded in DairyComp beforehand (they were trimmed by routine trimming or because staff picked them out), **`r sum(staff_catch$staff_flagged)`** (`r round(100 * mean(staff_catch$staff_flagged), 1)`%) were flagged by the farm staff in the 7 days before diagnosis.
