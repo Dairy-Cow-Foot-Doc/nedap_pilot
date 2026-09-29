@@ -150,7 +150,7 @@ nedap_coverage_end <- max(attentions_resolved$attention_date, na.rm = TRUE)
 # - 96% of cows carry a value, against ~45% from 06-03 on. From 06-03 it matches
 # the prior day's SkyView score within 3 points 97-98% of the time, and is sent
 # only for cows under the LOW threshold (~70); every other cow reads 0. So 0
-# means "not flagged", not missing. Validation in @tbl-lmsv-check.
+# means "not flagged", not missing. Validated against the SkyView export (plan Round 37).
 # max_dim widened from the milk default of 450: that cut-off guards the milk
 # curves against a reused number, but it also dropped real long-lactation cows
 # still being scored (6925, 9290, 9824 at 480-700 DIM), and with them their flags.
@@ -457,9 +457,23 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
 # **The Bottom Line**
 
-- **`r n_misses` of the `r nrow(q4)` cows** found with a lesion got no useful warning.
+## Trim vs No Trim Results
 
-  - **`r n_pipeline_loss` were flagged by the camera while alerting was live.** No `NEDLAME` was raised.
+- Trimming off the alert (Trim Treatment (**TX**) group) found a lesion in **`r n_extra_lesion_cows` more cows** than the control approach.
+
+  - **`r pct_trimmed_tx`**% of TX cows were trimmed against **`r pct_trimmed_ctl`**% of Control.
+  - **No clear difference in milk or culling over 30 days.**
+    - The milk curves slightly favour TX, but cow-to-cow variation dwarfs the group difference
+    - With only `r n_culls` culls in total the study cannot answer the culling question.
+  - More longer term follow up is required to measure other outcomes such as repeat lesions and longer-run production.
+
+## Other Descriptive Data
+
+- **`r n_miss_pilot` of the `r n_cases_pilot` lesion cases in the pilot cohort were missed.** Every one had a `NEDLAME` before the lesion was found.
+
+- **`r n_miss_unenrolled` of the `r n_cases_unenrolled` lesion cases outside the pilot cohort had no `NEDLAME` before the lesion was found.**
+
+  - **`r n_pipeline_loss` were flagged by the camera while alerting was live.** No `NEDLAME` in DairyComp was raised.
 
     - `r n_pipeline_loss_by_design` of these were the DairyComp enrollment rules working as designed.
 
@@ -471,39 +485,33 @@ invisible(list2env(fxn_build_lesion_yield(q2_lesion, q2_any), environment()))
 
   - **`r n_flagged_pre_golive` were flagged in the `r params$q4_lookback_days` days before the lesion, but before alerting went live.**
 
-  - **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.** This is the camera's blind spot.
+  - **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.**
 
-    - `r n_never_flagged` were never flagged at all. The rest had only an older flag and scored normal in the window.
+    - `r n_never_flagged` were never flagged at all.
 
-    - Digital dermatitis is over-represented among them and white line under-represented.
+    - The rest had only an older flag and scored normal in the `r params$q4_lookback_days` day window.
 
-      - This is not surprising considering the model being trained on locomotion scoring.
+    - Digital dermatitis is over-represented among cows with no camera flag.
 
-- **For the next study, save Nedap's alert files and daily scores as they are sent.**
+## Future Thoughts
 
-  - The Nedap export and the DairyComp file run at different times. An alert can be overwritten or lost without a trace.
+The pilot gave valuable insight for the proposed follow up study and details of that proposal will follow.
 
-- Trimming off the alert (Trim Treatment (TX) group) found a lesion in **`r n_extra_lesion_cows` more cows** than the control approach.
+- For the next study, we need to store Nedap's alert files and all daily scores as they are sent.
 
-  - `r pct_trimmed_tx`% of TX cows were trimmed against `r pct_trimmed_ctl`% of Control. Since the groups were randmomized the TX lesions were we can infer that that they were found earlier.
+- Effect sizes and alert rates were used to determine sample sizes.
 
-- **No clear difference in milk or culling over 30 days.** The milk curves slightly favour TX, but cow-to-cow variation dwarfs the group difference, and with `r n_culls` culls in total the study cannot answer the culling question either way.
-
-- More longer term follow up is required to measure other outcomes such as repeat lesions and longer-run production.
-
-- The pilot gave valuable insight for the proposed follow up study and details of that proposal will follow.
-
-Each of these is developed below, with the checks behind it.
+More details about the pilot are below.
 
 # Setup in DairyComp
 
 For this study the follow things were created in DairyComp to handle the file data from NEDAP daily.
 
-- A command to clear all filein items before new data was brought in as a workaround to deal with historical flag issues in the NEDAP files
+- A command to clear all FILEIN items before new data was brought in as a workaround to deal with historical flag issues in the NEDAP files
 
 - New NEDAP lame event with 3 protocols to flag cows and criteria to create them
 
-  - Low (score \<30 today, no alarm in the last 90 days, not trimmed in last 90 days, not a cow with history of upper leg lameness)
+  - Low (score 1-30 today, no alarm in the last 90 days, not trimmed in last 90 days, not a cow with history of upper leg lameness)
 
     - ENTER EC=70\\P215 FOR LFTYP=30102 LMFLG=1 LMSV=1-30 DSNLM=90-1 FTDAT\<-90 UPLAM\<\>1
     - The exclusions were added to prevent excessive alarms for cows with know locomotion issues.
@@ -599,7 +607,9 @@ n_sd_staff_first <- sd_trim |>
 
   - See @tbl-post-trim-exclusion-table. for details on these cows
 
-- **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim** based on DairyComp logs and raw NEDAP flag exports they were flagged before trimming and considered part of the cohorts
+- **`r n_same_day_trim` cows had their first alert stamped on the same date as a trim** based on DairyComp logs and raw NEDAP flag exports
+
+  - They were flagged before trimming and considered part of the cohorts
 
 With above exclusions and conditions it resulted in
 
@@ -613,7 +623,8 @@ With above exclusions and conditions it resulted in
 
 The tables below describe the cows enrolled by treatment group to ensure groups were similar.
 
-- The high number of low declines is not surprising considering we move the low threshold to allow more scores to get into DairyComp.
+- The high number of low declines is not surprising considering we moved the low threshold to allow more scores to get into DairyComp.
+  - For Future: What is the right score to flag cows that are declining should it be \<30 or should we keep \<70?
 
 ::: panel-tabset
 ## By Alert Type
@@ -756,18 +767,13 @@ pct_decline_cohort <- round(100 * mean(cohort$alert_type %in% c("LOW DECLINE", "
 
 ### Time to next trimming after alert
 
-These time to event curves measure **protocol compliance**.
+These time to event curves measure **protocol compliance**. In TX the trim is caused by the alert, so the curve shows how well the protocol was followed. The Control curve does a different job: it shows when those cows were trimmed anyway due to either staff flagging them or a routine scheduled trimming.
 
-- For each cow we took the first trim after her first NEDLAME alert, censored at end of lactation or culling.
+- For each cow we took the first trim after her first NEDLAME alert and cows were censored at the end of lactation or culling.
 
   - It is clear that most of the TX cows got trimmed within 7-10 days as designed.
   - The difference between the time to event with a lesion (@fig-q2-lesion-plot) illustrates how the TX group finds more cows with lesions.
-
-In TX the trim is caused by the alert, so the curve shows how well the protocol was followed.
-
-The Control curve does a different job: nothing there acts on the alert, so it shows when those cows were trimmed anyway due to either staff flagging them or a routine scheduled trimming.
-
-- A breakdown of the staff-versus-routine split is in @tbl-trim-driver.
+  - A breakdown of the staff-versus-routine split is in @tbl-trim-driver. Most cows in control group were trimmed because of routine trimming.
 
 ::: panel-tabset
 ## Time to Any Trim/LAME Event
@@ -933,8 +939,8 @@ invisible(list2env(fxn_build_control_trim_drivers(
 In the Control arm a cow is trimmed if she is flagged by farms staff (CHKLAME) or she is due for her routine trimming. The table below shows that the majority of trims in the Control group were due to routine trimming as only **`r n_ctl_staff` (`r pct_ctl_staff`%)** had a `CHKLAME` event.
 
 - The rate of lesions an time after an alert of the CHKLAME vs routine trimming differs
-  - Staff-flagged trims found a lesion **`r pct_lesion_staff`%** of the time at a median **`r med_days_staff`**.
-  - Routine trims found a lesion **`r pct_lesion_routine`%** of the time at a median of **`r med_days_routine`**.
+  - Staff-flagged trims found a lesion **`r pct_lesion_staff`%** of the time at a median of **`r med_days_staff`** days.
+  - Routine trims found a lesion **`r pct_lesion_routine`%** of the time at a median of **`r med_days_routine`** days.
 
 ```{r}
 #| label: tbl-trim-driver
@@ -957,11 +963,11 @@ From the time to lesion curve above ( @fig-q2-lesion-plot) it is clear that TX f
 
 - A lesion was found in `r n_lesion_tx` of the `r n_cows_tx` TX cows (`r pct_lesion_arm_tx`%)
 
-- In trimmed Control cows that was `r n_lesion_ctl` of `r n_cows_ctl` (`r pct_lesion_arm_ctl`%).
+- In Control cows that was `r n_lesion_ctl` of `r n_cows_ctl` (`r pct_lesion_arm_ctl`%).
 
 Rate-adjusted for the unequal arms, that is **`r n_extra_lesion_cows` more cows with a lesion identified**.
 
-**Note:** *the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`).*
+**Note:** *the denominator: this is the **full arm** (`r n_cows_tx` and `r n_cows_ctl`), not the trimmed subset the no-lesion table uses (`r n_trimmed_tx` and `r n_trimmed_ctl`). This is appropriate as we are trying to measure the impact of the technology.*
 
 ### How does the Farm staff do?
 
@@ -971,7 +977,7 @@ The tables below compares what % of cows with a NEDAP alert were flagged by farm
 
 Overall farm staff flags about 20% of cows with an alert.
 
-- This differs by alert type with more cows with low scores or strong declines being flagged.
+- This differs by alert type with more cows with low scores or strong declines being flagged. This reinforces the question about what is the correct score to start flagging low and declining.
 
 ```{r}
 #| label: q3-build
@@ -1031,7 +1037,7 @@ staff_id |>
 invisible(list2env(fxn_build_q1(cohort, milk_resolved, params), environment()))
 ```
 
-The figures below compare milk production between the treatment groups. Cows were assigned to TX or Control at enrollment.
+The figures below compare milk production between the treatment groups.
 
 - `r n_milk_cows` of the `r nrow(cohort)` cohort cows had at least one milk record after their alert and a usable pre-alert baseline.
 
@@ -1103,9 +1109,13 @@ Lifetime lameness history is important confounder in lameness work and this sect
 
 ### Lameness History Distribution at Enrollment
 
-@fig-chronic shows the breakdown of **New** vs **Chronic** cows that were enrolled. Chronicity is based on a cow's **lifetime record** at her first NEDLAME alert. Data going back to 2021 was used to establish chronicity.
+@fig-chronic shows the breakdown of **New** vs **Chronic** cows that were enrolled.
 
-- More New cases were enrolled
+Chronicity is based on a cow's **lifetime record** at her first NEDLAME alert.
+
+- Data going back to 2021 was used to establish chronicity.
+
+More New cases were enrolled, consistent with the rule that avoids re-flagging chronic cows.
 
 ```{r}
 #| label: fig-chronic
@@ -1197,85 +1207,64 @@ km_cull |>
 
 ## What cows were missed by the system?
 
-**First, the cows the camera was actually watching.** Of the `r n_cases_pilot` lesion cases in the pilot cohort, **`r n_miss_pilot` were missed**: `r n_caught_pilot` had an alert arrive inside the window and `r n_warned_pilot` had one arrive earlier with no trim in between. Every cow in the cohort is there by having been alerted, so this is not a detection rate - it is the statement that once a cow was enrolled, a warning always existed.
+The focus of this section is about the `r n_cases_unenrolled` lesion cases outside the pilot cohort. Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` not in the cohort is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp before the lesion was found.
 
-**Do not read the caught-versus-earlier split as camera performance by arm.** It is closer to a restatement of time to trimming, which is the intervention itself: a TX cow is added to the trim list automatically and trimmed at a median of `r med_days_to_trim_tx` days against `r med_days_to_trim_ctl` for Control, so her lesion is *found* sooner and the gap between her alert and her diagnosis is short by construction. That gap is protocol compliance, not detection - the same distinction the trimming section draws.
+- `r n_cases_unenrolled - n_miss_unenrolled` of these were alerted but sit outside the cohort: excluded by the post-trim rule, or enrolled in an earlier lactation.
 
-The rest of this section is about the cows the pilot never enrolled. Every cow with a `LAME`-diagnosed lesion on or after `r params$history_after_date` not in the cohort is checked here, whether or not she was ever in the pilot. For each, the question is whether a `NEDLAME` alert had reached DairyComp before the lesion was found.
+A "miss" means **no `NEDLAME` reached DairyComp before the lesion was found** - either the camera never flagged her, or it flagged her and no `NEDLAME` was raised, mostly because of the enrollment filters we set up in DairyComp.
 
-A "miss" means **no useful warning reached DairyComp before the lesion was found** - either the camera never flagged her, or it flagged her and the alert never arrived.
+- `r n_miss_unenrolled` of these cases were missed.
 
-- This was `r n_miss_unenrolled` cows in the pilot study.
-
-Using the raw camera flag export data, the breakdown of those missed cow is as follows.
+Using the raw camera flag export data and daily score exports (from milk data), the breakdown of those missed cows is as follows. Each cow is checked over **her window**: the `r params$q4_lookback_days` days before her lesion, starting no earlier than go-live on `r format(nedlame_start_date)`.
 
 1.  **`r n_pipeline_loss` the camera flagged her while alerting was live, but no `NEDLAME` was raised.** She never entered the study.
 
-    -   `r n_pipeline_loss - n_pipeline_score_only` had a flag start inside the window.
+    - Why no alert was raised is shown below.
 
-    -   `r n_pipeline_score_only` carried a flag that started earlier and was still running. DairyComp held her score (`LMSV`) inside the window.
+2.  **`r n_flagged_pre_golive` the camera flagged in the `r params$q4_lookback_days` days before the lesion, but before alerting went live on `r format(nedlame_start_date)`.**
 
-        -   Most of these flags started before go-live, after Nedap lowered the LOW trigger in April.
+    - The camera saw her. There was no route to DairyComp to get her on the trim list yet.
 
-    -   Why no alert was raised is shown below.
+3.  **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.**
 
-2.  **`r n_flagged_pre_golive` the camera flagged her in the `r params$q4_lookback_days` days before the lesion, but before alerting went live on `r format(nedlame_start_date)`.**
+    - `r n_never_flagged` were never flagged at all.
 
-    -   The camera saw her. There was no route to DairyComp yet.
-
-3.  **`r n_true_miss` had no camera flag in the `r params$q4_lookback_days` days before the lesion.** This is the group the camera did not see.
-
-    -   `r n_never_flagged` were never flagged at all.
-
-    -   `r n_true_miss - n_never_flagged` had an older flag only. DairyComp held no score for them on any live day in the window, so they scored above the LOW trigger throughout.
+    - `r n_true_miss - n_never_flagged` had only a flag older than the `r params$q4_lookback_days`-day window. DairyComp held no score for them on any live day in the window, so they scored above the LOW threshold throughout.
 
 ### Why the warning window is `r params$q4_lookback_days` days {#sec-lookback}
 
-- **It matches DairyComp.** The decline routes block a cow trimmed in the last 28 days (`FTDAT<-28`). The post-trim rule in this report uses the same `r params$recent_trim_suppression_days` days.
+- **It matches DairyComp.** The LOW decline routes block a cow trimmed in the last 28 days (`FTDAT<-28`). The post-trim rule in this report uses the same `r params$recent_trim_suppression_days` days.
 
-- **The miss count does not depend on it.** `r n_misses` at a 14, 21, 28 or 45-day window.
-
-  - A wider window only moves a cow from *alerted earlier* to *alert arrived in time*. Both are warnings.
-
-- **It does move the split.** A wider window puts more misses in *Flagged, No Alert Raised* and fewer in *No Flag in Window*.
-
-  - Only the `r n_never_flagged` never flagged at all are fixed.
-
-- **Most alerts come within a week of the lesion** (@tbl-lookback-rationale).
-
-- The window never reaches back before go-live.
+- **The window does not decide who was missed.** A miss is a cow with no `NEDLAME` at any time before the lesion. The window only decides whether a camera flag counts as *in the window*, which sets how misses are split between *Flagged, No Alert Raised* and *No Flag in Window* *which we use below to give more insights.*
 
 ```{r}
-#| label: tbl-lookback-rationale
+#| label: lookback-consistency-check
+#| include: false
 
-lookback_gaps <- lame_lesion_recent |>
+# The gap-to-lesion table that used to sit here was dropped: for cohort cows the
+# lesion date is mostly the trim date, so the gap measured the trim protocol
+# (TX trimmed on the alert), not how early the alert came. The check is kept so
+# the in-time / alerted-earlier split stays tied to the 28-day window.
+# A NEDLAME dated on the lesion day counts (the ~5am batch lands before the
+# trimmer sees her), the same rule the classification uses.
+lookback_gaps <- q4 |>
   select(id_animal, lact_number, date_event) |>
   distinct() |>
   left_join(nedlame_all, by = c("id_animal", "lact_number"),
             relationship = "many-to-many") |>
-  filter(!is.na(ned_date), ned_date < date_event) |>
+  filter(!is.na(ned_date), ned_date <= date_event) |>
   group_by(id_animal, lact_number, date_event) |>
-  summarize(last_ned = max(ned_date), .groups = "drop") |>
-  mutate(gap = as.numeric(date_event - last_ned),
-         band = cut(gap, c(0, 7, 14, 21, 28, 45, 60, 90, Inf),
-                    labels = c("0-7", "8-14", "15-21", "22-28",
-                               "29-45", "46-60", "61-90", "90+"))) |>
-  count(band, name = "cases")
-
-lookback_gaps |>
-  tidyr::pivot_wider(names_from = band, values_from = cases) |>
-  gt() |>
-  tab_header(title = "Days from the last prior alert to the lesion",
-             subtitle = paste0("n = ", sum(lookback_gaps$cases),
-                               " lesion cases with any prior NEDLAME")) |>
-  tab_source_note("The window is measured backward from the lesion only.")
+  summarize(gap = as.numeric(first(date_event) - max(ned_date)), .groups = "drop")
+n_gap_in_window <- sum(lookback_gaps$gap <= params$q4_lookback_days)
+stopifnot("alerts within the window must equal the in-time count" =
+            n_gap_in_window == sum(q4$caught_by_nedap),
+          "alerts before the window must equal the alerted-earlier count" =
+            nrow(lookback_gaps) - n_gap_in_window == sum(q4$warned_not_acted))
 ```
-
-- `r params$q4_lookback_days` days covers **`r round(100 * sum(lookback_gaps$cases[lookback_gaps$band %in% c("0-7","8-14","15-21","22-28")]) / sum(lookback_gaps$cases))`%** of lesions with any prior alert.
 
 ## What Lesions are being missed?
 
-The figure below shows the lesion types found at all (cohort and non cohort cows) first-diagnosis cases, broken out by NEDAP detection status:
+The figure below shows the lesion types found at **ALL** (cohort and non cohort cows) first-diagnosis cases, broken out by NEDAP detection status:
 
 - **Alert Arrived in Time**
   - a `NEDLAME` landed in DairyComp inside the window before the lesion.
@@ -1294,14 +1283,14 @@ Where a cow had two different lesions on the same day, each type is counted. The
 
   - \% caught in time is listed inside the figure.
 
-- **Panel B** asks what lesion each flag outcome tends to be, with *Alert Arrived in Time* as the comparison column
-
-Lesion types with fewer than 20 cases are combined into one bar - separately they are too few to carry a percentage. Other is a combination category that holds lesions that were infrequent.
+- **Panel B** asks what lesion each flag outcome tends to be.
 
 ```{r}
-#| label: fig-q4-lesion-types
-#| fig-height: 9
+#| label: lesion-types-data
+#| include: false
 
+# Split out of fig-q4-lesion-types so the rare-types sentence below can sit
+# above the figure: inline r only sees objects computed before it.
 invisible(list2env(fxn_build_q4_groups(q4_sensor, lame_lesion_recent), environment()))
 
 STATUS_LEV <- c("Alert Arrived in Time", "Alerted Earlier, No Trim Followed",
@@ -1320,6 +1309,10 @@ les_long <- lame_lesion_recent |>
   select(id_animal, lact_number, date_event, all_of(lesion_type_cols)) |>
   inner_join(les_base |> select(id_animal, lact_number, date_event, status),
              by = c("id_animal", "lact_number", "date_event")) |>
+  # `other` from fxn_code_lesions() is a catch-all that never excluded
+  # hemorrhage, so every hemorrhage case was also counted as other. Hemorrhage
+  # keeps its own bar here; other is what is left.
+  mutate(other = if_else(hemorrhage == 1, 0, other)) |>
   pivot_longer(all_of(lesion_type_cols), names_to = "lesion_type", values_to = "has_lesion") |>
   filter(has_lesion == 1)
 
@@ -1331,6 +1324,15 @@ les_rare   <- sort(les_tot$lesion_type[les_tot$n_total < les_min_n])
 n_les_rare <- sum(les_tot$n_total[les_tot$n_total < les_min_n])
 les_long   <- les_long |>
   mutate(lt = if_else(lesion_type %in% les_rare, "rare types (combined)", lesion_type))
+```
+
+The `r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are pooled into the "rare types (combined)" bar.
+
+**Other** is this report's catch-all, not a DairyComp category: any lesion that is not sole ulcer, footrot, white line, DD, injury or toe. It holds infrequent lesions such as corkscrew claw, sole fracture and axial wall, plus remarks the report does not recognise (`r les_tot$n_total[les_tot$lesion_type == "other"]` cases). Hemorrhage has its own bar and is not counted in other.
+
+```{r}
+#| label: fig-q4-lesion-types
+#| fig-height: 9
 
 n_by_lesion    <- les_long |> count(lt, name = "n_cases")
 rate_by_lesion <- les_long |> count(lt, status) |>
@@ -1370,7 +1372,8 @@ p_lesion_rate <- ggplot(rate_by_lesion, aes(x = lt, y = pct, fill = fct_rev(stat
   scale_y_continuous(breaks = seq(0, 100, 25), labels = function(x) paste0(x, "%"),
                      limits = c(0, 116), expand = expansion(mult = c(0, 0))) +
   scale_fill_viridis_d(drop = FALSE, direction = -1,
-                       guide = guide_legend(reverse = TRUE, nrow = 2)) +
+                       # 3 rows: at 2 the third column ran off the page
+                       guide = guide_legend(reverse = TRUE, nrow = 3)) +
   theme_minimal() +
   labs(x = NULL, y = "% of cases with that lesion", fill = NULL,
        title = "A. How often is each lesion caught?",
@@ -1425,8 +1428,6 @@ p_lesion_rate / p_lesion_mix
 - DD is **`r pctm('dd', "No Flag in Window")`%** of the cases with no camera flag in the window against **`r pctm('dd', STATUS_LEV[1])`%** of those where the alert arrived in time.
 
 None of that is a surprise. Locomotion scoring is known to detect digital dermatitis poorly, and the camera is scoring locomotion, so a lesion that barely changes how a cow walks is the one it will tend to miss.
-
-The `r length(les_rare)` lesion types with fewer than `r les_min_n` cases (`r paste(les_rare, collapse = ", ")`; `r n_les_rare` cases in total) are pooled into the "rare types (combined)" bar.
 
 ## Which leg is being missed?
 
@@ -1500,7 +1501,7 @@ ggplot(q4_legs, aes(x = leg, y = pct, fill = detection_group_3way)) +
   theme(legend.position = "bottom")
 ```
 
-### Was it a NEDAP Now problem?
+### Was a "Miss" a NEDAP Now problem?
 
 Since we are running a separate SmartSight instance for NEDAP Now, I wanted to make sure all cows were visible on it. A cow absent from SmartSight is not being watched for lameness at all, so a lesion found on her cannot be a camera miss.
 
@@ -1570,7 +1571,6 @@ n_l1_after_on_activity <- sum(l1_after$on_activity)
 
   - After that date **`r n_l1_after_unenrolled` first-lactation cows are absent** in the SmartSight instance.
 
-
 ## Why Did No Alert Arrive in Time?
 
 Due to the DairyComp and data entry set up there are several ways a cow that is flagged would not have a NEDAP Lame event (see @fig-pipeline-loss-injury-plot)
@@ -1604,56 +1604,6 @@ That accounts for **`r n_pipeline_loss_by_design` of the `r nrow(pipeline_loss_c
   - `r if (n_pipeline_loss_genuine_low == 0) "None" else n_pipeline_loss_genuine_low` had the `Low` route open - a score of 1-30 and no gate blocking it.
 
   - Since we don't have the actual files that were filed in it is unclear if those cows made it to that stage.
-
-### DairyComp's score is the camera's score
-
-- `LMSV` in the daily VAS file is the Nedap score from the day before (@tbl-lmsv-check).
-
-  - It is only sent for cows under the LOW threshold (about 70). Every other cow reads 0.
-
-  - Usable from `r format(as.Date(params$lmsv_valid_from))`. The go-live file still held an older field.
-
-- `r n_score_never_sent` of the score-gate cows had a LOW flag, but DairyComp held no score for them.
-
-  - The Nedap export and the VAS file run at different times. The score may have been overwritten or never sent.
-
-  - These files cannot tell which. Saving the files as sent would.
-
-```{r}
-#| label: tbl-lmsv-check
-
-# The claim the whole score-gate verdict rests on. The SkyView export is the
-# only independent source of the camera's own score in the live period; it
-# covers ~330 first-lactation cows, which is enough to check the field's
-# meaning, not to replace it.
-sv_daily <- read_csv("data/data_skyview/als_skyview.csv",
-                     col_types = cols(animal_number = "c", date = "D", .default = "?")) |>
-  distinct(animal_uuid, timestamp_utc, score, id = animal_number, date) |>
-  group_by(id, date) |>
-  summarize(sv_score = mean(score), .groups = "drop")
-
-lmsv_check <- lmsv_resolved |>
-  mutate(sv_date = milk_date - 1) |>
-  inner_join(sv_daily, by = c("id", "sv_date" = "date")) |>
-  mutate(band = cut(sv_score, c(-Inf, 65, 70, 75, Inf),
-                    labels = c("65 or less", "66-70", "71-75", "Over 75")))
-stopifnot(nrow(lmsv_check) > 1000)
-
-lmsv_check |>
-  group_by(`SkyView score (day before)` = band) |>
-  summarize(`Cow-days` = n(),
-            `% with a DairyComp score` = round(100 * mean(lmsv > 0), 1),
-            # blank where too few cow-days had a score to rate the match
-            `% of those within 3 points` = if (sum(lmsv > 0) < 20) NA_real_ else
-              round(100 * mean(abs(lmsv - sv_score)[lmsv > 0] <= 3), 1),
-            .groups = "drop") |>
-  gt::gt() |>
-  gt::sub_missing(missing_text = "-") |>
-  gt::tab_header(title = "DairyComp only gets a score when the camera flags her",
-                 subtitle = paste0("First-lactation cows in the SkyView export, ",
-                                   format(as.Date(params$lmsv_valid_from)), " to ",
-                                   format(as.Date(params$analysis_end_date))))
-```
 
 ```{r}
 #| label: fig-pipeline-loss-injury-plot

@@ -1772,3 +1772,18 @@ Applied:
 - **§6: `EDAY=LMSFD` flagged as unsafe as written.** `LMSFD` has been frozen in the DairyComp export since ~2026-02-02, so it would date every alert in early February.
 - §2 and §8: alert rules frozen for the study, because enrolment is at the alert.
 - D1 and D2 (`design/review-proposal-2026-09-10.md`) are untouched and still open.
+
+## Round 39: the final-report pass - one pipeline number, the pooled headline split, and Table 10 dropped
+
+Gerard editing the final report. No classification changed; all numbers as Round 38.
+
+- **The 243 is one number again.** The split into 136 "flag started in window" and 107 "flag still running" was dropped from the misses list. Both groups were checked daily through `LMSV` after go-live and fail for the same reasons (107: score gate 86, `FTDAT` 12, upper-leg 6, day-late 3, genuine 0; 136: 101 / 15 / 0 / 8 / 12). The split only reflects that the attention export records start dates. It moved to a footnote. Of the 107, 92 had their most recent flag start before go-live.
+- **Headline no longer pools the two populations.** "309 of 577" (Round 31's retired rate) became two bullets: 0 of 262 cohort cases missed; 309 of 315 cases outside the cohort.
+- **"Never enrolled" was wrong for 6 cases.** The 6 alerted cases outside the cohort are 5 post-trim exclusions (10344, 11006, 22220, 22842, 8997) and one cohort cow in her next lactation (22708). Wording is now "outside the pilot cohort". The code label `"Never Alerted (Not in Pilot Cohort)"` is still false for these 6 - not renamed yet.
+- **Table 10 was on the wrong population, then dropped.** It used `lame_lesion_recent` with a strict `<`, so it lost the 21 same-day catches and kept 10390 and 20444 (new-episode exclusions): n = 249. Rebuilt on `q4` it is 268 = 251 in time + 17 alerted earlier = 262 cohort + 6 outside. Gerard then dropped it: for cohort cows the lesion date is mostly the trim date, so the gap measures the trim protocol, not alert lead time. **The 92% / 94% "28 days covers" figure is retired for the same reason.** The consistency check is kept (hidden chunk `lookback-consistency-check`).
+- **"Miss count identical at 14-45 days" removed as evidence.** It holds by definition (a miss has no `NEDLAME` at any distance), so testing it proved nothing. Now stated as a definition: the window decides the pipeline vs no-flag split, not who was missed. The justification left is that 28 matches DairyComp's `FTDAT<-28`.
+- **Why not 90** (Gerard asked): `FTDAT<-90` and `DSNLM=90-1` govern when DairyComp may alert, not how long an alert counts as a warning. A 90-day window would only move all 17 alerted-earlier into in-time.
+- `reports/qmd_reports/pipeline_losses.xlsx` predates Rounds 37-38; rerun `step3` before it goes to Nedap.
+- **The `LMSV` validation table (`tbl-lmsv-check`) and its subsection were removed from the report at Gerard's request.** The report no longer shows the evidence that `LMSV` is the camera's prior-day score. It is in Round 37 and the SkyView memory note. The code comment in `lmsv-data` now points here.
+- **Fixed: Figure 13 counted hemorrhage twice.** Now `other` excludes hemorrhage in the figure only (73 cases); the lesion coder is unchanged. `other` in `fxn_code_lesions()` is a catch-all (not SU/footrot/WLD/DD/injury/toe) and does not exclude hemorrhage, so all 88 hemorrhage cases are also in `other` (was 161 = 72 own + 88 hemorrhage + 1 thin).
+- Gerard on the Low Decline sentence: a Low Decline needs a low score and a decline, so the April LOW-threshold change does affect it. Kept as written.
