@@ -9,14 +9,14 @@ The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft
 
 ## Current design (2026-09-30 night) - read before changing any number
 
-**Two options go to Nedap, side by side: 4,000 or 5,000 enrolled.** Nedap chooses. Review doc **F4** has every figure.
+**The design is 5,000 enrolled, 14 months (Gerard, 2026-09-30 night).** The proposal is written for 5,000; §5 ends with a "What 4,000 would lose" subsection and §9 lists 4,000 / 12 months / \$220,250 as a lower-cost option. The goal is to ESTIMATE - lead with the interval (±0.50 kg/day), power second. The case for 5,000 is the new-v-chronic difference (85% v 75%) and the secondaries, not milk precision. Review doc **F4-F6** has every figure.
 
 | | 4,000 | 5,000 |
 |---|---|---|
 | Per arm / per herd | 1,333 / 667 | 1,667 / 833 |
 | Enrolment / total | up to 6 / **12 months** | up to 8 / **14 months** |
-| Power, 1.0 kg observed (2.0 true) | **91%** | **95%** |
-| Power, 0.75 kg observed (1.5 true) | 72% | **81%** |
+| Power, 1.0 kg/day gain | **91%** | **95%** |
+| Power, 0.75 kg/day gain | 72% | **81%** |
 | 95% interval, milk | ±0.56 kg | ±0.50 kg |
 | Culling 180 d, all enrolled | 3.8 pts (±2.8) | 3.4 pts (±2.5) |
 | Cure WLD/SU, arm 1 v 2 | 12.8 pts (232 assessed) | 11.5 pts (290) |
@@ -27,15 +27,21 @@ The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft
 | Eight herds / 12 months after last cow | +\$45,000 / +\$21,500 | +\$55,000 / +\$21,500 |
 | Subscription (excluded) / extra trimming (excluded) | \$140,000-173,000 / ~\$19,500 | \$164,000-202,000 / ~\$24,000 |
 
-Common to both: arms 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice (staff-spotted lame cows trimmed in every arm); enrolment at the first alert, DIM 5+, blocked on history and lactation group, enrolled once; six herds, two each NY / Midwest / West Coast, four minimum; every cow to one study end at least 6 months after the last cow; primary = milk arm 1 v 3 over 90 days with the 7-day pre-alert baseline as covariate; the observed contrast is ~0.49x the true effect (arm 3 trimmed 65% by day 90).
+Common to both: arms 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice (staff-spotted lame cows trimmed in every arm); enrolment at the first alert, DIM 5+, blocked on history and lactation group, enrolled once; six herds, two each NY / Midwest / West Coast, four minimum; every cow to one study end at least 6 months after the last cow; primary = milk arm 1 v 3 over 90 days with the 7-day pre-alert baseline as covariate.
 
 **Primary analysis = the conventional multi-centre model** (Gerard, 2026-09-30 night): weekly milk, arm and herd FIXED, cow random intercept, **no arm-by-herd term**; the result is the effect in the enrolled herds. Arm-by-herd is checked and each herd's estimate reported, not part of the primary test. Hartung-Knapp / meta-analytic pooling was dropped as over-complicated for one trial under one protocol. p42's `fe13` column is this test.
 
 The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-level simulation; review doc F3, F4). Old figures - 6,000, the HK powers (82% at 5,000, 72% at 4,000), ±0.66, "7,500 to power the chronicity difference", x1.09, "1.05 kg observed in the pilot" - are wrong now; do not reintroduce them.
 
+## The proposal speaks ONLY of "the gain from acting on alerts" (Gerard, 2026-09-30 night)
+
+- The primary number is the arm 1 v 3 milk difference, called **"the gain from acting on alerts"** in the proposal. Gerard: the true effect of being trimmed "is not what we are trying to show".
+- **Never** put "true effect", "observed v true", "x0.49 / x0.50", "dilution factor", or benefit-from-the-day-she-is-trimmed language in the proposal. It is an unnecessary side trail. "Arm 3 is farm practice, not untreated: the farm trims 65% of arm-3 cows by day 90" is enough.
+- **Internal mechanics, for the simulation only:** p42's `eff` is a per-enrolled-cow gain per day after trim; the arm 1 v 3 gain is about 0.49x it (p43: arm 1 spends 88% of the 90 days after a trim, arm 3 38%, difference 0.50). So a 1.0 / 0.75 kg gain = p42 `eff` 2.0 / 1.5. The CI rows 0.75-1.75 kg are p42 `eff` 1.5-3.5.
+- **Open plausibility question (raised 2026-09-30, not in the proposal):** only 35-45% of alerted cows have a lesion, so a 1.0 kg/day gain across all enrolled cows needs about 4.4-5.7 kg/day per lesion cow (gain ≈ lesion share x 0.50 x per-lesion-cow gain). At 2-3 kg/day per lesion cow the gain is about 0.35-0.7 kg/day, where power is ~42-48% at a 0.5 kg gain. A lower bound of 1 kg needs a ~1.5 kg gain = 7-9 kg per lesion cow. Gerard has not decided whether to restate the target.
 ## What the study is sized on - do not blur this
 
-- **Sized to DETECT a milk contrast (1.0 kg observed at 4,000; 0.75 kg at 5,000). NOT sized to show the system pays.** Proving it pays is infeasible: break-even is 0.25-0.6 points of culling on all enrolled cows against a ±2.5-2.8 interval.
+- **Sized to DETECT a milk gain (1.0 kg/day at 4,000; 0.75 kg/day at 5,000). NOT sized to show the system pays.** Proving it pays is infeasible: break-even is 0.25-0.6 points of culling on all enrolled cows against a ±2.5-2.8 interval.
 - **The effect sizes are design targets, not pilot estimates.** On the study's own outcome (kg, baseline-adjusted) the pilot shows +0.08 kg (SE 0.57). Do NOT put the old 1.05 kg (% of baseline) in the proposal, not even as a correction.
 - **The study estimates whether the system pays; it does not prove it.** Say so wherever the question "does it pay" appears. §3's primary row is "How much does acting on alerts gain?" for this reason.
 - The Economics section and its assumptions table were **removed** at Gerard's request (2026-09-29). The only economic inputs left are inline in the §5 limitation bullet (\$0.65-0.80 subscription, \$18 trim, \$1,650 net cull).
@@ -43,7 +49,7 @@ The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-lev
 ## Decided by Gerard - do not reopen
 
 - No per-cow cost ledger; no Economics section.
-- **4,000 and 5,000 both presented; Nedap chooses.**
+- **5,000 is the design; 4,000 appears only as "what it would lose" (§5) and a budget option (§9).**
 - **Conventional analysis (herd and arm fixed, no arm-by-herd term), not Hartung-Knapp.**
 - **No history in the client document.** No old tests, superseded figures, "an earlier estimate was...", "a review found..." - that belongs in the review doc, memory and this skill. Pilot lessons that shape the design are fine.
 - Six herds planned, eight a preference needing budget. Herd count barely moves power under the conventional test; the case for more herds is breadth and protection against losing one.
@@ -56,9 +62,9 @@ The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-lev
 ### Sizing detail (p42, F3, F4)
 
 - **False positives, conventional test, 4,000:** 5.4% with identical herds (its own null); 5.9% at the calibrated herd spread.
-- **Power by N (true 2.0 / 1.5 kg):** 3,000 84 / 60; 3,500 88 / 64; 4,000 91 / 72; 5,000 95 / 81; 6,000 97 / 88. The simple formula (`p43`) gives 94 / 98 at 4,000 / 5,000 - the sim is lower because the six herds' own average effect varies.
+- **Power by N (gain 1.0 / 0.75 kg/day; p42 `eff` 2.0 / 1.5):** 3,000 84 / 60; 3,500 88 / 64; 4,000 91 / 72; 5,000 95 / 81; 6,000 97 / 88. The simple formula (`p43`) gives 94 / 98 at 4,000 / 5,000 - the sim is lower because the six herds' own average effect varies.
 - **The one modelling choice that moves power:** whether dry-off trims count as arm-3 treatment. **Gerard: they do not.** If they did (simple formula): 85% at 4,000, 92% at 5,000.
-- **Most sensitive inputs** (simple formula, 4,000 / 5,000): true effect 1.5 kg 75 / 84; arm-3 dilution 20% more 80 / 88; variance 60 kg² 90 / 95. Simulated farm practice x2: 76 / 84.
+- **Most sensitive inputs** (simple formula, 4,000 / 5,000): gain 0.75 kg 75 / 84; arm-3 farm trimming shrinks the gain 20% 80 / 88; variance 60 kg² 90 / 95. Simulated farm practice x2: 76 / 84.
 - **Herd count at 5,000** (conventional): 4 / 6 / 8 / 10 herds at tau 0.25 = 95 / 96 / 94 / 97; 0.5 = 91 / 94 / 93 / 95; 0.75 = 87 / 90 / 90 / 92.
 - **Chronicity:** intervals ±0.56 / ±0.50 overall, new ±0.71 / ±0.64, chronic ±0.90 / ±0.81, difference ±1.15 / ±1.03 (scaled by share of cows). Benefit only in new: difference 75 / 85%, new alone 99 / 100%.
 - **Scripts:** `p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] ci` at 4,000 and 5,000, `[reps] herds [taus]`), `p43_simple_check.R`, `p40_detectable_differences_v2.R N`. Output `output/p42_run.log`, `p42_ci.log`, `p42_herds.log`, `.rds` alongside; the HK-era logs are `*_hk.log`. **`output/` is gitignored - local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (~1 h), `... 1000 ci`, `... 500 herds 0.25,0.5,0.75`. Use R 4.6.1 (`C:\Program Files\R\R-4.6.1\bin\Rscript.exe`); Rscript is not on PATH. The headline is the OBSERVED arm-1-v-3 difference - Gerard: only the observed difference shows whether it pays. Internal Q&A `design/briefing_sample_size_questions.md` is HK-era and marked superseded.
