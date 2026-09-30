@@ -1,9 +1,16 @@
-# Does it pay to use NEDAP SmartSight?
-
-## A proposal for a three-arm randomized trial
-
-------------------------------------------------------------------------
-
+---
+title: "Does it pay to use Nedap SmartSight?"
+subtitle: "A proposal for a three-arm randomized trial"
+author: "Gerard Cramer"
+date: 2026-09-30
+editor: source
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+    toc-depth: 2
+---
 ## 1. The question and objective
 
 **Determine if acting on SmartSight alerts leaves a dairy better off, and by enough to pay for the system.**

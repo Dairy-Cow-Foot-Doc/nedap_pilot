@@ -62,13 +62,13 @@ figure did).
 
 | Script | Produces |
 |---|---|
-| `p30_budget.R` | The preliminary budget. Every input is a named constant at the top; the script writes `design/budget_nedap_3arm_draft.md`, so re-costing means changing one line and re-running, never editing the markdown. |
+| `p30_budget.R` | **SUPERSEDED - do not run.** The budget is now Gerard's workbook `design/budget_nedap_3arm (version 4).xlsx`. Was: the preliminary budget. Every input is a named constant at the top; the script writes `design/budget_nedap_3arm_draft.md`, so re-costing means changing one line and re-running, never editing the markdown. |
 | `p31_baseline_variance_check.R` | **Open decision D2.** Refits the milk variance components with and without the cow's own pre-alert baseline. Baseline as a covariate takes the requirement from 6,200 to 2,300 enrolled; change-from-baseline gives 3,000. r = 0.845. Measured over days 1-30 only, which is the whole caveat. |
 
 See `design/review-proposal-2026-09-10.md` for what the independent review found,
 what was verified, and the two decisions left open.
 
-`p32_budget_xlsx.R` writes `design/budget_nedap_3arm.xlsx` — the same budget as a
+**`p32_budget_xlsx.R` is SUPERSEDED - do not run** (it would recreate a stale workbook; the budget is `design/budget_nedap_3arm (version 4).xlsx`, edited by hand). It wrote `design/budget_nedap_3arm.xlsx` — the same budget as a
 live workbook. Every figure is an Excel formula referring to named cells on the
 Inputs sheet, so changing a yellow cell recalculates everything. The workbook is
 an output: re-running the script overwrites it, so change defaults in the script,

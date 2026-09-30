@@ -5,7 +5,7 @@ description: Use when writing or revising the proposal to Nedap for the full thr
 
 # Writing the Nedap three-arm study proposal
 
-The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft.md`. Every decision, derivation and correction behind it is in `design/review-proposal-2026-09-26.md`. **Read that review doc's last sections first (F, F2, F3, G, F4 - F4 is newest, at the end)** - they supersede anything older, including the working document `design/proposal_nedap_3arm.md` and `design/review-proposal-2026-09-10.md`.
+The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft.qmd`. Every decision, derivation and correction behind it is in `design/review-proposal-2026-09-26.md`. **Read that review doc's last sections first (F, F2, F3, G, F4 - F4 is newest, at the end)** - they supersede anything older, including the working document `design/proposal_nedap_3arm.md` and `design/review-proposal-2026-09-10.md`.
 
 ## Current design (2026-09-30 night) - read before changing any number
 
@@ -67,16 +67,15 @@ The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-lev
 - **Most sensitive inputs** (simple formula, 4,000 / 5,000): gain 0.75 kg 75 / 84; arm-3 farm trimming shrinks the gain 20% 80 / 88; variance 60 kg² 90 / 95. Simulated farm practice x2: 76 / 84.
 - **Herd count at 5,000** (conventional): 4 / 6 / 8 / 10 herds at tau 0.25 = 95 / 96 / 94 / 97; 0.5 = 91 / 94 / 93 / 95; 0.75 = 87 / 90 / 90 / 92.
 - **Chronicity:** intervals ±0.56 / ±0.50 overall, new ±0.71 / ±0.64, chronic ±0.90 / ±0.81, difference ±1.15 / ±1.03 (scaled by share of cows). Benefit only in new: difference 75 / 85%, new alone 99 / 100%.
-- **Scripts:** `p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] ci` at 4,000 and 5,000, `[reps] herds [taus]`), `p43_simple_check.R`, `p40_detectable_differences_v2.R N`. Output `output/p42_run.log`, `p42_ci.log`, `p42_herds.log`, `.rds` alongside; the HK-era logs are `*_hk.log`. **`output/` is gitignored - local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (~1 h), `... 1000 ci`, `... 500 herds 0.25,0.5,0.75`. Use R 4.6.1 (`C:\Program Files\R\R-4.6.1\bin\Rscript.exe`); Rscript is not on PATH. The headline is the OBSERVED arm-1-v-3 difference - Gerard: only the observed difference shows whether it pays. Internal Q&A `design/briefing_sample_size_questions.md` is HK-era and marked superseded.
+- **Scripts:** `p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] ci` at 4,000 and 5,000, `[reps] herds [taus]`), `p43_simple_check.R`, `p40_detectable_differences_v2.R N`. Output `output/p42_run.log`, `p42_ci.log`, `p42_herds.log`, `.rds` alongside; the HK-era logs are `*_hk.log`. **`output/` is gitignored - local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (~1 h), `... 1000 ci`, `... 500 herds 0.25,0.5,0.75`. Use R 4.6.1 (`C:\Program Files\R\R-4.6.1\bin\Rscript.exe`); Rscript is not on PATH. The headline is the OBSERVED arm-1-v-3 difference - Gerard: only the observed difference shows whether it pays.
 - **Do NOT redo:** the mechanistic routine-trim model (rejected, cannot reproduce the pilot); random x1.28 attrition (wrong - real loss is 36-41% and DIM-dependent); Kenward-Roger or HK as the primary test; p38/p41 figures.
 
 ## Still open for Gerard
 
 Check the review doc's last section and the project memory before assuming this list is current.
 
-- Budget: v4 re-saved by Gerard 2026-09-30 (herd 3,500 cows in milk, ON_FRAC 1) = \$267,110. The 4,000 figure (\$223,490) is computed from v4's formulas, NOT from v3 - v3 is stale. Camera subscription: Gerard treats it as Nedap's cost of doing business; do not cost it. No contingency line: the buffer is the enrolment months budgeted beyond those expected (~\$21,800 per enrolment month).
+- Budget: v4 re-saved by Gerard 2026-09-30 (herd 3,500 cows in milk, ON_FRAC 1) = \$267,110. The 4,000 figure (\$223,490) is computed from v4's formulas, NOT from v3 (deleted). Camera subscription: Gerard treats it as Nedap's cost of doing business; do not cost it. No contingency line: the buffer is the enrolment months budgeted beyond those expected (~\$21,800 per enrolment month).
 - Keep or delete the §9 extra-trimming line (about \$19,500 / \$24,000, first alerts only).
-- Re-write design/briefing_sample_size_questions.md for the conventional test if it is still wanted.
 - Header, §1 intro: Gerard is writing these himself.
 
 **Answered 2026-09-30:** dry-off trims do NOT count as arm-3 treatment (p42 as modelled: 0.49 ratio, 82%). Arm-2 per-protocol is defined on the enrolling alert (the bullet's deletion was not deliberate; restored).
@@ -89,7 +88,7 @@ For pilot results use the rendered `reports/qmd_reports/report_nedlame_treatment
 
 ## The budget workbook
 
-Gerard's Excel edits make the WORKBOOK the source of truth. Two are current: **version 3** (4,000 option) and **version 4** (5,000 option). Edit it by XML surgery, or ask Gerard; **never re-run `p30_budget.R` or `p32_budget_xlsx.R`** (stale, would wipe his edits). The cached values in the workbook go stale; Excel recalculates on open. Neither session touches an xlsx without Gerard.
+Gerard's Excel edits make the WORKBOOK the source of truth. The only workbook is **`design/budget_nedap_3arm (version 4).xlsx`** (v1-v3 and the unnumbered one were deleted 2026-09-30). The 4,000 option is computed from v4's formulas with MO_ENROL 6 and ENROLLED 4,000. Edit it by XML surgery, or ask Gerard; **never re-run `p30_budget.R` or `p32_budget_xlsx.R`** (stale, would wipe his edits). The cached values in the workbook go stale; Excel recalculates on open. Neither session touches an xlsx without Gerard.
 
 ## Working with parallel sessions
 
@@ -130,6 +129,6 @@ Agent findings have been wrong or inflated several times (and correct and conseq
 
 ## Checks before it goes out
 
-- Every number traceable to a computed object or the v3 / v4 workbook.
+- Every number traceable to a computed object or the v4 workbook.
 - Any figure appearing twice says the same thing in both places (grep for the old values: Hartung, random slope, 82%, 72%, 0.66, 7,500, 1,133). Both options must appear wherever a size, duration or cost does.
 - The ascertainment problem is addressed by the design, not only in the limitations.
