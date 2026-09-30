@@ -9,7 +9,7 @@ The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft
 
 ## Current design (2026-09-30 night) - read before changing any number
 
-**The design is 5,000 enrolled, 14 months (Gerard, 2026-09-30 night).** The proposal is written for 5,000; §5 ends with a "What 4,000 would lose" subsection and §9 lists 4,000 / 12 months / \$220,250 as a lower-cost option. The goal is to ESTIMATE - lead with the interval (±0.50 kg/day), power second. The case for 5,000 is the new-v-chronic difference (85% v 75%) and the secondaries, not milk precision. Review doc **F4-F6** has every figure.
+**The design is 5,000 enrolled, 14 months (Gerard, 2026-09-30 night).** The proposal is written for 5,000; §5 ends with a "What 4,000 would lose" subsection and §9 lists 4,000 / 12 months / \$223,490 as a lower-cost option. The goal is to ESTIMATE - lead with the interval (±0.50 kg/day), power second. The case for 5,000 is the new-v-chronic difference (85% v 75%) and the secondaries, not milk precision. Review doc **F4-F6** has every figure.
 
 | | 4,000 | 5,000 |
 |---|---|---|
@@ -23,8 +23,8 @@ The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft
 | Recurrence 180 d, arm 1 v 2 | 8.5 pts (467) | 7.7 pts (583) |
 | Dry-off (descriptive) | 9.0 pts (287); 5.2 at 18 months (912) | 8.1 pts (358); 4.7 at 20 months (1,140) |
 | New-v-chronic difference (benefit only in new) | 75% - estimated | 85% - powered |
-| Budget | **\$220,250** (v3: \$182,500 / \$24,790 / \$12,960) | **\$263,150** (v4: \$217,500 / \$30,530 / \$15,120) |
-| Eight herds / 12 months after last cow | +\$45,000 / +\$21,500 | +\$55,000 / +\$21,500 |
+| Budget | **\$223,490** (v4 formulas with MO_ENROL 6, ENROLLED 4,000: \$182,500 / \$25,870 / \$15,120) | **\$267,110** (v4 as saved 2026-09-30: \$217,500 / \$31,970 / \$17,640) |
+| Eight herds / 12 months after last cow | not recomputed / +\$22,560 | not recomputed (was ~+\$55,000) / +\$22,560 |
 | Subscription (excluded) / extra trimming (excluded) | \$140,000-173,000 / ~\$19,500 | \$164,000-202,000 / ~\$24,000 |
 
 Common to both: arms 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice (staff-spotted lame cows trimmed in every arm); enrolment at the first alert, DIM 5+, blocked on history and lactation group, enrolled once; six herds, two each NY / Midwest / West Coast, four minimum; every cow to one study end at least 6 months after the last cow; primary = milk arm 1 v 3 over 90 days with the 7-day pre-alert baseline as covariate.
@@ -74,7 +74,7 @@ The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-lev
 
 Check the review doc's last section and the project memory before assuming this list is current.
 
-- Confirm both totals in Excel: v3 \$220,250 (4,000 option) and v4 \$263,150 (5,000 option). The cached cells in both workbooks are stale.
+- Budget: v4 re-saved by Gerard 2026-09-30 (herd 3,500 cows in milk, ON_FRAC 1) = \$267,110. The 4,000 figure (\$223,490) is computed from v4's formulas, NOT from v3 - v3 is stale. Camera subscription: Gerard treats it as Nedap's cost of doing business; do not cost it. No contingency line: the buffer is the enrolment months budgeted beyond those expected (~\$21,800 per enrolment month).
 - Keep or delete the §9 extra-trimming line (about \$19,500 / \$24,000, first alerts only).
 - Re-write design/briefing_sample_size_questions.md for the conventional test if it is still wanted.
 - Header, §1 intro: Gerard is writing these himself.
