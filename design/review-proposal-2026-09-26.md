@@ -162,3 +162,67 @@ Gerard: *"we don't need a cost ledger/cow etc as we just want to show total $. G
 - **§6's chronicity numbers were wrong.** "±1.0 kg interaction interval" was a within-subgroup interval at a 50/50 split; "8,000 to power it" (2x) was also the 50/50 subgroup figure. At 61% new, 6 herds, tau 0.25, the random-slope simulation gives at 4,000: overall ±0.65, new ±0.81, chronic ±1.02, difference ±1.29. To power the difference: 4,700 (1.84 kg), 7,100 (1.5 kg), 16,700 (1.0 kg). Still "estimated, not powered" - Gerard has not chosen to power it.
 - **Routine trimming depends on DIM at alert** (pilot Control, >= 60 d follow-up, n = 147): routine-trimmed within 60 days 2.5% at DIM 0-60, 59.5% at 61-120, 34.5% at 121-200, 16.7% at 200+; 28.6% overall. Herd routine trims sit at DIM 90-150 (lact 1-2) and 120-200 (3+). The 1.0 kg target assumes about this dilution. The 4,500 / 6,400 at 45% / 60% coverage are scaled from the old working-doc sweep, not re-simulated.
 - **Corrected (same day):** I first said Gerard's <=2x-per-lactation criterion was looser than the pilot. Wrong - the pilot herd IS a 2x herd: completed lactations dried off 2025-09 to 2026-09 (n = 2,819) average 1.9 / 2.0 / 2.4 non-staff trims (lact 1 / 2 / 3+), 50% exactly two; mid-lactation 1.1-1.6 plus dry-off ~80%. So the criterion matches the herd the 28.6% came from. What drives dilution is where the mid-lactation trim falls relative to alerts, not the count. Later-alert rule (his §2 text) will raise extra trimming above the §9 figure, which came from first alerts over a 3-month window.
+
+
+### G. Non-sample-size pass, 2026-09-29 (session f9, parallel with f3 on sample size)
+
+Split with the sample-size session: f3 owns §5, §6 Milk/Cure/Dry-off block and chronicity, the §2 herd/tau table, ×1.28, Appendix sizing rows (notes in F3). This pass owns the rest.
+
+Gerard: *"fix everything but 5 we are going to ignore the extra trimming cost. ignore 8 as that was pilot specific."*
+
+- **§2 study end:** "12 months from enrolment" was wrong - one end date, 12 months after the study starts, at least 6 after the last cow.
+- **§2 arm 3:** dilution now referenced to the 28.6% routine-trimmed within 60 days (what §5 uses), not the 49.8% trimmed at all.
+- **§2 eligibility:** "Control arm did not get washed out" removed - 28.6% were, 59.5% at DIM 61-120. Replaced with the 2x-lactation fact (F2) and the consequence.
+- **§2 arm 2:** the one-third contamination is on first alerts; since a cow keeps her arm for later alerts, per-protocol is defined on the enrolling alert and later deviations recorded. *A design choice made here - Gerard to confirm.*
+- **§3:** kept Gerard's rewrite. Primary cell "Does acting on alerts pay?" -> "How much does acting on alerts gain?" to match §5 (estimates, does not prove). His "only outcome powerable at a realistic size" was not true (culling detects 3.8 points at 4,000) - now "the outcome the study is sized on".
+- **Spelling:** randomized, enrolment, analyze; DairComp, lactayion, "daily to for" fixed. §5 still has two "randomisation" (f3's section).
+- **Not done, by Gerard's decision:** extra-trimming cost (§9 $19,500 left as is); the report's "August" v 2026-06-24 for first-lactation cows (pilot-specific).
+- **Gerard's editor re-flowed the Appendix grid table and merged three rows** (TX-Control days 25-30 / new v chronic / 28.6%) into one cell. Flagged to f3.
+- **§3 Economics subsection removed** (Gerard, same night), with its assumptions table and the §8 "Economics reported as total dollars" bullet. Left dangling in f3's §5: the break-even lines (0.25-0.6 points) were built on the removed \$18 trim / \$1,650 cull inputs, and now cite nothing.
+- **Fixed what the removal left behind:** §5 break-even now states its inputs inline (\$0.65-0.80 subscription, \$18 trim, \$1,650 net cull); the composite-dollar-endpoint line cut (it argued for reporting dollars, which §3 no longer does). §3 "why three arms" reworded from "economic signs / economic verdict by the extra-trimming cost" to cost v benefit of the empty arm-1 trims.
+- **Pointers after f3 moved the herd table to §5 "How many herds":** §2 four-herd bullet and §8 six-herds bullet now point to §5.
+
+### F3. Cow-level trial simulation, 2026-09-30 (session f3, `p42`)
+
+Gerard asked for one simulation that holds every sizing assumption together, checked by a review subagent. `scripts/proposal/p42_simulate_trial_cow_level.R`, log `output/p42_run.log`, 1,000 reps per scenario.
+
+**Decisions (Gerard, 2026-09-30):** cows alerted late in lactation stay in and contribute milk until they dry off; the pre-specified test is **Hartung-Knapp** (HK).
+
+**What the review found (all checked before use):**
+- Statistics code correct: per-herd least squares, DerSimonian-Laird, HK and the time-to-trim draws all match independent implementations.
+- **Attrition was about 36-41%, not the 21.9% in x1.28, and not random.** Of 116 pilot cows alerted 90+ days before the milk data ended, 41 of 54 alerted at DIM 200+ stopped milking before day 85 (dry-off). Re-checked by f3. p38's x1.28 has the same problem.
+- Kenward-Roger on the protocol's own mixed model: about 55% power at 4,000 (false positives 0.7%), in line with t on 5 df. So "4,000 at 80%" held only for the z test.
+- Arm-1 timing had two nearly cancelling errors; the later-alert trim rate was overstated about 2x (most were re-fires of a pending trim); calibration comparisons used unlike definitions. All fixed.
+
+**The model now:** cows leave milk at dry-off (herd's completed lactation lengths, conditional on DIM at alert) or culling (pilot 90-day rate: 30% at DIM 0-60, 8.7% after). They contribute their weeks, weighted by cow^2 + residual^2/weeks. Farm trimming comes from the pilot Control arm by DIM band. Arm 1 uses the pilot TX Kaplan-Meier time to trim. Between-herd SD 0.47 kg on the true effect, which gives 0.25 kg observed. Checks: arm-3 farm trimming matches the pilot by DIM band (5.3 / 52.2 / 34.9 / 19.5 against 5.1 / 54.7 / 35.0 / 19.5); still milking at day 85 is 63% model against 59% pilot (slightly optimistic); HK false positives 4.8%.
+
+**Results:**
+- **The observed arm-1-v-3 contrast is about half the true effect** (0.49x). Arm 3 is trimmed 64.7% by day 90 under farm practice. The 1.0 kg observed target needs about a 2.0 kg true effect.
+- **Power, HK, 6 herds:**
+
+| Enrolled | True 1.5 kg (obs 0.73) | True 2.0 kg (obs 0.98) | 95% CI half-width |
+|---|---|---|---|
+| 4,000 | 50% | 72% | ±0.75 kg |
+| 5,000 | 57% | **82%** | ±0.66 |
+| 6,000 | 64% | 85% | ±0.62 |
+| 8,000 | 76% | 93% | ±0.56 |
+| 10,000 | 83% | 97% | ±0.50 |
+
+- **Lowest confidence bound at 4,000** (Gerard's question): the lower end is the estimate minus 0.75 kg. At an observed 1.0 kg (true 2.0) the median lower bound is +0.24 kg, with a 10th-90th percentile range of -0.29 to +0.72.
+- **New v chronic** (benefit only in new cows, same 2.0 kg average): at 4,000, effect in new cows 89%, the difference 57%; 73% at 6,000; 84% at 8,000.
+- **Farm practice** (6,000, true 2.0): pilot 87%; twice the routine trimming 74%; half 95%.
+- **Arm 1 v 2** on milk: observed about 0.53 kg, 32% power at 4,000. Not powerable, as §4 says.
+- **Extra trims from later alerts**, per enrolled cow: 0.32 (arm 1) / 0.24 (arm 2) at 180 days; 0.41 / 0.32 at 270. That is 20 pilot events.
+
+**Applied 2026-09-30.** Gerard chose **5,000 enrolled, enrolment up to 8 months, 6 months of follow-up after the last cow = 14 months**; the proposal states what a 12-month version loses.
+- §5 rewritten: target, power table, "How the sample size was simulated", "Checked with a simple calculation", "What the result is sensitive to", months tables for 833 per herd, the 14-month timeline, the detects table at 1,667 per arm, the limitation (culling ±2.5 points; milk lower bound about 0.3 kg).
+- §6: Kenward-Roger replaced by Hartung-Knapp; chronicity at 5,000 (powering the difference would take about 7,500 - not done).
+- Appendix rebuilt, merged row split, simulation inputs added.
+- Budget v4 (`design/budget_nedap_3arm (version 4).xlsx`): v3 with enrolment 6 -> 8 months and 4,000 -> 5,000 cows; $263,150 by hand, to confirm in Excel.
+
+**Simple cross-check (`p43_simple_check.R`, Gerard's request).** Textbook formula plus the pilot's raw time-to-trim curves, none of p42's machinery. Dilution 0.50 (p42 0.49); CI ±0.70 kg (p42 ±0.66); HK power at 5,000 83% (p42 82%). **The one choice that moves it:** whether a dry-off trim counts as arm-3 treatment. The raw curve counts it (0.43, 71%); both calculations leave it out, because the cow leaves the milk outcome days later. Sensitivities at 5,000 (HK): true effect 1.5 kg 59%; arm-3 dilution +/-20% 65% / 93%; between-herd SD 0.5 kg 69%, 0.75 kg 52%; variance 42.4 / 60 kg^2 88% / 78%; 15% of cows with no milk 78%; 4 / 8 herds 66% / 89%.
+
+**Herd table at 5,000** (HK power, true 2.0 kg): p42 herds mode. The first run's 0.75 kg row was wrong - tau was clamped at the edge of the calibration grid - and has been re-run with the tau mapping extrapolated.
+- **Re-based to Gerard's choice (2026-09-30): 5,000 enrolled, up to 8 months of enrolment, 6 months after the last cow = 14 months.** Values from f3 (p42, F3). Applied in §2/§4/§8/§9: 14 months; 20-month option (was 18) makes dry-off an outcome (1,133/arm, 4.7 pts; 358/arm, 8.1 pts at 14 months); "about 5,000 rather than roughly 11,000" without baseline (scaled by variance, not simulated); budget v4 \$263,150 (\$217,500 / \$30,530 / \$15,120); eight herds about +\$55,000, about \$318,000; 20 months about +\$21,500 (scaled from v3's 6-month PM + data increment, not in the workbook), about \$285,000; subscription \$164,000-202,000, 62-77%; extra trimming scaled 4,000 -> 5,000 as about \$24,000 (first alerts only).
+- **Hand-off complete (2026-09-30):** f3 finished §5 (herd table as HK power at 5,000) and §6; draft consistent at 5,000 / 14 months / $263,150. Skill and memory updated for both sessions. Uncommitted.
+- **Gerard, 2026-09-30:** dry-off trims are NOT arm-3 treatment (p42 as modelled, 82%). The arm-2 per-protocol bullet's deletion was not deliberate - restored (defined on the enrolling alert). Still open: confirm v4 in Excel; keep or delete the §9 extra-trimming line.

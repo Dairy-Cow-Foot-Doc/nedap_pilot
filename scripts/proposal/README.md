@@ -106,3 +106,9 @@ the farm's trim list in the trial.
 | Script | Produces |
 |---|---|
 | `p41_chronicity_sample_size.R` | Pilot TX effect by history on the p38 baseline-adjusted model (new +0.39, chronic -1.45, difference 1.84 kg, days 1-30); the overall contrast on the same model (+/-0 - the old 1.05 kg was % of baseline, unadjusted); enrolment to power the new-v-chronic difference with p38's random-slope simulation (4,700 / 7,100 / 16,700 at 1.84 / 1.5 / 1.0 kg) and the intervals at 4,000. Supersedes p14 for the current draft. |
+
+## Cow-level trial simulation (2026-09-30)
+
+| Script | Produces |
+|---|---|
+| `p42_simulate_trial_cow_level.R` | The whole trial cow by cow: pilot cows resampled; dry-off from the herd's lactation lengths and culling by DIM at alert; partial milk windows; farm trimming from the pilot Control arm by DIM band; arm 1 from the pilot TX Kaplan-Meier; 6 herds with between-herd variation calibrated to 0.25 kg observed; per-herd weighted LS pooled by DerSimonian-Laird, tested by Hartung-Knapp. `[reps] checks` runs only the calibration and false-positive checks (~4 min). Full run ~1 h at 1,000 reps. Supersedes p38's sizing and p41's chronicity figures. See review doc F3. |

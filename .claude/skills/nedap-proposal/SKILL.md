@@ -1,137 +1,112 @@
 ---
 name: nedap-proposal
-description: Use when writing or revising the proposal to Nedap for the full three-arm lameness-camera study - covers the design constraints the pilot exposed, where the sample-size inputs come from, and how Gerard wants this written.
+description: Use when writing or revising the proposal to Nedap for the full three-arm lameness-camera study - covers the current design, where the sample-size inputs come from, the design constraints the pilot exposed, and how Gerard wants this written.
 ---
 
 # Writing the Nedap three-arm study proposal
 
-The NEDLAME pilot is finished and **a full draft proposal exists**: `design/proposal_nedap_3arm_draft.md`. Read it first. The working document `design/proposal_nedap_3arm.md` holds every derivation, check and correction behind its figures.
+The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft.md`. Every decision, derivation and correction behind it is in `design/review-proposal-2026-09-26.md`. **Read that review doc's last sections first (F, F2, F3, G)** - they supersede anything older, including the working document `design/proposal_nedap_3arm.md` and `design/review-proposal-2026-09-10.md`.
 
-**The design is settled.** Three arms - trim within a week, trim at four weeks, regular farm practice. Enrol at the alert. Six herds of 2,000-5,000 cows across three regions, four as a minimum. **6,000 cows enrolled**, powered on a 1.00 kg/day observed milk contrast between arms 1 and 3, at a 0.25 kg between-herd SD of the treatment effect (x1.09 inflation). Enrolment closes in 3-6 months; the 365-day culling follow-up sets the 15-18 month duration.
+## Current design (2026-09-30) - read before changing any number
 
-## Before writing anything
+| | Settled as |
+|---|---|
+| Arms | 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice. Staff-spotted lame cows are trimmed in every arm. |
+| Enrolment | At the first SmartSight alert, DIM 5+, randomized daily, blocked on history (new/chronic) and lactation group. Enrolled once; the arm is a strategy for every later alert. |
+| Size | **5,000 enrolled, 1,667 per arm, 833 per herd, six herds** (two each NY / Midwest / West Coast). Four is the minimum; eight is the preference (+ about \$55,000). |
+| Duration | **14 months: up to 8 months of enrolment, every cow followed to one study end at least 6 months after the last cow.** 3.2-6.4 months of enrolment expected at 3,000-cow herds; 8 is the margin. |
+| Primary | Milk, arm 1 v 3, 90 days, each cow's 7-day pre-alert milk as a covariate. Sized to detect **1.0 kg/day observed** (about 2.0 kg true - the observed contrast is ~0.49x the true effect because arm 3 is trimmed by farm practice). **Hartung-Knapp** test, arm-by-herd random slope. 82% power at 5,000 (72% at 4,000). |
+| Secondary | Culling at 180 d on ALL enrolled (3.4 points on 16.0%, ±2.5); cure WLD/SU arm 1 v 2 (290 assessed, 11.5 points on 49.3%); recurrence 180 d arm 1 v 2 (583 with a first lesion, 7.7 points on 36.1%). |
+| Descriptive | Lesion at dry-off (358/arm, 8.1 points). Becomes an outcome at **20 months** (12 after the last cow: 1,133/arm, 4.7 points, + about \$21,500). |
+| Budget | **\$263,150** (\$217,500 personnel / \$30,530 travel / \$15,120 data), `design/budget_nedap_3arm (version 4).xlsx`. Excluded: subscription \$164,000-202,000; extra trimming. |
 
-Read, in this order:
+The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-level simulation; review doc F3). **It supersedes p38/p41.** The old figures - 6,000, 4,000, 365-day follow-up, 12 or 18 months, x1.09, "1.05 kg observed in the pilot" - are all wrong now; do not reintroduce them.
 
-1. `reports/qmd_reports/report_nedlame_treatment_comparison_fx.html` — the full pilot report. The rendered page, not the `.qmd`: numbers are interpolated at render time.
-2. `design/review-findings-2026-09-08.md` — 24 findings against the pilot, all closed. Sections G and H record what did *not* land as written and why. This is where the design mistakes are catalogued.
-3. `qmd_reports/plan_nedlame_treatment_comparison.qmd` — the round-by-round record, including the design decisions and their justifications.
+## What the study is sized on - do not blur this
+
+- **Sized to DETECT a 1.0 kg/day milk contrast. NOT sized to show the system pays.** Proving it pays is infeasible: break-even is 0.25-0.6 points of culling on all enrolled cows against a ±2.5 interval.
+- **1.0 kg is a design target, not a pilot estimate.** On the study's own outcome (kg, baseline-adjusted) the pilot shows +0.08 kg (SE 0.57). The old 1.05 kg was % of baseline, flattered by TX new cows' lower baseline.
+- **The study estimates whether the system pays; it does not prove it.** Say so wherever the question "does it pay" appears. §3's primary row is "How much does acting on alerts gain?" for this reason.
+- The Economics section and its assumptions table were **removed** at Gerard's request (2026-09-29). The only economic inputs left are inline in the §5 limitation bullet (\$0.65-0.80 subscription, \$18 trim, \$1,650 net cull).
+
+## Decided by Gerard - do not reopen
+
+- No per-cow cost ledger; no Economics section.
+- Six herds planned, eight a preference needing budget.
+- Dry-off lesion descriptive at 14 months.
+- Hartung-Knapp as the milk test. Late-lactation cows stay in and contribute milk until dry-off.
+- Extra-trimming cost is ignored (§9 lists it as not included, nothing more).
+- Herds must not routinely trim more than 2x per lactation. Herds that do are not enrolled. The pilot herd IS a 2x herd (mid-lactation + dry-off).
+- The report's "August" v 2026-06-24 for first-lactation cows missing from SmartSight is pilot-specific; leave it.
+
+### Sizing detail (p42, F3)
+
+- **The one modelling choice that moves power:** whether dry-off trims count as arm-3 treatment. **Gerard: they do not** (2026-09-30). As modelled, the observed/true ratio is 0.49 and power 82%. If they count: 0.43 and 71%. The simple formula `p43_simple_check.R` agrees with p42 (0.50, 83%).
+- **Most sensitive inputs:** the true effect (1.5 kg -> 59%), arm-3 dilution (±20% -> 65 / 93%), between-herd SD (0.5 -> 69%).
+- **Herd count at 5,000** (HK power): tau 0.25 -> 4 / 6 / 8 / 10 herds = 68 / 81 / 87 / 89%; tau 0.5 -> 47 / 65 / 76 / 84%. tau 0.75 -> 33 / 50 / 61 / 75% (from `output/p42_herds_075.log`; the 0.75 row in `output/p42_herds.log` is WRONG, tau was clamped).
+- **Chronicity at 5,000:** ±0.67 overall, about ±0.85 new, ±1.1 chronic, ±1.4 difference. If the benefit is only in new cows: 96% power in new cows, 66% on the difference. Powering the difference needs about 7,500 (9.6 months of enrolment), so it stays estimated, not powered.
+- **Scripts:** `scripts/proposal/p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] herds [taus]`), `p43_simple_check.R`. Output: `output/p42_run.log`, `output/p42_sim.rds` (main grid, 1,000 reps), `output/p42_herds*.log`. **`output/` is gitignored - these are local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (main grid, ~1 h), `... 500 herds` and `... 500 herds 0.75` (herd table).
+- **Do NOT redo:** the mechanistic routine-trim model (rejected, cannot reproduce the pilot); random x1.28 attrition (wrong - real loss is 36-41% and DIM-dependent); z or Kenward-Roger as the test (Kenward-Roger gives ~55% at 4,000; HK decided); p38/p41 figures.
+
+## Still open for Gerard
+
+Check the review doc's last section and the project memory before assuming this list is current.
+
+- Confirm the v4 budget total of \$263,150 by opening the workbook in Excel.
+- Keep or delete the §9 extra-trimming line (about \$24,000, first alerts only).
+- Header, §1 intro: Gerard is writing these himself.
+
+**Answered 2026-09-30:** dry-off trims do NOT count as arm-3 treatment (p42 as modelled: 0.49 ratio, 82%). Arm-2 per-protocol is defined on the enrolling alert (the bullet's deletion was not deliberate; restored).
 
 ## Getting the numbers
 
-**Never retype a figure from a report into the proposal.** Every number the pilot produced is computed by `functions/fxn_nedlame_analysis.R`. To get a fresh one, write a script that sources that file and calls the builders in order (`fxn_build_cohort` -> `fxn_build_lame_history` -> `fxn_build_enrolled_ids` -> `fxn_build_q4` -> ...), the way `scripts/step3_pipeline_losses.R` does. Copy its header for the setup.
+**Never retype a figure from a report into the proposal.** Pilot figures come from `functions/fxn_nedlame_analysis.R`; write a script that sources it and calls the builders in order (`fxn_build_cohort` -> `fxn_build_lame_history` -> `fxn_build_enrolled_ids` -> `fxn_build_q4` -> ...), the way `scripts/step3_pipeline_losses.R` does. Proposal scripts live in `scripts/proposal/` (see its README).
 
-Sample-size inputs already computed are in the `project-nedap-3arm-proposal` memory. Recompute rather than trusting them if the data has been refreshed since.
-There is also groundwork already built for the follow-up, from Round 5:
+For pilot results use the rendered `reports/qmd_reports/report_nedlame_treatment_comparison_fx.html`, not the `.qmd`: numbers are interpolated at render time. Key alignment with the final report: **a miss is a lesion with no NEDLAME at any time before it**; the 28-day window only sorts misses. Cohort 0/262, outside cohort 309/315. **Never quote 54.1%.**
 
-- `mcp_server/knowledge/lessons-learned.md` — the four analysis bugs and their root causes, plus the design choices that look like bugs but are deliberate. Written explicitly to be read before building the 3-arm analysis.
-- `mcp_server/knowledge/methodology-patterns.md` — ten patterns already generalised to N arms (group-code drift, lactation-safe vs lifetime joins, rolling lookback for a monitor with a go-live date, KM faceting, same-day diagnoses).
-- `mcp_server/` — an MCP server exposing both as resources, plus `generate_treatment_group_r_code`, which takes an arm-label map of any size. Register with `claude mcp add`; see its README.
+## The budget workbook
 
-One design proposal is already on record, from Round 8: **instrument the Nedap-to-DairyComp integration from day one** — log every raw flag with a timestamp, independent of the DC import — rather than reconstructing pipeline losses afterwards from cowcard spot-checks. That is the same conclusion the pilot reached the hard way, and it should be a design feature of the next study rather than a data request.
+Gerard's Excel edits make the WORKBOOK the source of truth. The current one is **version 4**. Edit it by XML surgery, or ask Gerard; **never re-run `p30_budget.R` or `p32_budget_xlsx.R`** (stale, would wipe his edits). The cached values in the workbook go stale; Excel recalculates on open. Neither session touches an xlsx without Gerard.
 
-**Answered since this skill was written:** the third arm is the 4-week-delayed trim. What remains open is the sample size section.
+## Working with parallel sessions
 
+Gerard runs more than one session on this proposal at once. Split the draft by section, and say the split out loud via SendMessage (the 2026-09-29 split: one session sample size - §5, top of §6 and chronicity, herd table, Appendix sizing rows; the other the rest). Rules that worked:
+
+- Re-read just before every Edit; never Write the whole file; message the other session after each edit.
+- Each session records its notes in its own review-doc section.
+- One session owns memory and this skill at hand-off.
+- **Gerard edits the draft in his editor at the same time.** His save overwrites anything written after his buffer loaded - it silently reverted a session's move once. After he says he saved, re-check your edits are still there. His editor also re-flows grid tables and has merged rows that had no separators.
+- No commits until Gerard says so; then one joint commit.
 
 ## The design constraints the pilot exposed
 
-These are not caveats to mention — they determine whether the study can answer its question.
+These determine whether the study can answer its question.
 
-**Ascertainment is the central problem.** The pilot's headline benefit (58 more cows with a lesion found, 170/397 TX vs 127/452 Control) is entirely explained by TX cows being trimmed 90.4% of the time against Control's 49.8%. Because allocation was random, lesion incidence is equal by construction — the difference measures who got inspected, not who got sick. A three-arm design repeats this at greater cost unless it either imposes a common inspection schedule across arms or picks an outcome that does not depend on being looked at.
-
-**Detection is the only outcome this farm can power.** Milk needs 585 cows/arm to detect 5 percentage points and 1,737 for the 2.9 points actually observed — 75 weeks of accrual at 69 alerts/week. Culling had 53 events total. The miss count (309 of 577 lesion cases, nearly all in never-enrolled cows - do not quote it as a cohort miss rate) has the largest effect and smallest variance of anything measured.
-
-**Two things must come from Nedap as a condition of the study** (§7 of the draft, rewritten 2026-09-26 after pilot Rounds 37-38):
-
-- **The alert and score files as sent, with timestamps.** Score at flag is NOT missing - DairyComp's `LMSV` is in the daily VAS milk file, and it showed every former "cannot tell" case was the Low score gate. What is missing is what Nedap sent and when: export and VAS timing differ, so overwrites and true errors cannot be told apart (17 LOW-flagged cows with no score in DC). Of 243 lesion cows flagged live with no alert, 231 were by design and 12 genuine.
-- **The alert rules frozen for the study.** Nedap moved the LOW trigger ~50 -> ~70 in April 2026 while the `Low` command still needed `LMSV=1-30`: 13,199 LOW flags after go-live, 81 `Low` alerts. Enrolment is at the alert, so this changes who is enrolled.
-- **`EDAY=LMSFD` is not safe as written**: `LMSFD` has been frozen in the DC export since ~2026-02-02.
-
-**Pre-specify the miss definition.** The lookback window is a judgement call that moved the answer: 21 days vs unbounded took the Control miss rate from 27.9% to 10.7% while barely touching TX. Also specify how a cow alerted *outside* the window is treated — the pilot settled on "alerted, not a miss, if nobody acted between the alert and the lesion", after starting somewhere else.
-
-**Specify the timestamp semantics.** The ~5am batch stamps each alert with its load date, so an attention after 5am on day D is logged as D+1. The pilot needed a post-trim exclusion (162 alerts) and a strictly-before window because of this.
-
-**Do not frame DD detection as a defect to be fixed.** Locomotion scoring detects digital dermatitis poorly and the camera scores locomotion; DD is 42% of what it never flagged against 21% of what it caught, while white line runs the other way. If DD matters to the study, that argues for a second modality, not for expecting more from this one.
-
-
-## What is settled, and what it rests on
-
-| Decision | Settled as | Because |
-|---|---|---|
-| Enrolment point | At the alert | Freshening costs x1.6 cows and double the time, and buys nothing unless detection accuracy is a question. It is not. |
-| Primary outcome | Milk, arm 1 v arm 3, 90 days | The only milk contrast powerable at a realistic size and the one insensitive to window choice. |
-| Cure comparison | Arms 1 v 2 primary, arm 3 descriptive | Both of 1 and 2 are protocol-trimmed so the contrast is clean; arm 3's cure is measured on farm-detected lesions that may be more severe. |
-| Chronicity | Blocked in randomisation, interaction explored not powered | Powering it doubles the study to 12,000. The price is in the draft should Nedap want it. |
-| Culling follow-up | 365 days | The gap is still widening at six months - 6.8 points against 7.3 at twelve. |
-| Reproduction | Dropped | The herd's records show a one-day difference in days to first service. Nothing to power against. |
-| Economics | Reported, not powered | The inputs do not affect the sample size, so a reader can substitute their own without changing precision. |
-
-## START HERE (2026-09-26): read `design/review-proposal-2026-09-26.md` first
-
-**Read its section E first** - it records what is DONE. It supersedes the sizing, tau and timeline text further down this skill.
-
-- **Current design (draft 4, `9664f79`): 4,000 enrolled, six herds, 12 months.** Milk adjusted for each cow's baseline (D2 re-measured over 90 days, `p38`), arm-by-herd random slope, planned at the 90th bootstrap percentile. Every cow followed to one study end; culling and recurrence at 180 days; culling on ALL enrolled cows.
-- Planning alert rate 0.010-0.020 per cow per week, NOT the pilot's 0.024 (Gerard: the pilot is a high-alert herd).
-- Budget: `design/budget_nedap_3arm (version 3).xlsx`, $220,250. Edit the WORKBOOK by XML surgery; never re-run `p32_budget_xlsx.R` (stale, would wipe Gerard's Excel edits).
-- Still open: D1, 6 v 8 herds, whether dry-off stays secondary.
-
-## Two decisions are open (from 2026-09-10)
-
-`design/review-proposal-2026-09-10.md` holds both in full. **Do not paper over either one** - each changes what the proposal says, and both were left for Gerard deliberately.
-
-| | What | Why it is not already fixed |
-|---|---|---|
-| **D1** | The section 3 ledger mixes denominators. Milk is per ALERTED cow, the camera and trim rows are per LAME cow. Corrected (x2.40), milk covers the cost and "milk alone does not cover it" is wrong. | The 1.05 kg was measured at days 25-30 and extrapolated flat to 90 days; over 30 days it loses. The sign is genuinely unresolved, and saying so is a better proposal than either verdict. |
-| **D2** | The planning variance comes from a model with no pre-alert baseline term, while section 4 specifies a baseline-normalised outcome. Adding baseline takes 6,200 enrolled down to 2,300. | Measured over days 1-30 only. At 90 days the baseline correlation is weaker and the pilot cannot say by how much. Re-sizing means re-deriving the whole section, not patching a number. |
-
-**One fix worth applying regardless:** section 6's model has herd as a fixed effect with no `arm | herd` random slope. Its standard error therefore ignores tau, so the x1.09 inflation in section 5 protects against something the analysis cannot see. Add `(1 + arm | herd)`, or pool two-stage per-herd estimates.
+- **Ascertainment is the central problem.** The pilot's "58 more lesions found" is explained by TX being trimmed 90.4% v Control 49.8%. Only outcomes that do not depend on being looked at (milk, culling on all enrolled) are randomized comparisons across arms 1 v 3. Cure and recurrence are compared on arms 1 v 2, where both are protocol-trimmed; arm 3 is descriptive.
+- **Arm 3 dilution:** 28.6% of pilot Control cows were routine-trimmed within 60 days, strongly DIM-dependent (59.5% at DIM 61-120).
+- **Conditions on Nedap (§7), stated as conditions, not wishes:** alert and score files as sent, with timestamps; alert rules and the LOW threshold frozen (threshold <30 v <70 still to choose with Nedap); every cow on the SmartSight instance, checked monthly. `EDAY=LMSFD` is unsafe - `LMSFD` frozen in the DC export since ~2026-02-02.
+- **Pre-specify** the miss definition, timestamp semantics (05:00 load stamps the load day), lactation at alert, and save the trim list every trim day.
+- **Do not frame DD detection as a defect.** Locomotion scoring detects DD poorly; that argues for a second modality.
 
 ## Verify what reviewers tell you
 
-A review agent produced sixteen findings on this draft. Most were real; the two largest were real and consequential. **But they were only trustworthy because each was re-derived** - by reading `fxn_build_q1()` to confirm the milk cohort has no lesion filter, and by refitting the variance components with and without a baseline term (`p31`). The pilot side hit the same thing the same night: a reviewer finding there did not survive checking and was correctly not applied. **Treat agent findings as leads, not results.** The same applies to this skill.
-
-## The budget
-
-`design/budget_nedap_3arm_draft.md` is **written by** `scripts/proposal/p30_budget.R`. Change an input at the top of the script and re-run; never hand-edit the markdown, it is overwritten. About $321,000 over 18 months, 76% personnel, and the monthly farm visits are the biggest single line. **The camera subscription is deliberately not in it** - at $0.65-0.80/cow/month across 18,000 cows it exceeds everything else combined, so it has to be settled with Nedap before the budget means anything.
-
-## The one input that must not drift
-
-**The between-herd SD of the treatment effect (tau) is 0.25 kg, giving x1.09 at six herds.** This is a planning assumption, not a pilot estimate - a single-herd pilot cannot estimate tau. It is the number that makes the requirement (6,000) and the design figure (6,000) coincide and detect exactly 1.00 kg. An earlier draft inflated by x1.05 in the sizing while calling 0.5 kg "plausible" in the design section, which is x1.49 - the two disagreed about the sample size by 40%. If tau is revised, `p10`, `p12` and `p14` all carry it and the herd-count table in section 2 is the sensitivity that must move with it.
-
-## The one thing to be honest about
-
-**The study estimates whether the system pays; it does not prove it.** Break-even needs about 1 percentage point of avoided culling, and the design's interval on culling is +/-5.2 points. Detecting 1 point would take on the order of 200,000 cows. This is stated in the draft's §4 and should not be softened - a good estimate with honest uncertainty is what a purchasing decision needs, but it is not a hypothesis test.
-
-## If the numbers need recomputing
-
-Everything traces to `functions/fxn_nedlame_analysis.R`. The economic model is `C:/Github/camera_math/app.R`, which now carries trim cost and an optional avoided-culling credit. Sample-size and simulation scripts from this work were scratch files, not committed - the draft's appendix lists every pilot figure used, so they can be re-derived from the shared functions rather than recovered.
+Agent findings have been wrong or inflated several times (and correct and consequential several times). Re-derive each before applying. Examples: the p42 review subagent's attrition finding (36-41%, not x1.28's 21.9%) was real; a pilot-side finding did not survive checking. This skill is not exempt.
 
 ## What Gerard will push back on
 
-He has now rejected the same thing three times, and it is predictive rather than incidental: **a distinction the data cannot carry.**
-
-- The DD-on-a-hind-foot conjunction - a real pattern, but it answered a question he had not asked and rested on ~81 cases. Removed entirely.
-- The 21-day lookback separating a miss from a catch - "a bit arbitrary", and it moved the Control miss rate from 27.9% to 10.7%.
-- The farm report's split between "caught in time" and "alerted too far ahead" - "it could be a warning of that lesion and we don't know so lets say they are alerted".
-
-Expect the same test applied to the proposal. Any arm, endpoint or cut-off that the study could not actually distinguish will be challenged, so state for each one what result would separate it from its neighbour.
-
-**The question to answer before it is asked:** why is a three-arm study worth the cost if inspection is not common across the arms? On the pilot's own numbers the answer is uncomfortable - the benefit it appeared to show was ascertainment. Address this in the design section, not the limitations.
+**A distinction the data cannot carry.** He removed the DD-on-a-hind-foot pattern, called the 21-day lookback "a bit arbitrary", and collapsed "caught in time" v "alerted too far ahead". Expect the same test on every arm, endpoint and cut-off: say what result would separate it from its neighbour. He also rejects overclaiming - e.g. "Control did not get washed out" when 28.6% was.
 
 ## How to write it
 
-Gerard's style, learned across the pilot:
-
-- **Short sentences, plain words, one idea each.** He rewrote the full report specifically because it was wordy. Cut throat-clearing: no "Due to the fact that", no "It should be noted that", no sentence explaining what the next sentence will do.
-- **Bullets for parallel facts**, prose for argument.
-- **State the number, then what it means.** Not the reasoning, then the number.
-- **Never state a null as a finding.** "Too few events to tell" is not "no effect". This was a review finding against the pilot.
-- **Never let a headline number travel without its caveat.** The 58-cow figure reads as a treatment effect to anyone who meets it alone; the ascertainment clause belongs in the same breath, every time.
-- **No p-values at the discussion stage** — see `feedback-nedlame-pilot-workflow` memory.
+- **Short sentences, plain words, one idea each.** Bullets for parallel facts, prose for argument.
+- **State the number, then what it means.**
+- **Never state a null as a finding.** "Too few to tell" is not "no effect".
+- **Never let a headline number travel without its caveat.**
+- **No p-values at the discussion stage.**
+- **Canadian spelling:** colour, centre, labour, enrolment; but randomize, analyze.
 
 ## Checks before it goes out
 
-- Every number traceable to a computed object, not typed from a report.
-- Any figure appearing twice says the same thing in both places. The pilot repeatedly went stale this way.
-- The ascertainment problem is addressed by the design, not just acknowledged in the limitations.
-- The two data requests to Nedap (score at flag, file-in log) are stated as conditions, not wishes.
+- Every number traceable to a computed object or the v4 workbook.
+- Any figure appearing twice says the same thing in both places (grep for the old values: 4,000, 12 months, 18 months, \$220,250, \$45,000).
+- The ascertainment problem is addressed by the design, not only in the limitations.
