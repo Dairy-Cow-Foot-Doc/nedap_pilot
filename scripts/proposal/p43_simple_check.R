@@ -67,10 +67,15 @@ power_simple <- function(N = 5000, true = 2.0, var_cow = 51.9, tau = 0.25, k = 6
   se <- sqrt(2 * var_cow / n_arm + tau^2 / k)
   z  <- pnorm(delta / se - qnorm(.975))
   hk <- pt(qt(.975, k - 1), k - 1, ncp = delta / se, lower.tail = FALSE)
-  tibble(N, true, observed = delta, var_cow, tau, k, se, ci = qt(.975, k - 1) * se, z, hk)
+  # conventional analysis (2026-09-30 night, now primary): herd and arm fixed,
+  # no arm-by-herd term, so no tau in the SE; inference on the enrolled herds
+  se_fe <- sqrt(2 * var_cow / n_arm)
+  fe <- pnorm(delta / se_fe - qnorm(.975))
+  tibble(N, true, observed = delta, var_cow, tau, k, se, ci = qt(.975, k - 1) * se,
+         ci_fe = qnorm(.975) * se_fe, fe, z, hk)
 }
-fmt <- \(x) mutate(x, across(c(observed, se, ci), \(v) round(v, 2)),
-                   across(c(z, hk), \(v) round(100 * v)))
+fmt <- \(x) mutate(x, across(c(observed, se, ci, ci_fe), \(v) round(v, 2)),
+                   across(c(fe, z, hk), \(v) round(100 * v)))
 cat("\n== The design, simple formula v p42 ==\n")
 print(fmt(bind_rows(power_simple(4000), power_simple(5000), power_simple(6000))))
 cat("  ...and with dry-off trims left out of arm 3's dilution:\n")
@@ -95,4 +100,18 @@ sens <- bind_rows(
   power_simple(kept = 0.85) |> mutate(input = "15% of cows give no milk (not 3%)"),
   power_simple(k = 4) |> mutate(input = "four herds"),
   power_simple(k = 8) |> mutate(input = "eight herds"))
-print(fmt(sens) |> select(input, observed, ci, hk, z), n = 20)
+print(fmt(sens) |> select(input, observed, ci_fe, fe, ci, hk, z), n = 20)
+cat("\n== SENSITIVITY, 4,000 enrolled ==\n")
+sens4 <- bind_rows(
+  power_simple(4000) |> mutate(input = "planned"),
+  power_simple(4000, true = 1.5) |> mutate(input = "true effect 1.5 kg"),
+  power_simple(4000, true = 2.5) |> mutate(input = "true effect 2.5 kg"),
+  power_simple(4000, var_cow = 42.4) |> mutate(input = "variance 42.4"),
+  power_simple(4000, var_cow = 60) |> mutate(input = "variance 60"),
+  power_simple(4000, dil = DIL) |> mutate(input = "dry-off trims counted as dilution"),
+  power_simple(4000, dil = DIL_DRYOFF * 0.8) |> mutate(input = "dilutes 20% more"),
+  power_simple(4000, dil = DIL_DRYOFF * 1.2) |> mutate(input = "dilutes 20% less"),
+  power_simple(4000, kept = 0.85) |> mutate(input = "15% give no milk"))
+print(fmt(sens4) |> select(input, observed, ci_fe, fe, ci, hk, z), n = 20)
+cat("\n== Conventional power by N ==\n")
+print(fmt(map_dfr(c(3000, 3500, 4000, 4500, 5000), \(n) power_simple(n))) |> select(N, observed, ci_fe, fe))

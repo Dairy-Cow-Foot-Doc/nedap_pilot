@@ -18,77 +18,78 @@ Randomized controlled trial,
 
 - **3 arms**
 
-- **14 months in total.** Up to 8 months of enrolment, then every cow is followed to one study end date, 14 months after the study starts.
+  - **Two options: 4,000 or 5,000 cows enrolled**, about 1,333 or 1,667 cows in each treatment group (§5)
 
-  - The last cow enrolled gets at least 6 months. That covers milk (90 days), cure (60-day recheck), and culling and recurrence at 180 days.
+- **12 or 14 months in total.** Up to 6 months (4,000 cows) or 8 months (5,000 cows) of enrolment, then every cow is followed to one study end date, 6 months after enrolment closes.
 
-  - A 20 month study (12 months after the last cow) would allow answering more questions but increases cost.
+  - The last cow enrolled gets at least 6 months. That covers milk (90 days), cure (28-day recheck), and culling and recurrence at 180 days.
+
+  - A longer study (12 months after the last cow: 18 or 20 months) would allow answering more questions but increases cost.
 
 - **6 herds of 2,000–5,000 cows** across three regions
 
   - Two each in New York, Midwest and the West Coast as I have DVM collaborators in those regions and I know you are active in these regions.
 
-  - **Four herds is a workable minimum**
-
-    - Its precision cost and calendar-time cost are both in §5.
-
-  - **Eight herds is our preference, but increases cost** about \$55,000 more (§9).
+  - **Eight herds is a safer number, but increases cost** about \$45,000 (4,000 cows) or \$55,000 (5,000 cows) more.
 
 ### Arms
 
 The proposed arms are as follows.
 
-+----------------------+-------------------------------------------------------------------------------------------------------------+
-| Arm                  | Protocol                                                                                                    |
-+======================+=============================================================================================================+
-| **1. Early**         | Cow gets trimmed within **1 week** of the alert.                                                            |
-+----------------------+-------------------------------------------------------------------------------------------------------------+
-| **2. Delayed**       | Cow gets trimmed **4 weeks** after her alert                                                                |
-|                      |                                                                                                             |
-|                      | - sooner if the routine schedule or staff put her on trim list.                                             |
-+----------------------+-------------------------------------------------------------------------------------------------------------+
-| **3. Farm practice** | Alerted and recorded, not acted on. Treated only if staff or the routine schedule put her on the trim list. |
-+----------------------+-------------------------------------------------------------------------------------------------------------+
++----------------------+---------------------------------------------------------------------------+
+| Arm                  | Protocol                                                                  |
++======================+===========================================================================+
+| **1. Early**         | Cow gets trimmed within **1 week** of the alert.                          |
++----------------------+---------------------------------------------------------------------------+
+| **2. Delayed**       | Cow gets trimmed **4 weeks** after her alert                              |
+|                      |                                                                           |
+|                      | - Sooner if the routine schedule or staff put her on trim list.           |
++----------------------+---------------------------------------------------------------------------+
+| **3. Farm practice** | Alerted and recorded, not acted on.                                       |
+|                      |                                                                           |
+|                      | - Treated only if staff or the routine schedule put her on the trim list. |
++----------------------+---------------------------------------------------------------------------+
 
-For all 3 arms **if farm staff identify a cow as lame she is trimmed, regardless of arm.**
+For all 3 arms **if farm staff identify a cow as lame she is trimmed, regardless of arm allocation.**
 
 Similar to the pilot we would have alerts go into DairyComp and add cows to the trim list based on a priori randomization.
 
-Arm 2 is needed to determine whether the trims that find no lesion in Arm 1 would have developed into treatable lesions — that is, whether Arm 1 is actually preventing them.
+Arm 2 is needed to determine whether the trims that find no lesion in Arm 1 would have developed into treatable lesions.
+
+- This answers the question does trimming the cows with no lesions in Arm 1 help them.
 
 **Arm 3 is regular farm practice, not an untreated arm.**
 
-- In the pilot the equivalent group was trimmed 49.8% of the time, mostly by routine trimming.
-- Herds with **little mid-lactation trimming** would add to the difference between the arms.
+- In the pilot the equivalent group mostly by routine trimming.
+- Herds with **less mid-lactation trimming** would add to the difference between the arms and reduce sample size.
 
-**Arm 2 is contaminated by design.**
+**Arm 2 will be contaminated by staff detection**
 
 - Based on the pilot farm detection is heavily front-loaded
 
   - in the pilot 66% of farm caught cows in the TX group were inside four weeks, and week 1 alone is 31%
 
-    - If this persists 1/3 of arm 2 will be treated before its protocol week.
+    - If this persists 1/3 of arm 2 will be treated before its allocated treatment week.
 
-    - This means we will pre-specify a per-protocol analysis (restrict analysis to cows in ARM 2 that follow the 4 week delay protocol) alongside intention-to-treat to separate the impact of contamination.
-
-    - The one-third is measured on first alerts. A cow keeps her arm for later alerts too, so later alerts can be contaminated the same way. Per-protocol is defined on the enrolling alert; protocol deviations on later alerts are recorded and reported.
+    - This means we will pre-specify a per-protocol analysis (restrict analysis to cows in arm 2 that follow the 4 week delay protocol) alongside intention-to-treat to separate the impact of contamination.
 
 ### Enrolment
 
 - A cow enters **at her first SmartSight alert** and is randomized then.
-  - This means randomization allocation will be run daily for unenrolled cows.
+  - This means randomization allocation will be run daily for cows not yet enrolled.
 - Randomization is **blocked by lameness history (new / chronic) and lactation group (1 / 2 / 3+).**
   - Blocking balances the arms on the two covariates most likely to change the effect.
 - **Each cow is enrolled once.** Her arm is a strategy for every alert she gets until the study ends, not just the first.
-  - After her first alert cows will undergo a standard recheck protocol for hoof horn lesions and become eligible to be checked again based on alerts 28 days after her recheck.
+  - After her first alert cows will undergo a standard recheck protocol for hoof horn lesions and become eligible to be checked again based on alerts 28 days after her last recheck.
   - Cows with infectious lesions become eligible for re-alerting 28 days after her last trim unless she has strong decline.
-  - Cows waiting for a trim in ARM 1 and 2 will have a delay on alerts until trimming occurs
+  - Cows waiting for a trim in arm 1 and 2 will have a delay on alerts until trimming occurs.
 
-**Cows that calve during the study:**
+**Cows that calve during the study who are already enrolled:**
 
 - **She keeps her arm.** Alerts after calving are handled by the same protocol.
-- **Milk (primary outcome) stays in the enrolment lactation.** The 90-day window ends early if she dries off; she contributes the weeks she milked, and the sample size allows for it (§5).
-  - Milk after calving is not used.
+- **Milk (primary outcome) stays in the enrollment lactation.**
+  - The time between enrollment and dry-off is less than the 90-day window ends will still contribute only those days to the milk outcome.
+    - Milk after calving is not used.
 - **Culling and recurrence follow the cow**, across the calving, to the study end.
 - **Dry-off lesion is read at the enrolment lactation's dry-off.**
 - A cow never enrolled who calves and is alerted in her new lactation can enrol then, at DIM 5 or later.
@@ -96,60 +97,57 @@ Arm 2 is needed to determine whether the trims that find no lesion in Arm 1 woul
 
 ### Eligibility
 
-**Herds**
-
-Herds are monitored by collaborating investigators and myself, two in each of our regions minimize travel costs.
-
-**The regional spread.**
-
-- Housing, flooring, climate and trimming practice differ by region.
-- We choose 6 herds to balance cost and increase generalizability. Details on the reasons for 6 is in the sample size section.
-
 **Each participating herd must have:**
 
-- **Reliable** hoof trimming data
+- **Reliable** historical hoof trimming data entered into DairyComp
+  - Need to allow proper randomization
   - Before the start of the study we will work with trim staff to ensure the data is complete and consistently coded.
   - Monthly checks will be done to ensure this remains consistent throughout.
 - **Routine dry cow trimming.**
-- Routine mid lactation hoof trimming is ok but herds should not trim cows routinely more than 2x/lactation.
-  - Herds that trim more often than this dilute the arm 1 v 3 contrast further and should not be enrolled.
-- Trained trimming staff; daily milk weights; ability to have SmartSight installed.
+- Must not preventatively trim cows routinely more than 2x/lactation.
+  - Herds that trim more often than this dilute the arm 1 v 3 contrast further.
+- Trained trimming staff
+- Daily milk weights
+- Ability to have SmartSight installed.
 - Ability and willingness to do a standardized recheck at around 28 days after a block has been placed on a cow.
 
 **Cows**
 
-**A minimum of 5 days in milk.** A cow alerted in her first days after calving is excluded. She re-enters if alerted later.
+**A minimum of 5 days in milk.** A cow alerted in her first 5 days after calving is excluded. She re-enters if alerted later.
 
 - Fresh cows can walk abnormally for reasons that are not hoof lesions.
   - The median pilot cow was alerted at **DIM 150**. A DIM 5 floor would have excluded **11 of 849 cows (1.3%)**.
+- This also allows her to get a baseline for milk production.
 
 ------------------------------------------------------------------------
 
 ## 3. What the design answers
 
-+---------------+---------------+---------------------------------------------------------------+
-|               | Comparison    | Answers                                                       |
-+===============+===============+===============================================================+
-| **Primary**   | Arm 1 v arm 3 | How much does acting on alerts gain?                          |
-+---------------+---------------+---------------------------------------------------------------+
-| **Secondary** | Arm 1 v arm 2 | Does acting *early* matter - prevention, cure and recurrence? |
-+---------------+---------------+---------------------------------------------------------------+
++---------------+---------------+------------------------------------------+
+|               | Comparison    | Answers                                  |
++===============+===============+==========================================+
+| **Primary**   | Arm 1 v arm 3 | How much does acting on alerts gain?     |
++---------------+---------------+------------------------------------------+
+| **Secondary** | Arm 1 v arm 2 | Does acting *early* matter               |
+|               |               |                                          |
+|               |               | - prevention, cure and recurrence?       |
++---------------+---------------+------------------------------------------+
 
 - **Arm 1 v 3 is how we will estimate the milk impact of the technology.**
   - Milk is the outcome the study is sized on.
   - Culling, cure and recurrence are estimated with the precision that milk production sample size gives.
-  - It estimates whether acting on alerts pays. Proving it pays depends trimming costs and prize of the technology and this study can provide estimates to inform this prize
+  - It estimates whether acting on alerts pays. Proving it pays depends trimming costs and price of the technology and this study can provide estimates to inform this prize
 - **Arm 1 v 2 is how we will tell whether acting early matters.**
-  - Whether the empty arm-1 trims were prevention or wasted trims (below).
-  - Whether a lesion left four weeks cures and recurs the same as one treated within a week (§4).
+  - Whether the no lesion arm-1 trims were prevention or not necessary.
+  - Whether a lesion left four weeks (arm 2) cures and recurs the same as one treated within a week (arm 1).
 
 ### Why the trial needs three arms rather than two
 
-- **An arm-1 trim that finds no lesion cannot be read on its own.**
-  - Either the camera was wrong (a wasted trim), or early trimming prevented the lesion (the system working).
+- **An arm-1 trim that finds no lesion leave a question unanswered**
+  - Either the camera was wrong (a unnecessary trim), or earlier trimming prevented the lesion (the system working).
   - One is a cost of the system, the other a benefit.
-- **Arm 2 separates them.** If arm-2 cows show lesions at four weeks where arm-1 cows had none at one week, the empty arm-1 trims were prevention.
-  - From the pilot 54.9% of arm-1 trims are expected to find nothing, so this distinction decides whether most arm-1 trims count for or against the system.
+  - If more arm-2 cows show lesions compared to arm-1, the non lesion arm-1 trims were prevention.
+    - From the pilot 54.9% of arm-1 trims are expected to find nothing, so this distinction decides whether most arm-1 trims count for or against the system.
 
 ------------------------------------------------------------------------
 
@@ -160,89 +158,106 @@ Herds are monitored by collaborating investigators and myself, two in each of ou
 **Daily milk, arm 1 versus arm 3**, from 14 days before the alert to 90 days after.
 
 - Indexed to days since alert.
-- **Each cow's own 7-day pre-alert average enters as a co-variate.** This is what makes the study affordable.
-  - In the pilot, a cow's baseline predicts her next 90 days closely (r = 0.89).
-  - Adjusting for it cuts the variance of a cow's 90-day mean from 98 to 42 kg², so the study needs about 5,000 cows rather than roughly 11,000.
+- **Each cow's own 7-day pre-alert average enters as a covariate.**
+  - This cuts the variance of a cow's 90-day mean from 98 to 42 kg²,reducing sample size.
 
 ### Secondary
 
-**1. Cure at a standardized recheck for white line and sole ulcer lesions. Primary comparison: arm 1 versus arm 2.**
+**1. Cure at a standardized recheck for white line and sole ulcer lesions.**
 
-**Why arms 1 and 2 carry cure.**
+- **Primary comparison: arm 1 versus arm 2.**
 
-- Both are trimmed by protocol, so cure is measured on the same kind of cow in each.
 - It is the clinical question: **does a lesion left not treated for four weeks still heal as well?**
 
-**Arm 3 cure rates will be reported too but should be considered descriptive**
+- **Arm 3 cure rates will be reported too but should be considered descriptive**
 
 **2. Culling at 180 days, on every enrolled cow.**
 
-- Measures on **all enrolled cows,** not only those found lame**.**
+- Measures on **all enrolled cows,** not only those found lame at trimming**.**
 
 **3. Recurrence within 180 days** for cows in **arm 1 versus arm 2.**
 
-- **Why arms 1 and 2, the same reason as cure.** Recurrence is only measured in cows with a lesion found first, and finding one depends on the arm.
-  - Arms 1 and 2 are both trimmed by protocol, so the first lesion is found in the same kind of cow in each.
-- **Arm 3 is reported, as descriptive.**
+- Recurrence is only measured in cows with a lesion and finding one depends on the arm.
+  - Arms 1 and 2 are both trimmed by protocol and randomized accordingly
+- **Arm 3 is reported, as descriptive**
+  - Cows with lesion in this group are not randomly selected
 
 ### Descriptive
 
-**Lesion prevalence at the routine dry-off trim.**
+1.  **Lesion prevalence at the routine dry-off trim.**
 
-Every cow is trimmed around dry-off whatever her arm, so this is the one lesion measure not driven by inspection rate. Coverage was **88.6% in Control against 92.7% in TX.**
+    - Every cow is trimmed around dry-off whatever her arm, so this is the one lesion measure not driven by inspection rate.
 
-- **Descriptive, not an outcome, in a 14-month study.** Only 21% of cows reach dry-off inside 6 months of their alert, so the last cows enrolled mostly never get there.
-  - At 5,000 enrolled that is about 358 cows per arm, enough to detect only an **8.1-point** difference on a 22.4% baseline.
-- **Extending the study to 20 months would make it an outcome.** Twelve months of follow-up after the last enrolment brings 68% of cows to dry-off - about 1,133 per arm - and detects **4.7 points**. It adds about \$21,500 (§9).
-- **Demoting it does not reopen the ascertainment problem.** The primary outcome (milk) and culling do not depend on a cow being looked at.
-- **It is a window, not a day.** Trims cluster 21 to 7 days *before* dry-off. ±7 days catches only 9.6% of them; −45 to +7 catches about 90%.
-- **Baseline: a lesion is found at 22.4% of dry-off trims.**
-- **Only cows with at least 90 days from alert to dry-off, and dry-off before the study ends.** This selects on DIM at alert, so report DIM for kept and dropped cows.
+    - **Descriptive, not an outcome, in a 12- or 14-month study.** Only 21% of cows reach dry-off inside 6 months of their alert, so the last cows enrolled mostly never get there.
 
-### Not outcomes
+      - That is about 287 cows per arm at 4,000 enrolled and 358 at 5,000, enough to detect only a **9.0- or 8.1-point** difference on a 22.4% baseline.
 
-- **Reproduction.** Nothing in the herd's records: median days to first service 77 v 78, services 1.93 v 1.94. No effect to power against.
+    - **Extending the study to 12 months after the last cow (18 or 20 months) would make it an outcome.**
+
+      - Twelve months of follow-up after the last enrollment brings \~ 68% of cows to dry-off - about 912 or 1,140 per arm - and detects a **5.2- or 4.7-point** difference. It adds about \$21,500.
+
+2.  **Reproduction.**
+
+    1.  In the pilot no evidence of difference was found so it was hard to determine an effect for sample size.
+
+### Not considered as outcomes
+
 - **Lesion severity.** Not standardizable across farms and trimmers.
-- **Detection sensitivity.** Not estimable from an alert-triggered cohort at any size.
 
 ------------------------------------------------------------------------
 
 ## 5. Sample size
 
-**Target: 5,000 cows enrolled across three arms, six herds.**
+**Two options: 4,000 or 5,000 cows enrolled, six herds.** Nedap chooses how small an effect the study must be able to find.
 
-Powered on the primary milk contrast, arm 1 v 3: **82% power for a 1.0 kg/day observed difference**, two-sided α = 0.05, Hartung-Knapp test (§6).
+|  | **4,000** | **5,000** |
+|---|---|---|
+| Cows per arm / per herd | 1,333 / 667 | 1,667 / 833 |
+| Enrolment / total study | up to 6 / 12 months | up to 8 / 14 months |
+| Power, 1.0 kg/day observed difference (2.0 kg true effect) | **91%** | **95%** |
+| Power, 0.75 kg/day observed difference (1.5 kg true effect) | 72% | **81%** |
+| 95% interval on the milk difference | ±0.56 kg | ±0.50 kg |
+| Budget (§9) | \$220,250 | \$263,150 |
+
+*Primary milk contrast, arm 1 v 3, two-sided α = 0.05, analysed as §6 specifies.*
+
+- **4,000 is sized for a 2.0 kg/day true effect** (1.0 kg observed).
+- **5,000 is sized for a 1.5 kg/day true effect** (0.75 kg observed). It also narrows every secondary interval and powers the new-v-chronic difference (§6).
 
 It was sized by simulating the whole trial, and checked with a simple calculation (both below).
 
-| Enrolled | Power | 95% interval on the difference |
-|---|---|---|
-| 4,000 | 72% | ±0.75 kg |
-| **5,000** | **82%** | **±0.66 kg** |
-| 6,000 | 85% | ±0.62 kg |
-| 8,000 | 93% | ±0.56 kg |
+**The aim is precision.** The difference that matters for payback is the observed one, arm 1 against arm 3, because that is the choice a farm makes. What the study would typically report:
 
-*For a 1.0 kg observed difference (a 2.0 kg true effect), six herds.*
+| True effect of trimming | 4,000: estimate (95% interval) | 5,000: estimate (95% interval) | Chance the lower bound is at least 1.0 kg (4,000 / 5,000) |
+|---|---|---|---|
+| 1.5 kg | 0.74 (0.18 to 1.30) | 0.74 (0.23 to 1.24) | 0% / 0% |
+| **2.0 kg** | **0.97 (0.41 to 1.54)** | **0.98 (0.47 to 1.48)** | 2% / 3% |
+| 2.5 kg | 1.23 (0.66 to 1.79) | 1.23 (0.72 to 1.73) | 14% / 16% |
+| 3.0 kg | 1.47 (0.90 to 2.04) | 1.44 (0.93 to 1.94) | 35% / 42% |
+| 3.5 kg | 1.71 (1.14 to 2.27) | 1.71 (1.21 to 2.22) | 67% / 76% |
+
+- The interval width barely changes with the effect; that is the precision each size buys.
+- A lower bound of 1.0 kg/day is only likely if the true effect is 3.5 kg/day or more. At a 2.0 kg true effect, the study most likely reports about 1.0 kg/day with a lower bound of 0.4-0.5.
 
 - **The variance is the pilot's own, over the full 90 days.** A cow's 90-day mean varies by 42 kg² after adjusting for her baseline, against 98 kg² without it.
+
   - It rests on the 114 pilot cows alerted early enough to have 90 days of milk. So the study is planned on the **90th percentile** of a bootstrap of that estimate (52 kg²), not the point.
-  - Without the baseline covariate the variance is 2.3 times larger, and the study would need roughly 11,000 cows (scaled by the variance, not simulated).
-- **1.0 kg/day is the design target, not a pilot estimate.**
-  - **The observed difference is about half the true effect.** Farm practice trims 65% of arm-3 cows by day 90, so they get much of the benefit too. A 1.0 kg observed difference needs about a 2.0 kg true effect.
-  - If the true effect is nearer 1.5 kg, the observed difference is about 0.75 kg and 5,000 gives 57% power. It would take about 9,000 cows.
+  - Without the baseline covariate the variance is 2.3 times larger, and the study would need about 2.3 times as many cows.
+
+- **The effect sizes are design targets, not pilot estimates.**
+
+  - **The observed difference is about half the true effect.** Farm practice trims 65% of arm-3 cows by day 90, so they get much of the benefit too.
   - **1.0 kg is the smallest effect worth detecting, not break-even.** At current pricing milk alone does not pay at 1.0 kg; the study estimates the total return with its interval.
   - **The pilot does not measure it.** On the outcome this study uses (kg, adjusted for each cow's baseline), the pilot's TX–Control difference at days 25–30 was **+0.08 kg** (95% CI −1.0 to +1.2). That neither supports 1.0 kg nor rules it out.
-  - An earlier figure of 1.05 kg came from milk as a percentage of baseline (97.9% v 95.4%). TX cows started from a lower baseline (42.1 v 42.5 kg overall, 39.5 v 41.8 kg in new cows), and a percentage of a lower baseline flatters the same milk. That is why the study adjusts for baseline instead.
   - The pilot's effect sits in new cows, not chronic ones (see §6). A study that averages over both is sized on the average.
-- **The target assumes farm practice in arm 3 dilutes like the pilot's.** Routine trimming reaching arm-3 cows depends on DIM at the alert: in the pilot, 5% of cows alerted at DIM 0–60 were routine-trimmed within 60 days, 55% at DIM 61–120, just before the herd's routine window.
-  - Herds whose routine trimming reaches more arm-3 cows dilute the contrast more. At twice the pilot's rate, 6,000 cows gives 74% power instead of 87%; at half the rate, 95%.
+
+- **The targets assume farm practice in arm 3 dilutes like the pilot's.** Routine trimming reaching arm-3 cows depends on DIM at the alert: in the pilot, 5% of cows alerted at DIM 0–60 were routine-trimmed within 60 days, 55% at DIM 61–120, just before the herd's routine window.
+
+  - Herds whose routine trimming reaches more arm-3 cows dilute the contrast more. At twice the pilot's rate, power is 76% at 4,000 and 84% at 5,000; at half the rate, 96% and 99%.
+
 - **Late-lactation cows stay in.** 38% of alerted cows are past DIM 200, and three in four of them dry off inside 90 days. They contribute milk until they do, so 97% of enrolled cows add some milk and two in three add the full 13 weeks. Dropping them instead would lose over a third of the study.
-- **The random slope costs cows, and it is not optional.** Without it the analysis cannot see herds differing in the effect.
-  - It is not a cluster design effect. Randomization is *within* herd, so herd is a block.
-- **The test matters as much as the size.** With six herds, how the analysis allows for between-herd variation changes the power at the same size:
-  - **Hartung-Knapp** (pre-specified): false-positive rate 4.8% in the simulation, 72% power at 4,000.
-  - A normal-theory (z) test: 4.4%, 85% at 4,000 - but it assumes the between-herd variation is known, which six herds cannot show.
-  - Kenward-Roger in a mixed model: 0.7%, about 55% at 4,000. Far too cautious with six herds.
+
+- **The result is the milk difference in the enrolled herds.** Randomization is *within* herd, so herd is a block, not a cluster. Whether the effect differs between herds is checked and each herd's estimate reported (§6).
 
 ### How the sample size was simulated
 
@@ -252,73 +267,71 @@ A simulation of the whole trial, cow by cow, run 1,000 times at each size. Each 
 - **Lets each cow leave milk** when she dries off (from this herd's own lactation lengths) or is culled (the pilot's rate by DIM). She contributes the weeks she milks, up to 90 days.
 - **Trims arm 3 as the pilot's Control arm was trimmed**, by staff or routine round, at the pilot's rates for her DIM. Arm 1 is trimmed as the pilot's TX arm was; arm 2 four weeks later unless the farm gets there first.
 - **Gives each cow the benefit from the day she is trimmed** to the end of her milk window.
-- **Spreads the cows over six herds** that differ in routine trimming and in the size of the effect (0.25 kg between herds).
+- **Spreads the cows over six herds** that differ in routine trimming and in the size of the effect.
 - **Analyses each trial as §6 specifies** and counts how often it finds the effect.
 
 It reproduces the pilot where it can be checked:
 
 - Farm trimming by DIM at the alert: 5.3 / 52.2 / 34.9 / 19.5% of arm-3 cows routine-trimmed within 60 days, against the pilot's 5.1 / 54.7 / 35.0 / 19.5%.
 - Cows still milking at day 85: 63%, against 59%. Slightly optimistic.
-- With no effect, it calls one 4.8% of the time, as a 5% test should.
-
-An independent review of the code found no errors in the statistics; the problems it did find were fixed before these figures were run.
+- With no effect, it calls one 5.4% of the time, as a 5% test should.
 
 ### Checked with a simple calculation
 
 The same answer from a textbook formula, with none of the simulation's machinery:
 
 - **Dilution**, from the pilot's raw time-to-trim curves: arm 1 keeps 88% of the benefit, arm 3 gets 38% of it, so the observed difference is **0.50** of the true effect. The simulation gives 0.49.
-- **Standard error**, from the variance, cows per arm and between-herd spread: ±0.70 kg at 5,000. The simulation gives ±0.66.
-- **Power at 5,000: 83%.** The simulation gives 82%.
+- **95% interval**: ±0.56 kg at 4,000 and ±0.50 at 5,000. The simulation gives the same.
+- **Power: 94% at 4,000, 98% at 5,000.** The simulation gives 91% and 95%. It is lower because the herds' own effects vary.
 
-**One choice moves it:** whether a dry-off trim counts as arm-3 treatment. A cow trimmed just before drying off leaves the milk outcome days later, so she gains almost nothing, and both calculations leave those trims out. Counting them as full treatment would lower the observed difference to 0.43 of the true effect and power to 71%.
+**One choice moves it:** whether a dry-off trim counts as arm-3 treatment. A cow trimmed just before drying off leaves the milk outcome days later, so she gains almost nothing, and both calculations leave those trims out. Counting them as full treatment would lower the observed difference to 0.43 of the true effect and power to 85% at 4,000, 92% at 5,000.
 
 ### What the result is sensitive to
 
-Power at 5,000 enrolled, moving one input at a time (simple formula, Hartung-Knapp):
+Power for a 2.0 kg true effect, moving one input at a time (simple formula):
 
-| Input | Planned | Changed to | Power |
-|---|---|---|---|
-| *As planned* | | | **83%** |
-| True effect | 2.0 kg | 1.5 kg | 59% |
-| | | 2.5 kg | 95% |
-| Arm-3 dilution from farm practice | pilot's | 20% more | 65% |
-| | | 20% less | 93% |
-| Between-herd SD of the effect | 0.25 kg | 0.5 kg | 69% |
-| | | 0.75 kg | 52% |
-| Variance of a cow's 90-day mean | 51.9 kg² | 42.4 (the pilot point estimate) | 88% |
-| | | 60 kg² | 78% |
-| Cows giving no milk | 3% | 15% | 78% |
-| Number of herds | 6 | 4 | 66% |
-| | | 8 | 89% |
+| Input | Planned | Changed to | 4,000 | 5,000 |
+|---|---|---|---|---|
+| *As planned* |  |  | **94%** | **98%** |
+| True effect | 2.0 kg | 1.5 kg | 75% | 84% |
+| Arm-3 dilution from farm practice | pilot's | 20% more | 80% | 88% |
+|  |  | 20% less | 99% | 100% |
+| Variance of a cow's 90-day mean | 51.9 kg² | 42.4 (the pilot point estimate) | 97% | 99% |
+|  |  | 60 kg² | 90% | 95% |
+| Cows giving no milk | 3% | 15% | 91% | 96% |
 
-- **The true effect, the farm's own trimming in arm 3, and how much herds differ matter most.** Each can take power below 70%.
+- **The true effect and the farm's own trimming in arm 3 matter most.**
 - **Arm-3 dilution is the one the design can still influence**, through which herds are chosen and their routine-trimming rule (§2). Herds whose routine round reaches fewer alerted cows raise power.
 - **The variance and the loss of cows matter less.** The baseline covariate has already done most of what can be done there.
 
 ### How many herds
 
-Power at 5,000 enrolled for a 1.0 kg observed difference, by the number of herds and how much the effect differs between them (simulation, Hartung-Knapp):
+Power at 5,000 enrolled for a 1.0 kg observed difference, by the number of herds and how much the effect differs between them (simulation):
 
 | Between-herd SD of the effect | 4 herds | **6 herds** | 8 herds | 10 herds |
 |---|---|---|---|---|
-| 0.25 kg *(planning value)* | 68% | **81%** | 87% | 89% |
-| 0.50 kg | 47% | **65%** | 76% | 84% |
-| 0.75 kg | 33% | **50%** | 61% | 75% |
+| 0.25 kg | 95% | **96%** | 94% | 97% |
+| 0.50 kg | 91% | **94%** | 93% | 95% |
+| 0.75 kg | 87% | **90%** | 90% | 92% |
 
-- **The study is planned at 0.25 kg with six herds: 5,000 enrolled.**
-- The rest of the table is the sensitivity. If herds differ more than planned, more herds protects the study better than more cows.
-- **Four herds is a real loss:** 68% even at the planning value. With four, the between-herd spread is estimated from four numbers, and the test has only three degrees of freedom.
-- **Eight herds is insurance.** At the planning value it adds 6 points of power. Its value is in the lower rows: if herds differ by 0.5 kg, eight herds hold 76% where six fall to 65%.
-  - It costs about \$55,000 more (§9), which is why six is the plan and eight the preference.
+- **The number of herds barely changes power.** Power is set by the number of cows.
+- **Herds decide how widely the result applies.** Six herds in three regions cover more housing, flooring and trimming practice than four.
+- **Four herds is the minimum.** Losing one herd from four removes a quarter of the study and one region's second herd.
+- **Eight herds is insurance** against losing a herd and broadens the result further. It costs about \$45,000 (4,000) or \$55,000 (5,000) more (§9).
 
 ### What each herd supplies
 
-At 5,000 enrolled: **833 alerted cows per herd** across six.
-
 **Plan for fewer alerts than the pilot.** The pilot farm enrolled 0.024 alerted cows per week for every cow in milk (68 a week from about 2,800). It is likely a high-alert herd, so other herds are planned at 0.010-0.020.
 
-Months to enrol 833 cows:
+Months to enrol **667 cows** (4,000 option):
+
+| Herd size  | 0.020 per cow per week | 0.015 | **0.010** |
+|------------|------------------------|-------|-----------|
+| 2,000 cows | 3.8                    | 5.1   | 7.7       |
+| 3,000 cows | 2.6                    | 3.4   | **5.1**   |
+| 5,000 cows | 1.5                    | 2.0   | 3.1       |
+
+Months to enrol **833 cows** (5,000 option):
 
 | Herd size  | 0.020 per cow per week | 0.015 | **0.010** |
 |------------|------------------------|-------|-----------|
@@ -326,80 +339,63 @@ Months to enrol 833 cows:
 | 3,000 cows | 3.2                    | 4.3   | **6.4**   |
 | 5,000 cows | 1.9                    | 2.6   | 3.8       |
 
-- **Eight months of enrolment covers a 3,000-cow herd at under half the pilot's rate, with time to spare.** 6.4 months is expected at the low rate.
-- A 2,000-cow herd at a low rate does not finish in eight months. Take more cows from the bigger herds instead - randomization is within herd, so herds need not enrol equal numbers.
+- **A 3,000-cow herd at under half the pilot's rate finishes inside the enrolment window** in both options: 5.1 of 6 months, or 6.4 of 8.
+- A 2,000-cow herd at a low rate does not. Take more cows from the bigger herds instead - randomization is within herd, so herds need not enrol equal numbers.
 
 ### Timeline
 
-+------------+----------------------------------------------------------------------------------------------+
-|            |                                                                                              |
-+============+==============================================================================================+
-| Enrolment  | **up to 8 months**, in parallel across the six herds (3.2-6.4 months expected at 3,000 cows) |
-+------------+----------------------------------------------------------------------------------------------+
-| Follow-up  | **every cow to one study end date**, at least 6 months after the last enrolment              |
-+------------+----------------------------------------------------------------------------------------------+
-| **Total**  | **14 months**                                                                                |
-+------------+----------------------------------------------------------------------------------------------+
+|  | **4,000** | **5,000** |
+|---|---|---|
+| Enrolment | **up to 6 months** (2.6-5.1 expected at 3,000 cows) | **up to 8 months** (3.2-6.4 expected at 3,000 cows) |
+| Follow-up | every cow to one study end date, at least 6 months after the last enrolment | same |
+| **Total** | **12 months** | **14 months** |
 
-- **Following each cow for 365 days would have set the duration at 20 months or more.** Following all cows to one end date does not lose that information: early cows still reach a year, and time-to-event analysis uses every cow for as long as she is watched.
+- **Following each cow for 365 days would set the duration at 18-20 months or more.** Following all cows to one end date does not lose that information: early cows still reach a year, and time-to-event analysis uses every cow for as long as she is watched.
 - What the last cow's 6 months must cover: milk (90 days), cure (60-day recheck), and culling and recurrence at 180 days.
 - Recurrence needs a lesion first, so the last cows enrolled may fall a few weeks short of 180 days. They are censored, not dropped.
 
-**What a 12-month study would lose** (8 months of enrolment, 4 of follow-up):
-
-- Milk (90 days) and cure (60-day recheck) stay complete for every cow.
-- If enrolment runs the full 8 months, cows enrolled in the last 2 months have under 6 months. **Culling and recurrence at 180 days are censored for them**, about a quarter of the study.
-- If enrolment finishes as expected (3.2-6.4 months), every cow still gets 5.6 months or more, and 12 months loses almost nothing.
-- So 14 months is the safe plan; 12 is possible if enrolment is on time.
-
 ### What this design detects
 
-Smallest difference detectable at 80% power at 5,000 enrolled (1,667 per arm). Arm 1 v 3 unless noted:
+Smallest difference detectable at 80% power. Arm 1 v 3 unless noted:
 
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
-| Outcome                                       | Cows per arm            | **Smallest detectable difference**                             |
-+===============================================+=========================+================================================================+
-| **Milk** (primary)                            | 1,667                   | **1.0 kg/day** observed contrast (82% power)                   |
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
-| Culling at 180 days, all enrolled             | 1,667                   | **3.4 points** on 16.0%                                        |
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
-| Cure, white line and sole ulcer *(arm 1 v 2)* | 290 assessed            | **11.5 points** on 49.3%                                       |
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
-| Recurrence at 180 days *(arm 1 v 2)*          | 583 with a first lesion | **7.7 points** on 36.1%                                        |
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
-| Lesion at dry-off *(descriptive)*             | 358 reach dry-off       | **8.1 points** on 22.4% (4.7 with 12 months after the last cow) |
-+-----------------------------------------------+-------------------------+----------------------------------------------------------------+
+| Outcome | Cows per arm (4,000 / 5,000) | **4,000** | **5,000** |
+|---|---|---|---|
+| **Milk** (primary) | 1,333 / 1,667 | 1.0 kg/day observed, 91% power | 1.0 kg/day observed, 95% power; 0.75 kg, 81% |
+| Culling at 180 days, all enrolled | 1,333 / 1,667 | **3.8 points** on 16.0% (±2.8) | **3.4 points** on 16.0% (±2.5) |
+| Cure, white line and sole ulcer *(arm 1 v 2)* | 232 / 290 assessed | **12.8 points** on 49.3% | **11.5 points** on 49.3% |
+| Recurrence at 180 days *(arm 1 v 2)* | 467 / 583 with a first lesion | **8.5 points** on 36.1% | **7.7 points** on 36.1% |
+| Lesion at dry-off *(descriptive)* | 287 / 358 reach dry-off | **9.0 points** on 22.4% | **8.1 points** on 22.4% |
 
-- **Cure is targeted at +15 points**, detected with 96% power.
-- **Dry-off is descriptive at 14 months.** The count uses only the 21% who reach dry-off inside six months; early-enrolled cows add more. With 12 months after the last cow (a 20-month study) 68% reach it and it becomes an outcome (§4).
-- Binary outcomes are sized without a between-herd term. They are secondary, and the pilot gives no estimate of how much they vary by herd.
+- **Cure is targeted at +15 points**, detected with 91% power at 4,000 and 96% at 5,000.
+- **Dry-off is descriptive.** The count uses only the 21% who reach dry-off inside six months; early-enrolled cows add more. With 12 months after the last cow (18 or 20 months in total) 68% reach it and it becomes an outcome: 5.2 points at 4,000 (912 per arm), 4.7 at 5,000 (1,140 per arm) (§4).
 
 ### The limitation, stated up front
 
 - **Break-even needs 0.25-0.6 points less culling across all enrolled cows.** That assumes a \$0.65–0.80/cow/month subscription, \$18 a trim and \$1,650 net cost of a cull (replacement less cull value).
-- **The study's interval on culling is ±2.5 points.** It cannot tell break-even from zero.
-- **The same holds for milk.** At 5,000 the interval on the milk difference is ±0.66 kg. If the observed difference is 1.0 kg, the lowest value the study can vouch for is typically about 0.3 kg/day.
+- **The study's interval on culling is ±2.8 points at 4,000, ±2.5 at 5,000.** It cannot tell break-even from zero.
   - No feasible study can: detecting it would take 170,000 to a million cows.
+- **The same holds for milk.** If the observed difference is 1.0 kg, the lowest value the study can vouch for is typically about 0.4 kg/day at 4,000 and 0.5 at 5,000.
 - **So this study will *estimate* whether the system pays. It will not *prove* it.** An honest estimate is what a purchasing decision needs. It is not a hypothesis test, and this proposal does not claim one.
 
 ------------------------------------------------------------------------
 
 ## 6. Analysis
 
-**Milk.** Mixed linear model on weekly averages.
+**Milk.** Mixed linear model on weekly averages, arm 1 v 3.
 
-- Fixed: arm, **the cow's 7-day pre-alert milk**, DIM spline, lactation group, lesion history, breed, herd. Random: cow intercept, and **arm within herd** - `(1 + arm | herd)`.
-- **The random slope is what lets the analysis see herds differing in the effect.** The sample size already pays for it (§5).
-- **The test is Hartung-Knapp**, fitted as six per-herd estimates pooled with a between-herd variance, with the standard error rescaled by how much the herds actually disagree, and a t reference on five degrees of freedom.
-  - With six herds the between-herd variance is estimated from six numbers. A normal-theory test treats it as known; Kenward-Roger allows for it twice and is far too cautious (a 0.7% false-positive rate in the simulation, against 5% intended). Hartung-Knapp holds 4.8%.
-  - Cows that dry off or leave contribute the weeks they milk, weighted accordingly.
-- **Arm is a main effect.** The `arm × history` interaction is estimated and reported, but not powered - see below.
+- **Fixed effects:** arm, **the cow's 7-day pre-alert milk**, DIM spline, lactation group, lesion history, breed, herd.
+  - Herd is fixed because randomization is within herd and herds differ in milk level.
+- **Random effect:** cow intercept. Each cow contributes up to 13 weekly averages, and her weeks are correlated.
+- Cows that dry off or leave contribute the weeks they milk.
+- **The result is the milk difference in the enrolled herds.**
+- **Whether the effect differs by herd** is checked with an `arm × herd` term and each herd's estimate is reported. It is not part of the primary test.
+- The `arm × history` interaction is estimated and reported - see below.
 
-**Cure.** Logistic, same covariates, per-herd estimates pooled and tested the same way (Hartung-Knapp).
+**Cure.** Logistic, same covariates, herd fixed.
 
 **Lesion at dry-off.** Reported by arm with its interval, from the same model. Not tested (§4).
 
-### The chronicity interaction: explored, not powered
+### The chronicity interaction
 
 - Chronic cows do worse. Recurrence rises 34% → 48% → 52% across parity; cure falls from 51.9% in new cows to 45.0% in chronic ones.
   - Those are **main effects**, and adjusting for them is free.
@@ -414,32 +410,22 @@ Smallest difference detectable at 80% power at 5,000 enrolled (1,667 per arm). A
 - History was recorded before randomization, so each row is a randomized comparison. But it is one herd, a subgroup looked at after the fact, and a wide interval. Planning on the point estimate would be optimistic.
 - Like the overall effect, each group's observed effect is about half its true effect, because farm practice treats arm 3 too.
 
-**What 5,000 enrolled gives** (simulation, 6 herds, Hartung-Knapp, pilot's 61% new):
+**What each option gives** (simulation, 6 herds, pilot's 61% new):
 
-| Estimate               | 95% interval   |
-|------------------------|----------------|
-| Overall effect         | ±0.67 kg       |
-| Effect in new cows     | about ±0.85 kg |
-| Effect in chronic cows | about ±1.1 kg  |
-| New minus chronic      | about ±1.4 kg  |
+| Estimate               | 95% interval, 4,000 | 95% interval, 5,000 |
+|------------------------|---------------------|---------------------|
+| Overall effect         | ±0.56 kg            | ±0.50 kg            |
+| Effect in new cows     | about ±0.71 kg      | about ±0.64 kg      |
+| Effect in chronic cows | about ±0.90 kg      | about ±0.81 kg      |
+| New minus chronic      | about ±1.15 kg      | about ±1.03 kg      |
 
 *The subgroup intervals are scaled from the overall one by each group's share of cows.*
 
-- **If the benefit sits in new cows** (none in chronic, the same 1.0 kg observed overall), the study finds it in new cows alone with **96% power**, and the new-v-chronic difference with 66%.
-- **If the effect is equal in both**, power in new cows alone is 61%.
-
-**If Nedap wants the difference powered:** power on the new-v-chronic difference, if the whole benefit is in new cows:
-
-| Enrolled | Power on the difference |
-|---|---|
-| 4,000 | 57% |
-| **5,000** | **66%** |
-| 6,000 | 73% |
-| 8,000 | 84% |
-
-- **80% takes about 7,500 cows** - 1,250 per herd, about 9.6 months of enrolment for a 3,000-cow herd at the low alert rate. That breaks the 8-month enrolment window.
-- That is the best case: no benefit at all in chronic cows. A smaller difference would take more.
-- So the difference is **estimated and reported with its interval, not powered.** The estimate still tells a follow-up study whether to target new cows.
+- **If the benefit sits in new cows** (none in chronic, the same 1.0 kg observed overall), the study finds it in new cows alone with 99% power at 4,000 and 100% at 5,000.
+- **Power on the new-v-chronic difference** in that case: **75% at 4,000, 85% at 5,000.**
+  - That is the best case: no benefit at all in chronic cows. A smaller difference has less power.
+- **If the effect is equal in both**, power in new cows alone is 85% at 5,000.
+- So **5,000 powers the difference if the benefit is concentrated in new cows; 4,000 estimates it** with its interval. Either way the estimate tells a follow-up study whether to target new cows.
 
 **Culling and recurrence.** Time-to-event, same covariates, stratified by herd. Culling is a competing risk for recurrence, not attrition. Recurrence is compared on arms 1 v 2 (§4).
 
@@ -518,12 +504,12 @@ Without these, the study measures the camera and the integration together and ca
 
 ## 8. Decisions taken
 
-- **5,000 enrolled, six herds, 14 months** (up to 8 months of enrolment, 6 of follow-up after the last cow). Milk adjusted for each cow's baseline, with an arm-by-herd random slope (§5, §6).
+- **Two options: 4,000 enrolled over 12 months (up to 6 months of enrolment) or 5,000 over 14 months (up to 8)**, six herds, 6 months of follow-up after the last cow. Milk adjusted for each cow's baseline, herd and arm as fixed effects (§5, §6).
 - **Every cow followed to one study end**, at least 6 months after the last enrolment. Culling and recurrence at 180 days; 365 days reported where cows reach it (§2, §4).
 - **Culling compared on all enrolled cows**, not lame cows only (§4).
-- **Randomization blocked on chronicity and lactation group.** The new-v-chronic difference is estimated, not powered, at 5,000. Powering it would take about 7,500 enrolled and 9.6 months of enrolment, beyond the 8-month window (§6).
-- **Six herds** across three regions, two each. Four is the stated minimum. Eight is preferred but needs about \$55,000 more (§5, §9).
-- **Lesion at dry-off is descriptive.** It becomes an outcome if the study runs 20 months (§4).
+- **Randomization blocked on chronicity and lactation group.** The new-v-chronic difference is powered at 5,000 if the benefit sits in new cows (85%), and estimated with its interval at 4,000 (§6).
+- **Six herds** across three regions, two each. Four is the stated minimum. Eight is preferred but needs about \$45,000 (4,000) or \$55,000 (5,000) more (§5, §9).
+- **Lesion at dry-off is descriptive.** It becomes an outcome with 12 months of follow-up after the last cow (§4).
 - **Cure targeted at +15 points.** §5 states what the design detects on every outcome.
 - **Cure and recurrence compared primarily on arms 1 v 2**, where both are protocol-trimmed. Arm 3 is reported with its caveat and its detection route recorded.
 - **Alert rules and DairyComp commands frozen for the study** (§2, §7).
@@ -532,69 +518,91 @@ Without these, the study measures the camera and the integration together and ca
 
 ## 9. Budget
 
-**Total: \$263,150 over 14 months** - six herds, 5,000 enrolled.
+Six herds.
 
-+-------------------------------------------------------+---------------+
-|                                                       |               |
-+=======================================================+===============+
-| Personnel - farm visits, project management, analysis | \$217,500     |
-+-------------------------------------------------------+---------------+
-| Travel                                                | \$30,530      |
-+-------------------------------------------------------+---------------+
-| Data storage                                          | \$15,120      |
-+-------------------------------------------------------+---------------+
-| **Total**                                             | **\$263,150** |
-+-------------------------------------------------------+---------------+
+|  | **4,000 enrolled, 12 months** | **5,000 enrolled, 14 months** |
+|---|---|---|
+| Personnel - farm visits, project management, analysis | \$182,500 | \$217,500 |
+| Travel | \$24,790 | \$30,530 |
+| Data storage | \$12,960 | \$15,120 |
+| **Total** | **\$220,250** | **\$263,150** |
 
-- Farm visits run through enrolment only (up to 8 months). Follow-up is passive data collection.
+- Farm visits run through enrolment only (up to 6 or 8 months). Follow-up is passive data collection.
 
 **Options that add cost:**
 
-+-------------------------------------------------------------------+----------------------------------------------------------------------------+-----------------+
-|                                                                   | Adds                                                                       | Total           |
-+===================================================================+============================================================================+=================+
-| **Eight herds** instead of six                                    | about \$55,000, mostly monthly farm visits, plus travel to the extra herds | about \$318,000 |
-+-------------------------------------------------------------------+----------------------------------------------------------------------------+-----------------+
-| **20 months** instead of 14 (makes dry-off lesion an outcome, §4) | about \$21,500, project management and data storage                        | about \$285,000 |
-+-------------------------------------------------------------------+----------------------------------------------------------------------------+-----------------+
+|  | 4,000: adds (total) | 5,000: adds (total) |
+|---|---|---|
+| **Eight herds** instead of six - mostly monthly farm visits, plus travel to the extra herds | about \$45,000 (about \$265,000) | about \$55,000 (about \$318,000) |
+| **12 months after the last cow** (18 or 20 months; makes dry-off lesion an outcome, §4) - project management and data storage | about \$21,500 (about \$242,000) | about \$21,500 (about \$285,000) |
 
 **Not included - to settle with Nedap:**
 
-- **Camera subscription:** \$164,000-202,000 for 18,000 cows over 14 months at \$0.65-0.80 per cow per month. That is 62-77% of the study budget again, so it has to be settled before the total means anything.
-- **Extra trimming in arms 1 and 2:** about \$24,000 over the study, at \$18 per trim (first alerts only; later alerts add more).
+- **Camera subscription** for 18,000 cows at \$0.65-0.80 per cow per month: \$140,000-173,000 over 12 months (64-78% of the 4,000 budget again), \$164,000-202,000 over 14 months (62-77% of the 5,000 budget). It has to be settled before the total means anything.
+- **Extra trimming in arms 1 and 2** at \$18 per trim: about \$19,500 (4,000) or \$24,000 (5,000) over the study (first alerts only; later alerts add more).
 
 ------------------------------------------------------------------------
 
 ## Appendix: pilot figures used
 
-| Quantity | Value |
-|---|---|
-| Variance of a cow's 90-day milk mean, baseline-adjusted | 42 kg² (planned at 52, 90th percentile) |
-| Same, without the baseline | 98 kg² |
-| Baseline to 90-day milk correlation | 0.89 |
-| Enrolled per week per cow in milk, pilot | 0.024 |
-| TX–Control milk, days 25–30, baseline-adjusted | +0.08 kg/day (SE 0.57) |
-| Same, TX effect in new v chronic cows, days 1–30 | +0.39 v −1.45 kg/day |
-| Control cows routine-trimmed within 60 days of the alert (followed 60+ days) | 28.6% |
-| Alerted cows past DIM 200 | 38% |
-| Still milking 85 days after the alert (n = 116) | 59%; 24% of those past DIM 200 |
-| Culled within 90 days of the alert, DIM 0–60 / 61+ | 30% / 8.7% |
-| Completed lactation length, median | 317–320 days |
-| TX cows trimmed by day 7 / by day 90 (Kaplan-Meier) | 63% / 98% |
-| Arm-3 cows routine-trimmed first within 60 days, by DIM 0–60 / 61–120 / 121–200 / 200+ | 5 / 55 / 35 / 20% |
-| Observed arm 1 v 3 difference as a share of the true effect | 0.49 (simulation); 0.50 (simple formula) |
-| Alerted cows with a lesion found | 35.0% |
-| Alerted cows with white line or sole ulcer | 18.3% |
-| Cure at 60 days, WLD/SU | 49.3% |
-| Recurrence within 180 days, cow-level | 36.1% |
-| Culling within 180 days of a camera flag, farm practice | 16.0% |
-| Lesion found at a dry-off trim | 22.4% |
-| New-case lesion incidence | 27.1 per 100 cow-years |
-| Empty-trim rate, trimmed arm | 54.9% |
-| Culling gap at 180 / 365 days, from calving | 6.8 / 7.3 points |
-| Alerts per week, pilot farm | 69 |
-| Cows alerted per lactation | 62% |
-| Lesion cows flagged live, no alert | 243 |
-| Of those, genuine integration losses | 12 |
-| LOW flags after go-live / `Low` alerts | 13,199 / 81 |
-| First-lactation cows absent from SmartSight, after 2026-06-24 | 160 |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Quantity                                                                               | Value                                    |
++========================================================================================+==========================================+
+| Variance of a cow's 90-day milk mean, baseline-adjusted                                | 42 kg² (planned at 52, 90th percentile)  |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Same, without the baseline                                                             | 98 kg²                                   |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Baseline to 90-day milk correlation                                                    | 0.89                                     |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Enrolled per week per cow in milk, pilot                                               | 0.024                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| TX–Control milk, days 25–30, baseline-adjusted                                         | +0.08 kg/day (SE 0.57)                   |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Same, TX effect in new v chronic cows, days 1–30                                       | +0.39 v −1.45 kg/day                     |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Control cows routine-trimmed within 60 days of the alert (followed 60+ days)           | 28.6%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Alerted cows past DIM 200                                                              | 38%                                      |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Still milking 85 days after the alert (n = 116)                                        | 59%; 24% of those past DIM 200           |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Culled within 90 days of the alert, DIM 0–60 / 61+                                     | 30% / 8.7%                               |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Completed lactation length, median                                                     | 317–320 days                             |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| TX cows trimmed by day 7 / by day 90 (Kaplan-Meier)                                    | 63% / 98%                                |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Arm-3 cows routine-trimmed first within 60 days, by DIM 0–60 / 61–120 / 121–200 / 200+ | 5 / 55 / 35 / 20%                        |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Observed arm 1 v 3 difference as a share of the true effect                            | 0.49 (simulation); 0.50 (simple formula) |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Alerted cows with a lesion found                                                       | 35.0%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Alerted cows with white line or sole ulcer                                             | 18.3%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Cure at 60 days, WLD/SU                                                                | 49.3%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Recurrence within 180 days, cow-level                                                  | 36.1%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Culling within 180 days of a camera flag, farm practice                                | 16.0%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Lesion found at a dry-off trim                                                         | 22.4%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| New-case lesion incidence                                                              | 27.1 per 100 cow-years                   |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Empty-trim rate, trimmed arm                                                           | 54.9%                                    |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Culling gap at 180 / 365 days, from calving                                            | 6.8 / 7.3 points                         |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Alerts per week, pilot farm                                                            | 69                                       |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Cows alerted per lactation                                                             | 62%                                      |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Lesion cows flagged live, no alert                                                     | 243                                      |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| Of those, genuine integration losses                                                   | 12                                       |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| LOW flags after go-live / `Low` alerts                                                 | 13,199 / 81                              |
++----------------------------------------------------------------------------------------+------------------------------------------+
+| First-lactation cows absent from SmartSight, after 2026-06-24                          | 160                                      |
++----------------------------------------------------------------------------------------+------------------------------------------+

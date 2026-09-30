@@ -5,55 +5,72 @@ description: Use when writing or revising the proposal to Nedap for the full thr
 
 # Writing the Nedap three-arm study proposal
 
-The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft.md`. Every decision, derivation and correction behind it is in `design/review-proposal-2026-09-26.md`. **Read that review doc's last sections first (F, F2, F3, G)** - they supersede anything older, including the working document `design/proposal_nedap_3arm.md` and `design/review-proposal-2026-09-10.md`.
+The NEDLAME pilot is finished. The proposal is `design/proposal_nedap_3arm_draft.md`. Every decision, derivation and correction behind it is in `design/review-proposal-2026-09-26.md`. **Read that review doc's last sections first (F, F2, F3, G, F4 - F4 is newest, at the end)** - they supersede anything older, including the working document `design/proposal_nedap_3arm.md` and `design/review-proposal-2026-09-10.md`.
 
-## Current design (2026-09-30) - read before changing any number
+## Current design (2026-09-30 night) - read before changing any number
 
-| | Settled as |
-|---|---|
-| Arms | 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice. Staff-spotted lame cows are trimmed in every arm. |
-| Enrolment | At the first SmartSight alert, DIM 5+, randomized daily, blocked on history (new/chronic) and lactation group. Enrolled once; the arm is a strategy for every later alert. |
-| Size | **5,000 enrolled, 1,667 per arm, 833 per herd, six herds** (two each NY / Midwest / West Coast). Four is the minimum; eight is the preference (+ about \$55,000). |
-| Duration | **14 months: up to 8 months of enrolment, every cow followed to one study end at least 6 months after the last cow.** 3.2-6.4 months of enrolment expected at 3,000-cow herds; 8 is the margin. |
-| Primary | Milk, arm 1 v 3, 90 days, each cow's 7-day pre-alert milk as a covariate. Sized to detect **1.0 kg/day observed** (about 2.0 kg true - the observed contrast is ~0.49x the true effect because arm 3 is trimmed by farm practice). **Hartung-Knapp** test, arm-by-herd random slope. 82% power at 5,000 (72% at 4,000). |
-| Secondary | Culling at 180 d on ALL enrolled (3.4 points on 16.0%, ±2.5); cure WLD/SU arm 1 v 2 (290 assessed, 11.5 points on 49.3%); recurrence 180 d arm 1 v 2 (583 with a first lesion, 7.7 points on 36.1%). |
-| Descriptive | Lesion at dry-off (358/arm, 8.1 points). Becomes an outcome at **20 months** (12 after the last cow: 1,133/arm, 4.7 points, + about \$21,500). |
-| Budget | **\$263,150** (\$217,500 personnel / \$30,530 travel / \$15,120 data), `design/budget_nedap_3arm (version 4).xlsx`. Excluded: subscription \$164,000-202,000; extra trimming. |
+**Two options go to Nedap, side by side: 4,000 or 5,000 enrolled.** Nedap chooses. Review doc **F4** has every figure.
 
-The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-level simulation; review doc F3). **It supersedes p38/p41.** The old figures - 6,000, 4,000, 365-day follow-up, 12 or 18 months, x1.09, "1.05 kg observed in the pilot" - are all wrong now; do not reintroduce them.
+| | 4,000 | 5,000 |
+|---|---|---|
+| Per arm / per herd | 1,333 / 667 | 1,667 / 833 |
+| Enrolment / total | up to 6 / **12 months** | up to 8 / **14 months** |
+| Power, 1.0 kg observed (2.0 true) | **91%** | **95%** |
+| Power, 0.75 kg observed (1.5 true) | 72% | **81%** |
+| 95% interval, milk | ±0.56 kg | ±0.50 kg |
+| Culling 180 d, all enrolled | 3.8 pts (±2.8) | 3.4 pts (±2.5) |
+| Cure WLD/SU, arm 1 v 2 | 12.8 pts (232 assessed) | 11.5 pts (290) |
+| Recurrence 180 d, arm 1 v 2 | 8.5 pts (467) | 7.7 pts (583) |
+| Dry-off (descriptive) | 9.0 pts (287); 5.2 at 18 months (912) | 8.1 pts (358); 4.7 at 20 months (1,140) |
+| New-v-chronic difference (benefit only in new) | 75% - estimated | 85% - powered |
+| Budget | **\$220,250** (v3: \$182,500 / \$24,790 / \$12,960) | **\$263,150** (v4: \$217,500 / \$30,530 / \$15,120) |
+| Eight herds / 12 months after last cow | +\$45,000 / +\$21,500 | +\$55,000 / +\$21,500 |
+| Subscription (excluded) / extra trimming (excluded) | \$140,000-173,000 / ~\$19,500 | \$164,000-202,000 / ~\$24,000 |
+
+Common to both: arms 1 trim within 1 week / 2 trim at 4 weeks / 3 farm practice (staff-spotted lame cows trimmed in every arm); enrolment at the first alert, DIM 5+, blocked on history and lactation group, enrolled once; six herds, two each NY / Midwest / West Coast, four minimum; every cow to one study end at least 6 months after the last cow; primary = milk arm 1 v 3 over 90 days with the 7-day pre-alert baseline as covariate; the observed contrast is ~0.49x the true effect (arm 3 trimmed 65% by day 90).
+
+**Primary analysis = the conventional multi-centre model** (Gerard, 2026-09-30 night): weekly milk, arm and herd FIXED, cow random intercept, **no arm-by-herd term**; the result is the effect in the enrolled herds. Arm-by-herd is checked and each herd's estimate reported, not part of the primary test. Hartung-Knapp / meta-analytic pooling was dropped as over-complicated for one trial under one protocol. p42's `fe13` column is this test.
+
+The sizing comes from `scripts/proposal/p42_simulate_trial_cow_level.R` (cow-level simulation; review doc F3, F4). Old figures - 6,000, the HK powers (82% at 5,000, 72% at 4,000), ±0.66, "7,500 to power the chronicity difference", x1.09, "1.05 kg observed in the pilot" - are wrong now; do not reintroduce them.
 
 ## What the study is sized on - do not blur this
 
-- **Sized to DETECT a 1.0 kg/day milk contrast. NOT sized to show the system pays.** Proving it pays is infeasible: break-even is 0.25-0.6 points of culling on all enrolled cows against a ±2.5 interval.
-- **1.0 kg is a design target, not a pilot estimate.** On the study's own outcome (kg, baseline-adjusted) the pilot shows +0.08 kg (SE 0.57). The old 1.05 kg was % of baseline, flattered by TX new cows' lower baseline.
+- **Sized to DETECT a milk contrast (1.0 kg observed at 4,000; 0.75 kg at 5,000). NOT sized to show the system pays.** Proving it pays is infeasible: break-even is 0.25-0.6 points of culling on all enrolled cows against a ±2.5-2.8 interval.
+- **The effect sizes are design targets, not pilot estimates.** On the study's own outcome (kg, baseline-adjusted) the pilot shows +0.08 kg (SE 0.57). Do NOT put the old 1.05 kg (% of baseline) in the proposal, not even as a correction.
 - **The study estimates whether the system pays; it does not prove it.** Say so wherever the question "does it pay" appears. §3's primary row is "How much does acting on alerts gain?" for this reason.
 - The Economics section and its assumptions table were **removed** at Gerard's request (2026-09-29). The only economic inputs left are inline in the §5 limitation bullet (\$0.65-0.80 subscription, \$18 trim, \$1,650 net cull).
 
 ## Decided by Gerard - do not reopen
 
 - No per-cow cost ledger; no Economics section.
-- Six herds planned, eight a preference needing budget.
-- Dry-off lesion descriptive at 14 months.
-- Hartung-Knapp as the milk test. Late-lactation cows stay in and contribute milk until dry-off.
+- **4,000 and 5,000 both presented; Nedap chooses.**
+- **Conventional analysis (herd and arm fixed, no arm-by-herd term), not Hartung-Knapp.**
+- **No history in the client document.** No old tests, superseded figures, "an earlier estimate was...", "a review found..." - that belongs in the review doc, memory and this skill. Pilot lessons that shape the design are fine.
+- Six herds planned, eight a preference needing budget. Herd count barely moves power under the conventional test; the case for more herds is breadth and protection against losing one.
+- Dry-off lesion descriptive; an outcome only with 12 months after the last cow.
+- Late-lactation cows stay in and contribute milk until dry-off.
 - Extra-trimming cost is ignored (§9 lists it as not included, nothing more).
 - Herds must not routinely trim more than 2x per lactation. Herds that do are not enrolled. The pilot herd IS a 2x herd (mid-lactation + dry-off).
 - The report's "August" v 2026-06-24 for first-lactation cows missing from SmartSight is pilot-specific; leave it.
 
-### Sizing detail (p42, F3)
+### Sizing detail (p42, F3, F4)
 
-- **The one modelling choice that moves power:** whether dry-off trims count as arm-3 treatment. **Gerard: they do not** (2026-09-30). As modelled, the observed/true ratio is 0.49 and power 82%. If they count: 0.43 and 71%. The simple formula `p43_simple_check.R` agrees with p42 (0.50, 83%).
-- **Most sensitive inputs:** the true effect (1.5 kg -> 59%), arm-3 dilution (±20% -> 65 / 93%), between-herd SD (0.5 -> 69%).
-- **Herd count at 5,000** (HK power): tau 0.25 -> 4 / 6 / 8 / 10 herds = 68 / 81 / 87 / 89%; tau 0.5 -> 47 / 65 / 76 / 84%. tau 0.75 -> 33 / 50 / 61 / 75% (from `output/p42_herds_075.log`; the 0.75 row in `output/p42_herds.log` is WRONG, tau was clamped).
-- **Chronicity at 5,000:** ±0.67 overall, about ±0.85 new, ±1.1 chronic, ±1.4 difference. If the benefit is only in new cows: 96% power in new cows, 66% on the difference. Powering the difference needs about 7,500 (9.6 months of enrolment), so it stays estimated, not powered.
-- **Scripts:** `scripts/proposal/p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] herds [taus]`), `p43_simple_check.R`. Output: `output/p42_run.log`, `output/p42_sim.rds` (main grid, 1,000 reps), `output/p42_herds*.log`. **`output/` is gitignored - these are local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (main grid, ~1 h), `... 500 herds` and `... 500 herds 0.75` (herd table).
-- **Do NOT redo:** the mechanistic routine-trim model (rejected, cannot reproduce the pilot); random x1.28 attrition (wrong - real loss is 36-41% and DIM-dependent); z or Kenward-Roger as the test (Kenward-Roger gives ~55% at 4,000; HK decided); p38/p41 figures.
+- **False positives, conventional test, 4,000:** 5.4% with identical herds (its own null); 5.9% at the calibrated herd spread.
+- **Power by N (true 2.0 / 1.5 kg):** 3,000 84 / 60; 3,500 88 / 64; 4,000 91 / 72; 5,000 95 / 81; 6,000 97 / 88. The simple formula (`p43`) gives 94 / 98 at 4,000 / 5,000 - the sim is lower because the six herds' own average effect varies.
+- **The one modelling choice that moves power:** whether dry-off trims count as arm-3 treatment. **Gerard: they do not.** If they did (simple formula): 85% at 4,000, 92% at 5,000.
+- **Most sensitive inputs** (simple formula, 4,000 / 5,000): true effect 1.5 kg 75 / 84; arm-3 dilution 20% more 80 / 88; variance 60 kg² 90 / 95. Simulated farm practice x2: 76 / 84.
+- **Herd count at 5,000** (conventional): 4 / 6 / 8 / 10 herds at tau 0.25 = 95 / 96 / 94 / 97; 0.5 = 91 / 94 / 93 / 95; 0.75 = 87 / 90 / 90 / 92.
+- **Chronicity:** intervals ±0.56 / ±0.50 overall, new ±0.71 / ±0.64, chronic ±0.90 / ±0.81, difference ±1.15 / ±1.03 (scaled by share of cows). Benefit only in new: difference 75 / 85%, new alone 99 / 100%.
+- **Scripts:** `p42_simulate_trial_cow_level.R` (modes `[reps]`, `[reps] checks`, `[reps] ci` at 4,000 and 5,000, `[reps] herds [taus]`), `p43_simple_check.R`, `p40_detectable_differences_v2.R N`. Output `output/p42_run.log`, `p42_ci.log`, `p42_herds.log`, `.rds` alongside; the HK-era logs are `*_hk.log`. **`output/` is gitignored - local-only.** Regenerate with `Rscript scripts/proposal/p42_simulate_trial_cow_level.R 1000` (~1 h), `... 1000 ci`, `... 500 herds 0.25,0.5,0.75`. Use R 4.6.1 (`C:\Program Files\R\R-4.6.1\bin\Rscript.exe`); Rscript is not on PATH. The headline is the OBSERVED arm-1-v-3 difference - Gerard: only the observed difference shows whether it pays. Internal Q&A `design/briefing_sample_size_questions.md` is HK-era and marked superseded.
+- **Do NOT redo:** the mechanistic routine-trim model (rejected, cannot reproduce the pilot); random x1.28 attrition (wrong - real loss is 36-41% and DIM-dependent); Kenward-Roger or HK as the primary test; p38/p41 figures.
 
 ## Still open for Gerard
 
 Check the review doc's last section and the project memory before assuming this list is current.
 
-- Confirm the v4 budget total of \$263,150 by opening the workbook in Excel.
-- Keep or delete the §9 extra-trimming line (about \$24,000, first alerts only).
+- Confirm both totals in Excel: v3 \$220,250 (4,000 option) and v4 \$263,150 (5,000 option). The cached cells in both workbooks are stale.
+- Keep or delete the §9 extra-trimming line (about \$19,500 / \$24,000, first alerts only).
+- Re-write design/briefing_sample_size_questions.md for the conventional test if it is still wanted.
 - Header, §1 intro: Gerard is writing these himself.
 
 **Answered 2026-09-30:** dry-off trims do NOT count as arm-3 treatment (p42 as modelled: 0.49 ratio, 82%). Arm-2 per-protocol is defined on the enrolling alert (the bullet's deletion was not deliberate; restored).
@@ -66,7 +83,7 @@ For pilot results use the rendered `reports/qmd_reports/report_nedlame_treatment
 
 ## The budget workbook
 
-Gerard's Excel edits make the WORKBOOK the source of truth. The current one is **version 4**. Edit it by XML surgery, or ask Gerard; **never re-run `p30_budget.R` or `p32_budget_xlsx.R`** (stale, would wipe his edits). The cached values in the workbook go stale; Excel recalculates on open. Neither session touches an xlsx without Gerard.
+Gerard's Excel edits make the WORKBOOK the source of truth. Two are current: **version 3** (4,000 option) and **version 4** (5,000 option). Edit it by XML surgery, or ask Gerard; **never re-run `p30_budget.R` or `p32_budget_xlsx.R`** (stale, would wipe his edits). The cached values in the workbook go stale; Excel recalculates on open. Neither session touches an xlsx without Gerard.
 
 ## Working with parallel sessions
 
@@ -107,6 +124,6 @@ Agent findings have been wrong or inflated several times (and correct and conseq
 
 ## Checks before it goes out
 
-- Every number traceable to a computed object or the v4 workbook.
-- Any figure appearing twice says the same thing in both places (grep for the old values: 4,000, 12 months, 18 months, \$220,250, \$45,000).
+- Every number traceable to a computed object or the v3 / v4 workbook.
+- Any figure appearing twice says the same thing in both places (grep for the old values: Hartung, random slope, 82%, 72%, 0.66, 7,500, 1,133). Both options must appear wherever a size, duration or cost does.
 - The ascertainment problem is addressed by the design, not only in the limitations.

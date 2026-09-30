@@ -26,7 +26,9 @@ ev_end <- max(ea$date_event, na.rm = TRUE)
 invisible(list2env(fxn_build_cohort(ea, al, an, ev_end, params), environment()))
 invisible(list2env(fxn_build_lame_history(ef, cohort), environment()))
 
-N <- 4000; per_arm <- N / 3
+# N from the command line (2026-09-30: 4,000 and 5,000 are both offered).
+args <- commandArgs(trailingOnly = TRUE)
+N <- if (length(args) >= 1) as.numeric(args[1]) else 4000; per_arm <- N / 3
 za <- qnorm(0.975); zb <- qnorm(0.80)
 P_LESION <- 0.35; P_WLDSU <- 0.183; P_RE <- 0.95        # pilot, as in p12
 CURE <- 0.493; RECUR180 <- 0.361; CULL180 <- 0.160       # p03; p39; p39
@@ -73,6 +75,9 @@ cat(sprintf("  CURE WLD/SU   %.1f points on %.1f%% (arm 1 v 2, %.0f assessed/arm
 n_do <- per_arm * P_DRY
 cat(sprintf("  DRY-OFF PREV  %.1f points on %.1f%% (%.0f cows/arm reach dry-off)\n",
             100 * mdd_prop(n_do, DRY_PREV), 100 * DRY_PREV, n_do))
+n_do12 <- per_arm * reach(365)
+cat(sprintf("  DRY-OFF PREV, 12 months after the last cow: %.1f points (%.0f cows/arm)\n",
+            100 * mdd_prop(n_do12, DRY_PREV), n_do12))
 n_les <- per_arm * P_LESION
 cat(sprintf("  RECURRENCE    %.1f points on %.1f%% at 180 d (%.0f lame cows/arm - descriptive, not randomised)\n",
             100 * mdd_prop(n_les, RECUR180), 100 * RECUR180, n_les))

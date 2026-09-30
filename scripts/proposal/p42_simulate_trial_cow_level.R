@@ -8,10 +8,10 @@
 # DECISIONS IT ENCODES (Gerard, 2026-09-30)
 #   - Cows alerted late in lactation stay in and contribute milk until they dry
 #     off or leave. Nobody is dropped whole for drying off.
-#   - The pre-specified test is Hartung-Knapp (HK): DerSimonian-Laird pooling of
-#     the six per-herd contrasts, SE rescaled by the observed herd spread, t on
-#     k - 1 df. It holds its false-positive rate at six herds; z is shown for
-#     comparison only.
+#   - Primary test (revised 2026-09-30 night): the conventional multi-centre
+#     model - arm and herd fixed, no arm-by-herd term, one fit on all cows
+#     (fe_est). Inference is on the enrolled herds. Hartung-Knapp (HK) pooling of
+#     the per-herd contrasts is kept alongside for comparison only.
 #
 # THE MODEL
 #   cows       resampled from the pilot cohort (DIM 5 floor): baseline milk, DIM
@@ -66,6 +66,7 @@ args <- commandArgs(trailingOnly = TRUE)
 REPS <- if (length(args) >= 1) as.integer(args[1]) else 1000
 CHECKS_ONLY <- length(args) >= 2 && args[2] == "checks"
 HERDS_ONLY  <- length(args) >= 2 && args[2] == "herds"   # the 5,000-cow design tables
+CI_ONLY     <- length(args) >= 2 && args[2] == "ci"      # estimate and 95% CI at 5,000
 
 params <- list(milk_window_pre = 14, milk_window_post = 90, milk_baseline_days = 7,
                q4_lookback_days = 28, history_after_date = "2026-06-01",
@@ -297,13 +298,32 @@ pool_dl <- function(b, v) {
   c(est = est, z = abs(est / se) > qnorm(.975), hk = abs(est / se_hk) > tq,
     lo_hk = est - tq * se_hk, hw_hk = tq * se_hk)
 }
+# The conventional multi-centre analysis (Gerard, 2026-09-30, replaces HK as the
+# primary test): one model on all cows, arm and herd as fixed main effects, no
+# arm-by-herd term, covariates common to all herds. Inference is on the effect
+# in the enrolled herds. t on the residual df.
+fe_est <- function(s) {
+  a1 <- s$arm == 1; a2 <- s$arm == 2; ch <- s$chronic
+  H <- outer(s$herd, 2:K, `==`) * 1
+  X <- cbind(s$X, H); p <- ncol(X)
+  m <- wls(cbind(X, a1, a2), s$y, s$w)
+  mi <- wls(cbind(X, a1, a2, a1 * ch, a2 * ch), s$y, s$w)
+  tq <- qt(.975, length(s$y) - p - 2)
+  se1 <- sqrt(m$V[p + 1, p + 1])
+  se12 <- sqrt(m$V[p + 1, p + 1] + m$V[p + 2, p + 2] - 2 * m$V[p + 1, p + 2])
+  c(fe13 = abs(m$b[[p + 1]] / se1) > tq, festd13 = m$b[[p + 1]], lofe13 = m$b[[p + 1]] - tq * se1, hwfe13 = tq * se1,
+    fe12 = abs((m$b[[p + 1]] - m$b[[p + 2]]) / se12) > tq,
+    fenew = abs(mi$b[[p + 1]] / sqrt(mi$V[p + 1, p + 1])) > tq,
+    feint = abs(mi$b[[p + 3]] / sqrt(mi$V[p + 3, p + 3])) > tq)
+}
 one_rep <- function(N, eff_new, eff_chronic, tau_true, scenario) {
   s <- sim_trial(N, eff_new, eff_chronic, tau_true, scenario)
   e <- herd_est(s)
   r1 <- pool_dl(e$c1, e$v1); r12 <- pool_dl(e$c12, e$v12)
   rn <- pool_dl(e$cnew, e$vnew); ri <- pool_dl(e$cint, e$vint)
+  f <- fe_est(s)
   a3 <- s$arm == 3
-  c(est13 = r1[["est"]], z13 = r1[["z"]], hk13 = r1[["hk"]], lo13 = r1[["lo_hk"]], hw13 = r1[["hw_hk"]],
+  c(f, est13 = r1[["est"]], z13 = r1[["z"]], hk13 = r1[["hk"]], lo13 = r1[["lo_hk"]], hw13 = r1[["hw_hk"]],
     est12 = r12[["est"]], hk12 = r12[["hk"]],
     estnew = rn[["est"]], hknew = rn[["hk"]], estint = ri[["est"]], hkint = ri[["hk"]],
     kept = length(s$y) / s$n_enrolled, full13 = mean(s$weeks == 13),
@@ -312,10 +332,11 @@ one_rep <- function(N, eff_new, eff_chronic, tau_true, scenario) {
 }
 run <- function(N, eff_new, eff_chronic, tau_true = TAU_TRUE, scenario = "pilot", reps = REPS) {
   r <- t(replicate(reps, one_rep(N, eff_new, eff_chronic, tau_true, scenario)))
-  lo <- r[, "lo13"]
+  lo <- r[, "lo13"]; lf <- r[, "lofe13"]
   tibble(N = N, eff_new = eff_new, eff_chronic = eff_chronic, scenario = scenario, reps = reps,
          !!!as.list(colMeans(r)),
-         lo13_med = median(lo), lo13_p10 = unname(quantile(lo, .10)), lo13_p90 = unname(quantile(lo, .90)))
+         lo13_med = median(lo), lo13_p10 = unname(quantile(lo, .10)), lo13_p90 = unname(quantile(lo, .90)),
+         lofe_med = median(lf), lofe_p10 = unname(quantile(lf, .10)), lofe_p90 = unname(quantile(lf, .90)))
 }
 
 # ============================================================================
@@ -365,9 +386,38 @@ cat(sprintf("  -> TAU_TRUE = %.2f\n", TAU_TRUE))
 
 # (d) false-positive rate with no effect anywhere
 cat("\n== CHECK (d): false-positive rate at no effect, 4,000 enrolled ==\n")
-print(run(4000, 0, 0, reps = max(REPS, 2000)) |> select(N, reps, est13, z13, hk13, hkint) |>
+# The conventional test's null is "no effect in these herds", so its own false-
+# positive rate is checked with herds identical (tau 0). At tau > 0 it answers a
+# different question (the six herds' average moves with the herd draw), so the
+# rate there is shown only to record what it would be for the wider population.
+print(bind_rows(run(4000, 0, 0, reps = max(REPS, 2000)) |> mutate(tau = "calibrated"),
+                run(4000, 0, 0, tau_true = 0, reps = max(REPS, 2000)) |> mutate(tau = "0")) |>
+        select(tau, N, reps, fe13, feint, est13, z13, hk13, hkint) |>
         mutate(across(where(is.double) & !c(N, reps), \(x) round(x, 3))))
 if (CHECKS_ONLY) quit(save = "no")
+
+# ---- what the study would report at 5,000 (Gerard, 2026-09-30) -----------------
+# The goal is to ESTIMATE the milk effect, so show the estimate and its 95% CI
+# (Hartung-Knapp) across true effects, and how much they move between studies.
+if (CI_ONLY) {
+  # Also: how often the lower bound clears 0.5 and 1.0 kg. The study reports the
+  # OBSERVED difference, about half the true effect, so a 0.5 kg lower bound is
+  # roughly a 1 kg lower bound on the effect of trimming a cow.
+  # 2026-09-30 night: conventional analysis (fe_est), at 4,000 and 5,000 - the
+  # two sizes offered to Nedap.
+  ci <- expand_grid(N = c(4000, 5000), eff = c(0, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0)) |> pmap_dfr(function(N, eff) {
+    r <- t(replicate(REPS, one_rep(N, eff, eff, TAU_TRUE, "pilot")))
+    est <- r[, "festd13"]; lo <- r[, "lofe13"]; hi <- est + r[, "hwfe13"]
+    tibble(N = N, true = eff, power = mean(r[, "fe13"]), est_med = median(est), est_p10 = quantile(est, .1), est_p90 = quantile(est, .9),
+           lo_med = median(lo), lo_p10 = quantile(lo, .1), lo_p90 = quantile(lo, .9),
+           hi_med = median(hi), hw_med = median(r[, "hwfe13"]),
+           p_lo_gt0 = mean(lo > 0), p_lo_ge05 = mean(lo >= 0.5), p_lo_ge1 = mean(lo >= 1))
+  })
+  cat("\n== 4,000 and 5,000 enrolled: arm 1 v 3 estimate and 95% CI, conventional analysis, kg/day ==\n")
+  print(ci |> mutate(across(everything(), \(v) round(v, 2))), width = 200)
+  saveRDS(ci, "output/p42_ci.rds")
+  quit(save = "no")
+}
 
 # ---- the design Gerard chose (2026-09-30): 5,000 enrolled ----------------------
 # Herd count by between-herd SD of the OBSERVED effect (0.25 / 0.5 / 0.75 kg,
@@ -389,15 +439,15 @@ if (HERDS_ONLY) {
   herds <- expand_grid(k = c(4, 6, 8, 10), tau_obs = TAU_OBS) |>
     pmap_dfr(\(k, tau_obs) run_k(k, 5000, 2.0, 2.0, tau_true = tau_map[[as.character(tau_obs)]]) |>
                mutate(herds = k, tau_obs = tau_obs))
-  cat("\n== HERDS: HK power at 5,000 enrolled, true 2.0 kg (observed ~1.0) ==\n")
-  print(herds |> select(herds, tau_obs, hk13) |> mutate(hk13 = round(100 * hk13)) |>
-          pivot_wider(names_from = herds, values_from = hk13, names_prefix = "herds_"))
+  cat("\n== HERDS: power at 5,000 enrolled, true 2.0 kg (observed ~1.0), conventional (fe13) and HK ==\n")
+  print(herds |> select(herds, tau_obs, fe13, hk13) |> mutate(across(c(fe13, hk13), \(v) round(100 * v))) |>
+          pivot_wider(names_from = herds, values_from = c(fe13, hk13)))
   p_new <- mean(pool$chronic == 0)
   ch5 <- run(5000, 2.0 / p_new, 0)
   eq5 <- run(5000, 2.0, 2.0)
   cat("\n== 5,000 enrolled, true 2.0 kg: equal effect v benefit only in new cows ==\n")
   print(bind_rows(eq5 |> mutate(case = "equal"), ch5 |> mutate(case = "new cows only")) |>
-          select(case, eff_new, eff_chronic, est13, hk13, lo13_med, hw13, estnew, hknew, estint, hkint) |>
+          select(case, eff_new, eff_chronic, festd13, fe13, hwfe13, fenew, feint, hk13, hknew, hkint) |>
           mutate(across(where(is.double), \(v) round(v, 2))))
   saveRDS(list(herds = herds, ch5 = ch5, eq5 = eq5, tau_map = tau_map), "output/p42_herds.rds")
   quit(save = "no")
@@ -408,23 +458,19 @@ if (HERDS_ONLY) {
 # ============================================================================
 fmt <- \(x) mutate(x, across(where(is.double) & !c(N, reps), \(v) round(v, 2)))
 
-cat("\n== MAIN: equal effect in new and chronic cows, pilot farm practice, HK test ==\n")
-main <- expand_grid(N = c(4000, 5000, 6000, 7000, 8000, 10000), eff = c(1.5, 2.0)) |>
+cat("\n== MAIN: equal effect in new and chronic cows, pilot farm practice; conventional test (fe13), HK for comparison ==\n")
+main <- expand_grid(N = c(3000, 3500, 4000, 5000, 6000), eff = c(1.5, 2.0)) |>
   pmap_dfr(\(N, eff) run(N, eff, eff))
-print(fmt(main) |> select(N, eff_new, est13, hk13, z13, lo13_med, lo13_p10, hw13, est12, hk12, kept, full13), n = 50)
-
-cat("\n== LOWEST CONFIDENCE BOUND at 4,000 enrolled (HK 95% interval on arm 1 v 3) ==\n")
-lb <- expand_grid(eff = c(1.0, 1.5, 2.0, 2.5)) |> pmap_dfr(\(eff) run(4000, eff, eff))
-print(fmt(lb) |> select(eff_new, est13, hw13, lo13_p10, lo13_med, lo13_p90, hk13))
+print(fmt(main) |> select(N, eff_new, festd13, fe13, hwfe13, lofe_med, hk13, z13, fe12, kept, full13), n = 50)
 
 cat("\n== CHRONICITY: benefit only in new cows, same overall average as a 2.0 kg effect ==\n")
 p_new <- mean(pool$chronic == 0)
-chron <- expand_grid(N = c(4000, 6000, 8000), eff = 2.0) |> pmap_dfr(\(N, eff) run(N, eff / p_new, 0))
-print(fmt(chron) |> select(N, eff_new, eff_chronic, est13, hk13, estnew, hknew, estint, hkint))
+chron <- expand_grid(N = c(4000, 5000, 7500), eff = 2.0) |> pmap_dfr(\(N, eff) run(N, eff / p_new, 0))
+print(fmt(chron) |> select(N, eff_new, eff_chronic, festd13, fe13, fenew, feint, hk13, hknew, hkint))
 
-cat("\n== FARM PRACTICE: how much routine trimming reaches arm 3 (6,000 enrolled, true 2.0) ==\n")
-sched <- map_dfr(names(ROUT_MULT), \(sc) run(6000, 2.0, 2.0, scenario = sc))
-print(fmt(sched) |> select(scenario, est13, hk13, lo13_med, a3_any90))
+cat("\n== FARM PRACTICE: how much routine trimming reaches arm 3 (4,000 and 5,000 enrolled, true 2.0) ==\n")
+sched <- expand_grid(N = c(4000, 5000), sc = names(ROUT_MULT)) |> pmap_dfr(\(N, sc) run(N, 2.0, 2.0, scenario = sc))
+print(fmt(sched) |> select(N, scenario, festd13, fe13, hk13, a3_any90))
 
 # ---- trims from later alerts: renewal model with leaving milk --------------------
 # First protocol trim at the arm's time; each trim blocks 28 days; after that,
@@ -444,4 +490,4 @@ renew <- function(n, horizon, arm) {
 cat("\n== EXTRA TRIMS FROM LATER ALERTS (Gerard's rule), per enrolled cow ==\n")
 for (h in c(180, 270)) cat(sprintf("  %d days: arm 1 %.2f, arm 2 %.2f\n", h, renew(20000, h, 1), renew(20000, h, 2)))
 
-saveRDS(list(main = main, lb = lb, chron = chron, sched = sched, tau_true = TAU_TRUE), "output/p42_sim.rds")
+saveRDS(list(main = main, chron = chron, sched = sched, tau_true = TAU_TRUE), "output/p42_sim.rds")
