@@ -11,6 +11,7 @@ format:
     toc-location: left
     toc-depth: 2
 ---
+
 ## 1. The question and objective
 
 **Determine if acting on SmartSight alerts leaves a dairy better off, and by enough to pay for the system.**
@@ -249,7 +250,9 @@ A simulation of the whole trial, run 1,000 times at each sample size. Each simul
 
 ### What each herd supplies
 
-**The enrolment period is planned for fewer alerts than the pilot.** The pilot farm enrolled 0.024 alerted cows per week for every cow in milk and was described as a high-alert herd. Therefore the table below shows the months required to enrol 833 cows by herd size and alert level:
+**The enrolment period is planned for fewer alerts than the pilot.** The pilot farm enrolled 0.024 alerted cows per week for every cow in milk and was described as a high-alert herd.
+
+The table below shows the **months** required to enrol 833 cows by herd size and alert level:
 
 | Herd size  | 0.020 per cow per week | 0.015 | **0.010** |
 |------------|------------------------|-------|-----------|
@@ -261,15 +264,15 @@ A simulation of the whole trial, run 1,000 times at each sample size. Each simul
 
 ### Timeline
 
-+------------------+----------------------------------------------------------------------------------------------+
-|                  |                                                                                              |
-+==================+==============================================================================================+
-| Enrolment        | **up to 8 months**, in parallel across the six herds (3.2-6.4 months expected at 3,000 cows) |
-+------------------+----------------------------------------------------------------------------------------------+
-| Follow-up        | **every cow to one study end date**, at least 6 months after the last enrolment              |
-+------------------+----------------------------------------------------------------------------------------------+
-| **Total**        | **14 months**                                                                                |
-+------------------+----------------------------------------------------------------------------------------------+
++-------------+----------------------------------------------------------------------------------------------+
+|             |                                                                                              |
++=============+==============================================================================================+
+| Enrolment   | **up to 8 months**, in parallel across the six herds (3.2-6.4 months expected at 3,000 cows) |
++-------------+----------------------------------------------------------------------------------------------+
+| Follow-up   | **every cow to one study end date**, at least 6 months after the last enrolment              |
++-------------+----------------------------------------------------------------------------------------------+
+| **Total**   | **14 months**                                                                                |
++-------------+----------------------------------------------------------------------------------------------+
 
 - **Following each cow for 365 days would set the duration at 20 months or more.**
   - Following all cows to one end date does not lose that information as early cows still reach a year, and time-to-event analysis uses every cow for as long as she is watched.
